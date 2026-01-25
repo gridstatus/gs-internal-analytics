@@ -1,8 +1,9 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl } from '@mantine/core';
+import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
@@ -16,6 +17,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { filterGridstatus, setFilterGridstatus } = useFilter();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
+  const [opened, { toggle, close }] = useDisclosure();
 
   return (
     <>
@@ -34,9 +36,21 @@ export function AppLayout({ children }: AppLayoutProps) {
       </SignedOut>
       <SignedIn>
         <AppShell
-          navbar={{ width: 250, breakpoint: 'sm' }}
+          header={{ height: { base: 60, sm: 0 } }}
+          navbar={{ 
+            width: 250, 
+            breakpoint: 'sm',
+            collapsed: { mobile: !opened }
+          }}
           padding="md"
         >
+          <AppShell.Header hiddenFrom="sm">
+            <Group h="100%" px="md" justify="space-between">
+              <Burger opened={opened} onClick={toggle} size="sm" />
+              <Title order={4}>Analytics</Title>
+              <UserButton />
+            </Group>
+          </AppShell.Header>
           <AppShell.Navbar p="md">
             <Stack style={{ height: '100%' }}>
               <Group mb="md" justify="space-between">
@@ -53,6 +67,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Home"
                 leftSection={<IconDashboard size={16} />}
                 active={pathname === '/'}
+                onClick={close}
               />
               <NavLink
                 component={Link}
@@ -60,6 +75,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="User Registrations"
                 leftSection={<IconUserPlus size={16} />}
                 active={pathname === '/users'}
+                onClick={close}
               />
               
               <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
@@ -71,6 +87,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Users"
                 leftSection={<IconUserSearch size={16} />}
                 active={pathname?.startsWith('/users-list')}
+                onClick={close}
               />
               <NavLink
                 component={Link}
@@ -78,6 +95,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Domains"
                 leftSection={<IconWorld size={16} />}
                 active={pathname?.startsWith('/domains')}
+                onClick={close}
               />
               <NavLink
                 component={Link}
@@ -85,6 +103,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Organizations"
                 leftSection={<IconBuilding size={16} />}
                 active={pathname?.startsWith('/organizations')}
+                onClick={close}
               />
               
               <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
@@ -96,6 +115,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Insights"
                 leftSection={<IconBulb size={16} />}
                 active={pathname?.startsWith('/insights')}
+                onClick={close}
               />
               <NavLink
                 component={Link}
@@ -103,6 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Charts & Dashboards"
                 leftSection={<IconChartBar size={16} />}
                 active={pathname === '/charts-dashboards'}
+                onClick={close}
               />
               <NavLink
                 component={Link}
@@ -110,6 +131,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 label="Alerts"
                 leftSection={<IconBell size={16} />}
                 active={pathname === '/alerts'}
+                onClick={close}
               />
               
               <div style={{ flex: 1 }} />
