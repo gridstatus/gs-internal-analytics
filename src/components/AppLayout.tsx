@@ -1,8 +1,9 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center } from '@mantine/core';
-import { IconDashboard, IconApi, IconUserPlus, IconActivity, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
+import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl } from '@mantine/core';
+import { useMantineColorScheme } from '@mantine/core';
+import { IconDashboard, IconApi, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -14,6 +15,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { filterGridstatus, setFilterGridstatus } = useFilter();
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   return (
     <>
@@ -52,6 +54,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                 leftSection={<IconDashboard size={16} />}
                 active={pathname === '/'}
               />
+              <NavLink
+                component={Link}
+                href="/users"
+                label="User Registrations"
+                leftSection={<IconUserPlus size={16} />}
+                active={pathname === '/users'}
+              />
               
               <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
                 Users and Orgs
@@ -65,17 +74,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               />
               <NavLink
                 component={Link}
-                href="/users"
-                label="User Registrations"
-                leftSection={<IconUserPlus size={16} />}
-                active={pathname === '/users'}
-              />
-              <NavLink
-                component={Link}
-                href="/active-users"
-                label="Active Users"
-                leftSection={<IconActivity size={16} />}
-                active={pathname === '/active-users'}
+                href="/domains"
+                label="Domains"
+                leftSection={<IconWorld size={16} />}
+                active={pathname?.startsWith('/domains')}
               />
               <NavLink
                 component={Link}
@@ -129,6 +131,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                   checked={filterGridstatus}
                   onChange={(e) => setFilterGridstatus(e.currentTarget.checked)}
                 />
+                <div>
+                  <Text size="xs" c="dimmed" mb={4}>Color Scheme</Text>
+                  <SegmentedControl
+                    value={colorScheme}
+                    onChange={(value) => setColorScheme(value as 'light' | 'dark' | 'auto')}
+                    data={[
+                      { label: 'Light', value: 'light' },
+                      { label: 'Dark', value: 'dark' },
+                      { label: 'Auto', value: 'auto' },
+                    ]}
+                    fullWidth
+                  />
+                </div>
               </Stack>
             </Stack>
           </AppShell.Navbar>

@@ -15,12 +15,13 @@ import {
   Group,
   ScrollArea,
   Anchor,
+  Progress,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-import { ActivitiesResponse, Activity, ActivityType } from '@/lib/api-types';
+import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
@@ -58,8 +59,11 @@ export function Dashboard() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
   const { filterGridstatus } = useFilter();
-  const url = `/api/activities?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<ActivitiesResponse>(url, [url]);
+  const activitiesUrl = `/api/activities?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<ActivitiesResponse>(activitiesUrl, [activitiesUrl, filterGridstatus]);
+  
+  const activeUsersUrl = `/api/domains?filterGridstatus=${filterGridstatus}`;
+  const { data: activeUsersData, loading: activeUsersLoading, error: activeUsersError } = useApiData<ActiveUsersResponse>(activeUsersUrl, [activeUsersUrl, filterGridstatus]);
 
   // Group activities by type and filter by search
   const activitiesByType = useMemo(() => {
@@ -129,11 +133,12 @@ export function Dashboard() {
     });
   };
 
-  if (loading) {
+  if (loading || activeUsersLoading) {
     return (
       <Container size="xl" py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
+          <Skeleton height={200} />
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} height={100} />
@@ -149,7 +154,7 @@ export function Dashboard() {
     );
   }
 
-  if (error) {
+  if (error || activeUsersError) {
     return (
       <Container size="xl" py="xl">
         <Alert
@@ -157,19 +162,64 @@ export function Dashboard() {
           title="Error loading data"
           color="red"
         >
-          {error}
+          {error || activeUsersError}
         </Alert>
       </Container>
     );
   }
 
-  if (!data) {
+  if (!data || !activeUsersData) {
     return null;
   }
+
+  const pct24h = Math.round((activeUsersData.active24h / activeUsersData.totalUsers) * 100);
+  const pct7d = Math.round((activeUsersData.active7d / activeUsersData.totalUsers) * 100);
+  const pct30d = Math.round((activeUsersData.active30d / activeUsersData.totalUsers) * 100);
+  const pct90d = Math.round((activeUsersData.active90d / activeUsersData.totalUsers) * 100);
 
   return (
     <Container size="xl" py="xl">
       <Title order={1} mb="xl">User Analytics Dashboard</Title>
+
+      {/* Activity Breakdown */}
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
+        <Text fw={600} size="lg" mb="md">
+          Activity Breakdown
+        </Text>
+        <Stack gap="lg">
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">24 Hours</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active24h.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct24h}%)</Text>
+            </Group>
+            <Progress value={pct24h} size="lg" color="green" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">7 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active7d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct7d}%)</Text>
+            </Group>
+            <Progress value={pct7d} size="lg" color="teal" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">30 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active30d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct30d}%)</Text>
+            </Group>
+            <Progress value={pct30d} size="lg" color="blue" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">90 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active90d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct90d}%)</Text>
+            </Group>
+            <Progress value={pct90d} size="lg" color="violet" />
+          </div>
+        </Stack>
+        <Text size="xs" c="dimmed" mt="md">
+          Based on last_active_at timestamp. Total registered users: {activeUsersData.totalUsers.toLocaleString()}
+        </Text>
+      </Paper>
 
       {/* Activity Feed - TweetDeck Style */}
       <Stack gap="md">

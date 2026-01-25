@@ -32,7 +32,8 @@ export async function GET(request: Request) {
       byDomain,
     });
   } catch (error) {
-    console.error('Error fetching active users:', error);
+    console.error('Error fetching domains:', error);
     return jsonError(error);
   }
 }
+

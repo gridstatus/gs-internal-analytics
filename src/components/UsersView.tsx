@@ -118,14 +118,23 @@ export function UsersView() {
       ? data.monthlyData[data.monthlyData.length - 2]
       : null;
 
+  // Format month for display (e.g., "Jan 2026")
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
   // Calculate last year's month for display
   const formatLastYearMonth = () => {
     const [year, month] = latestMetric.month.split('-');
     const lastYearDate = new Date(parseInt(year) - 1, parseInt(month) - 1, 1);
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[lastYearDate.getMonth()]}, ${lastYearDate.getFullYear()}`;
+    return `${monthNames[lastYearDate.getMonth()]} ${lastYearDate.getFullYear()}`;
   };
   const lastYearMonthLabel = formatLastYearMonth();
+  const currentMonthLabel = formatMonth(latestMetric.month);
 
   const calculateTrend = (current: number, previous: number | undefined) => {
     if (previous === undefined || previous === 0) return undefined;
@@ -134,6 +143,14 @@ export function UsersView() {
 
   // Get last 12 months for the table
   const recentMonths = data.monthlyData.slice(-12).reverse();
+
+  // Format today's date for display (e.g., "Jan 15, 2026")
+  const formatTodayDate = () => {
+    const today = new Date();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+  };
+  const todayDateLabel = formatTodayDate();
 
   return (
     <Container size="xl" py="xl">
@@ -163,7 +180,7 @@ export function UsersView() {
       {/* Summary Metrics */}
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mb="xl">
         <MetricCard
-          title="Users Today"
+          title={`Users Today - ${todayDateLabel}`}
           value={data.usersToday.today}
           subtitle={
             <SimpleGrid cols={2} spacing="xs">
@@ -211,14 +228,11 @@ export function UsersView() {
           }
         />
         <MetricCard
-          title="New Users"
+          title={`New Users - ${currentMonthLabel}`}
           value={data.monthlyNewUsers?.currentMonth ?? latestMetric.newUsers}
           subtitle={
             data.monthlyNewUsers ? (
               <Stack gap={2}>
-                <Text size="xs" c="dimmed">
-                  {latestMetric.month}
-                </Text>
                 <SimpleGrid cols={2} spacing="xs">
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">

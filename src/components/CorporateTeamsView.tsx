@@ -13,8 +13,11 @@ import {
   Paper,
   Text,
   Anchor,
+  Collapse,
+  Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconInfoCircle, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { useState } from 'react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
@@ -24,6 +27,7 @@ import { CorporateTeamsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 
 export function CorporateTeamsView() {
+  const [showHelp, setShowHelp] = useState(false);
   const corpUsersChartRef = useRef<HTMLDivElement>(null);
   const teamsChartRef = useRef<HTMLDivElement>(null);
   const corpDomainsChartRef = useRef<HTMLDivElement>(null);
@@ -36,7 +40,7 @@ export function CorporateTeamsView() {
 
   const { filterGridstatus } = useFilter();
   const url = `/api/users/corporate-teams?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url]);
+  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url, filterGridstatus]);
 
   if (loading) {
     return (
@@ -109,6 +113,82 @@ export function CorporateTeamsView() {
         <Title order={1}>Corporate Users & Teams</Title>
         <ExportButton charts={chartRefs} />
       </Group>
+
+      {/* Help Text */}
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
+        <Group justify="space-between" mb="xs">
+          <Group gap="xs">
+            <IconInfoCircle size={20} style={{ color: 'var(--mantine-color-blue-6)' }} />
+            <Text fw={600} size="sm">
+              How These Metrics Are Calculated
+            </Text>
+          </Group>
+          <Button
+            variant="subtle"
+            size="xs"
+            onClick={() => setShowHelp(!showHelp)}
+            leftSection={showHelp ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+          >
+            {showHelp ? 'Hide' : 'Show'} Details
+          </Button>
+        </Group>
+        <Collapse in={showHelp}>
+          <Stack gap="sm" mt="md">
+            <div>
+              <Text fw={500} size="sm" mb={4}>
+                Corporate Users
+              </Text>
+              <Text size="xs" c="dimmed">
+                Users whose email domain is NOT in the free email domains list (gmail.com, yahoo.com, hotmail.com, outlook.com, icloud.com, aol.com, comcast.net, qq.com, me.com, protonmail.com, live.com, msn.com, zoho.com, gmx.com, yandex.com). 
+                This metric also excludes .edu and .gov domains. The count is cumulative (total registered users from corporate domains).
+              </Text>
+            </div>
+            <div>
+              <Text fw={500} size="sm" mb={4}>
+                Corporate Domains
+              </Text>
+              <Text size="xs" c="dimmed">
+                The number of distinct corporate email domains that had at least one user registration in that month. 
+                Domains are counted in each month where they have user registrations. A domain that appears in multiple 
+                months will be counted in each of those months.
+              </Text>
+            </div>
+            <div>
+              <Text fw={500} size="sm" mb={4}>
+                Teams
+              </Text>
+              <Text size="xs" c="dimmed">
+                Corporate domains that have 3 or more users. This metric counts domains that have 3+ users 
+                and had at least one user registration in that month. The count uses a cumulative calculation 
+                per domain (total users from that domain up to that month).
+              </Text>
+            </div>
+            <div>
+              <Text fw={500} size="sm" mb={4}>
+                Users on Teams
+              </Text>
+              <Text size="xs" c="dimmed">
+                The total number of users from domains that qualify as "teams" (domains with 3+ users). 
+                This is the sum of all users across all team domains.
+              </Text>
+            </div>
+            <div>
+              <Text fw={500} size="sm" mb={4}>
+                New Corporate Users
+              </Text>
+              <Text size="xs" c="dimmed">
+                The number of new users registered in each month whose email domain qualifies as corporate 
+                (not a free email provider and not .edu/.gov).
+              </Text>
+            </div>
+            <Alert color="blue" variant="light" mt="sm">
+              <Text size="xs">
+                <strong>Note:</strong> All metrics respect the internal user filter (gridstatus.io users can be included/excluded via the sidebar filter).
+              </Text>
+            </Alert>
+          </Stack>
+        </Collapse>
+      </Paper>
 
       {/* Summary Metrics */}
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="xl">

@@ -427,10 +427,6 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM current_month_start)
         AND created_at < (SELECT start_time FROM current_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -439,10 +435,6 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM previous_month_start)
         AND created_at < (SELECT start_time FROM previous_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -451,10 +443,6 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM previous_month_start)
         AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -466,10 +454,6 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM last_year_month_start)
         AND created_at < (SELECT start_time FROM last_year_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -478,10 +462,6 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM last_year_month_start)
         AND created_at < (SELECT start_time FROM last_year_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     )
