@@ -16,11 +16,13 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
+import { DateTime } from 'luxon';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { UsersListItem, UsersListResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { UserHoverCard } from './UserHoverCard';
+import { useFilter } from '@/contexts/FilterContext';
 
 type SortColumn = 'username' | 'name' | 'hasApiKey' | 'createdAt' | 'lastActiveAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -30,9 +32,10 @@ export function UsersListView() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [sortColumn, setSortColumn] = useState<SortColumn>('lastActiveAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const { timezone } = useFilter();
 
-  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}`;
-  const { data, loading } = useApiData<UsersListResponse>(url, [url]);
+  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}&timezone=${timezone}`;
+  const { data, loading } = useApiData<UsersListResponse>(url, [url, timezone]);
   const users = data?.users ?? [];
 
   const sortedUsers = useMemo(() => {
@@ -185,11 +188,15 @@ export function UsersListView() {
                       )}
                     </Table.Td>
                     <Table.Td>
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {DateTime.fromISO(user.createdAt)
+                        .setZone(timezone)
+                        .toLocaleString(DateTime.DATETIME_SHORT)}
                     </Table.Td>
                     <Table.Td>
                       {user.lastActiveAt
-                        ? new Date(user.lastActiveAt).toLocaleDateString()
+                        ? DateTime.fromISO(user.lastActiveAt)
+                            .setZone(timezone)
+                            .toLocaleString(DateTime.DATETIME_SHORT)
                         : 'Never'}
                     </Table.Td>
                   </Table.Tr>

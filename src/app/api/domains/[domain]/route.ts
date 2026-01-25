@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { loadSql } from '@/lib/queries';
+import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ domain: string }> | { domain: string } }
 ) {
-  try {
-    const resolvedParams = await Promise.resolve(params);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const resolvedParams = await Promise.resolve(params);
     const domain = decodeURIComponent(resolvedParams.domain);
 
     // Get domain stats
@@ -94,11 +97,12 @@ export async function GET(
       })),
     });
   } catch (error) {
-    console.error('Error fetching domain analytics:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error fetching domain analytics:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }
 

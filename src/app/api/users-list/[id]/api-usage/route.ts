@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
+import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { searchParams } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const { id } = await params;
     const days = parseInt(searchParams.get('days') || '1', 10);
     
     // Validate days parameter
@@ -65,11 +67,12 @@ export async function GET(
       })),
     });
   } catch (error) {
-    console.error('Error fetching API usage:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error fetching API usage:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }
 

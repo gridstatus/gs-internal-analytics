@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { loadSql, renderSqlTemplate } from '@/lib/queries';
+import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
     
     // Load the user-activities SQL query
     let sql = loadSql('user-activities.sql');
@@ -44,11 +46,12 @@ export async function GET(request: Request) {
       filterGridstatus,
     });
   } catch (error) {
-    console.error('Error running EXPLAIN:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error running EXPLAIN:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }
 

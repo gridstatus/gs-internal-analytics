@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { InsightsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useFilter } from '@/contexts/FilterContext';
 
 export function InsightsView() {
   const searchParams = useSearchParams();
@@ -104,17 +105,17 @@ export function InsightsView() {
     }
   }, [timeFilter, chartPeriod, pathname, router, searchParams]);
 
+  const { timezone } = useFilter();
   const params = new URLSearchParams();
+  params.set('timezone', timezone);
   if (timeFilter) {
     params.set('timeFilter', timeFilter);
   }
   if (chartPeriod !== 'month') {
     params.set('chartPeriod', chartPeriod);
   }
-  const url = params.toString()
-    ? `/api/insights?${params.toString()}`
-    : '/api/insights';
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [url]);
+  const url = `/api/insights?${params.toString()}`;
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, timezone]);
 
   if (loading) {
     return (

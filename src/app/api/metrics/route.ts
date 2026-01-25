@@ -7,6 +7,7 @@ import {
   getDomainSummary,
 } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
+import { withRequestContext } from '@/lib/api-helpers';
 
 interface PosthogMau {
   month: string;
@@ -72,9 +73,10 @@ function formatMonth(date: Date): string {
 }
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
     
     // Run all queries in parallel
     const [userCounts, apiUsage, corpMetrics, domainDistribution, domainSummaryResult, posthogMaus] =
@@ -150,10 +152,11 @@ export async function GET(request: Request) {
       summary,
     });
   } catch (error) {
-    console.error('Error fetching metrics:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error fetching metrics:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }

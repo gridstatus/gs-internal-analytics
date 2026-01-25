@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   HoverCard,
   Anchor,
@@ -22,7 +22,9 @@ import {
   IconBuilding,
   IconExternalLink,
 } from '@tabler/icons-react';
+import { DateTime } from 'luxon';
 import Link from 'next/link';
+import { useFilter } from '@/contexts/FilterContext';
 
 interface UserSummary {
   user: {
@@ -65,6 +67,13 @@ export function UserHoverCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
+  const { timezone } = useFilter();
+
+  useEffect(() => {
+    setHasFetched(false);
+    setData(null);
+    setError(null);
+  }, [timezone]);
 
   const fetchUserSummary = useCallback(async () => {
     if (hasFetched) return;
@@ -74,7 +83,7 @@ export function UserHoverCard({
     setHasFetched(true);
     
     try {
-      const response = await fetch(`/api/users-list?id=${userId}`);
+      const response = await fetch(`/api/users-list?id=${userId}&timezone=${timezone}`);
       if (!response.ok) {
         throw new Error('Failed to fetch user');
       }
@@ -85,22 +94,10 @@ export function UserHoverCard({
     } finally {
       setLoading(false);
     }
-  }, [userId, hasFetched]);
+  }, [userId, hasFetched, timezone]);
 
   const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / 86400000);
-    const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30);
-    
-    if (diffDays < 1) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-    if (diffWeeks < 4) return `${diffWeeks}w ago`;
-    if (diffMonths < 12) return `${diffMonths}mo ago`;
-    return `${Math.floor(diffDays / 365)}y ago`;
+    return DateTime.fromISO(dateString).toRelative() || 'Unknown';
   };
 
   const getDomainFromUsername = (username: string): string | null => {
@@ -244,7 +241,7 @@ export function UserHoverCard({
                 <Text size="xs" c="dimmed">Joined</Text>
               </Group>
               <Text size="xs">
-                {new Date(data.user.createdAt).toLocaleDateString()}
+                {DateTime.fromISO(data.user.createdAt).setZone(timezone).toLocaleString(DateTime.DATE_SHORT)}
               </Text>
             </Group>
             <Group justify="space-between">

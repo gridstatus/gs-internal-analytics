@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
+import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
     const queryType = searchParams.get('type') || 'search'; // 'search' or 'detail'
 
@@ -106,11 +108,12 @@ export async function GET(request: Request) {
       });
     }
   } catch (error) {
-    console.error('Error running EXPLAIN:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error running EXPLAIN:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }
 

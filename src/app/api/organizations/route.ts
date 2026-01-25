@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { jsonError } from '@/lib/api-helpers';
+import { jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const id = searchParams.get('id');
+  return withRequestContext(searchParams, async () => {
+    const search = searchParams.get('search') || '';
+    const id = searchParams.get('id');
 
-  try {
+    try {
     // If ID provided, get single org with users
     if (id) {
       const orgs = await query<{
@@ -166,7 +167,8 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching organizations:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching organizations:', error);
+      return jsonError(error);
+    }
+  });
 }

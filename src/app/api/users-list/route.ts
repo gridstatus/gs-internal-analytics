@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { loadSql } from '@/lib/queries';
+import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const id = searchParams.get('id');
+  return withRequestContext(searchParams, async () => {
+    const search = searchParams.get('search') || '';
+    const id = searchParams.get('id');
 
-  try {
+    try {
     // If ID provided, get single user with details
     if (id) {
       const users = await query<{
@@ -272,7 +274,8 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
-  }
+      console.error('Error fetching users:', error);
+      return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    }
+  });
 }

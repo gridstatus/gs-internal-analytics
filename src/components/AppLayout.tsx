@@ -1,13 +1,14 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger } from '@mantine/core';
+import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
+import { VALID_TIMEZONES, ValidTimezone } from '@/lib/timezones';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const { filterGridstatus, setFilterGridstatus } = useFilter();
+  const { filterGridstatus, setFilterGridstatus, timezone, setTimezone } = useFilter();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure();
 
@@ -142,6 +143,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                   label="Filter Internal"
                   checked={filterGridstatus}
                   onChange={(e) => setFilterGridstatus(e.currentTarget.checked)}
+                />
+                <Select
+                  label="Timezone"
+                  size="xs"
+                  value={timezone}
+                  onChange={(value) => setTimezone((value as ValidTimezone) || 'UTC')}
+                  data={VALID_TIMEZONES}
+                  allowDeselect={false}
                 />
                 <div>
                   <Text size="xs" c="dimmed" mb={4}>Color Scheme</Text>

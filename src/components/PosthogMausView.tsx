@@ -22,6 +22,7 @@ import { ExportButton } from './ExportButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PosthogActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useFilter } from '@/contexts/FilterContext';
 
 
 export function PosthogMausView() {
@@ -50,8 +51,9 @@ export function PosthogMausView() {
     router.replace(newUrl, { scroll: false });
   }, [period, pathname, router, searchParams]);
 
-  const url = `/api/posthog-maus?period=${period}`;
-  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url]);
+  const { timezone } = useFilter();
+  const url = `/api/posthog-maus?period=${period}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url, timezone]);
 
   if (loading) {
     return (

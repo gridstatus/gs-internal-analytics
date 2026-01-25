@@ -3,6 +3,8 @@
 import { forwardRef } from 'react';
 import { Paper, Text, Box } from '@mantine/core';
 import { CompositeChart, BarChart } from '@mantine/charts';
+import { useFilter } from '@/contexts/FilterContext';
+import { DateTime } from 'luxon';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ChartDataPoint = { month: string } & Record<string, any>;
@@ -23,6 +25,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line' },
     ref
   ) {
+    const { timezone } = useFilter();
     // Calculate MoM change for each data point
     const chartData = data.map((point, index) => {
       const currentValue = Number(point[dataKey]) || 0;
@@ -43,31 +46,43 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       };
     });
 
+    const formatXAxisLabel = (value: string) => {
+      // Check if it's an ISO datetime string (hourly)
+      if (value.includes('T')) {
+        return DateTime.fromISO(value).setZone(timezone).toLocaleString({
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+      }
+
+      const parts = value.split('-');
+      if (parts.length === 3) {
+        // Daily format: YYYY-MM-DD
+        // Use UTC to avoid shifts for calendar dates
+        return DateTime.fromISO(value, { zone: 'utc' }).toLocaleString({
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+
+      // Monthly format: YYYY-MM
+      // Use UTC to avoid shifts for calendar dates
+      return DateTime.fromISO(value, { zone: 'utc' }).toLocaleString({
+        month: 'short',
+        year: '2-digit',
+      });
+    };
+
+    const chartDataWithLabel = chartData.map((point) => ({
+      ...point,
+      label: formatXAxisLabel(String(point.month)),
+    }));
+
     const xAxisProps = {
-      tickFormatter: (value: string) => {
-        // Check if it's an ISO datetime string (hourly)
-        if (value.includes('T')) {
-          const date = new Date(value);
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const monthName = monthNames[date.getUTCMonth()];
-          const day = date.getUTCDate();
-          const hour = date.getUTCHours();
-          return `${monthName} ${day}, ${hour}:00`;
-        }
-        
-        const parts = value.split('-');
-        if (parts.length === 3) {
-          // Daily format: YYYY-MM-DD
-          const [year, month, day] = parts;
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const monthName = monthNames[parseInt(month, 10) - 1];
-          return `${monthName} ${parseInt(day, 10)}`;
-        } else {
-          // Monthly format: YYYY-MM
-          const [year, month] = parts;
-          return `${month}/${year.slice(2)}`;
-        }
-      },
+      tickFormatter: (value: string) => value,
     };
 
     if (chartType === 'bar') {
@@ -84,8 +99,8 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
           <Box>
             <BarChart
               h={height}
-              data={chartData}
-              dataKey="month"
+              data={chartDataWithLabel}
+              dataKey="label"
               series={[{ name: dataKey, color }]}
               xAxisProps={xAxisProps}
               yAxisProps={{ domain: [0, 'auto'] }}
@@ -115,8 +130,8 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
         <Box>
           <CompositeChart
             h={height}
-            data={chartData}
-            dataKey="month"
+            data={chartDataWithLabel}
+            dataKey="label"
             series={series}
             curveType="linear"
             withLegend

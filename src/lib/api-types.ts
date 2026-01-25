@@ -95,6 +95,12 @@ export interface UsersTodayData {
   lastWeekSameTime: number;
 }
 
+export interface HourlyUserRegistrations {
+  hour: string;
+  newUsers: number;
+  cumulativeUsers: number;
+}
+
 export interface MonthlyNewUsersData {
   currentMonth: number;
   previousMonthAll: number;
@@ -106,6 +112,7 @@ export interface MonthlyNewUsersData {
 export interface UsersResponse {
   monthlyData: MonthlyUserData[];
   usersToday: UsersTodayData;
+  hourlyRegistrations?: HourlyUserRegistrations[];
   monthlyNewUsers?: MonthlyNewUsersData;
   topDomains?: {
     '1d': TopDomain[];

@@ -23,9 +23,9 @@ import { useApiData } from '@/hooks/useApiData';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus } = useFilter();
-  const url = `/api/domains?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url, filterGridstatus]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/domains?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (

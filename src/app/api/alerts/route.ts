@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { loadRenderedSql, renderSqlTemplate } from '@/lib/queries';
-import { formatDateOnly, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
+import { formatDateOnly, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = getFilterGridstatus(searchParams);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
 
     // Get summary stats (filtered)
     const summarySql = `
@@ -43,8 +44,9 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching alerts:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching alerts:', error);
+      return jsonError(error);
+    }
+  });
 }
 

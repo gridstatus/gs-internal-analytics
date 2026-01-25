@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getMonthlyCorpMetrics } from '@/lib/queries';
-import { formatMonthUtc, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
+import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = getFilterGridstatus(searchParams);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
     
     const [userCounts, corpMetrics] = await Promise.all([
       getMonthlyUserCounts(filterGridstatus),
@@ -43,8 +44,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ monthlyData });
   } catch (error) {
-    console.error('Error fetching corporate and teams data:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching corporate and teams data:', error);
+      return jsonError(error);
+    }
+  });
 }
 

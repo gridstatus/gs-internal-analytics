@@ -18,6 +18,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft, IconInfoCircle, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { useState } from 'react';
+import { DateTime } from 'luxon';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
@@ -38,9 +39,9 @@ export function CorporateTeamsView() {
     { name: 'corp_domains', ref: corpDomainsChartRef },
   ];
 
-  const { filterGridstatus } = useFilter();
-  const url = `/api/users/corporate-teams?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url, filterGridstatus]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/users/corporate-teams?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (
@@ -95,6 +96,10 @@ export function CorporateTeamsView() {
 
   // Get last 12 months for the table
   const recentMonths = data.monthlyData.slice(-12).reverse();
+
+  const formatMonthLabel = (monthStr: string) => {
+    return DateTime.fromISO(monthStr, { zone: 'utc' }).toFormat('MMM yyyy');
+  };
 
   return (
     <Container size="xl" py="xl">
@@ -263,7 +268,7 @@ export function CorporateTeamsView() {
           <Table.Tbody>
             {recentMonths.map((row) => (
               <Table.Tr key={row.month}>
-                <Table.Td>{row.month}</Table.Td>
+                <Table.Td>{formatMonthLabel(row.month)}</Table.Td>
                 <Table.Td ta="right">
                   {row.totalCorpUsers.toLocaleString()}
                   {row.corpUsersMomChange !== 0 && (

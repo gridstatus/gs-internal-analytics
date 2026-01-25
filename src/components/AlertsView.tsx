@@ -25,9 +25,9 @@ import Link from 'next/link';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus } = useFilter();
-  const url = `/api/alerts?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<AlertsResponse>(url, [url]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/alerts?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<AlertsResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (

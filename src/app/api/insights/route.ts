@@ -5,7 +5,7 @@ import {
   getMonthlyInsightsReactions,
   getTopInsightsPosts,
 } from '@/lib/queries';
-import { jsonError } from '@/lib/api-helpers';
+import { jsonError, withRequestContext } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -36,9 +36,10 @@ function formatPeriod(date: Date, period: 'day' | 'week' | 'month'): string {
 }
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const timeFilter = searchParams.get('timeFilter') as '24h' | '7d' | '1m' | null;
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const timeFilter = searchParams.get('timeFilter') as '24h' | '7d' | '1m' | null;
     const chartPeriod = (searchParams.get('chartPeriod') as 'day' | 'week' | 'month') || 'month';
     
     const [posts, views, reactions, topPosts] = await Promise.all([
@@ -125,8 +126,9 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching insights data:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching insights data:', error);
+      return jsonError(error);
+    }
+  });
 }
 

@@ -15,6 +15,7 @@ import {
   Anchor,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { DateTime } from 'luxon';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
@@ -23,9 +24,9 @@ import { useApiData } from '@/hooks/useApiData';
 export function TopRegistrationsView() {
   const [activeTab, setActiveTab] = useState<string | null>('day');
 
-  const { filterGridstatus } = useFilter();
-  const url = `/api/top-registrations?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/top-registrations?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url, filterGridstatus, timezone]);
 
   useEffect(() => {
     if (data?.data && data.data.length > 0 && activeTab === null) {
@@ -76,34 +77,15 @@ export function TopRegistrationsView() {
   };
 
   const formatPeriod = (period: string, type: string) => {
-    const date = new Date(period);
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const start = DateTime.fromISO(period, { zone: 'utc' });
     
     if (type === 'day') {
-      const year = date.getUTCFullYear();
-      const month = monthNames[date.getUTCMonth()];
-      const day = date.getUTCDate();
-      return `${month} ${day}, ${year}`;
+      return start.toLocaleString(DateTime.DATE_FULL);
     } else if (type === 'week') {
-      // Calculate week start (Sunday) in UTC
-      const weekStart = new Date(date);
-      const dayOfWeek = date.getUTCDay();
-      weekStart.setUTCDate(date.getUTCDate() - dayOfWeek);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-      
-      const startMonth = monthNamesShort[weekStart.getUTCMonth()];
-      const startDay = weekStart.getUTCDate();
-      const endMonth = monthNamesShort[weekEnd.getUTCMonth()];
-      const endDay = weekEnd.getUTCDate();
-      const endYear = weekEnd.getUTCFullYear();
-      
-      return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
+      const end = start.plus({ days: 6 });
+      return `${start.toFormat('MMM d')} - ${end.toLocaleString(DateTime.DATE_FULL)}`;
     } else {
-      const year = date.getUTCFullYear();
-      const month = monthNames[date.getUTCMonth()];
-      return `${month} ${year}`;
+      return start.toFormat('MMM yyyy');
     }
   };
 

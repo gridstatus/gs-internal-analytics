@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, loadSql, renderSqlTemplate } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { formatMonthUtc, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
+import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = getFilterGridstatus(searchParams);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
     
     // Get top domains for different time periods
     const domainSearch = searchParams.get('domainSearch') || '';
@@ -32,7 +33,32 @@ export async function GET(request: Request) {
       return query<{ domain: string; user_count: string }>(sql);
     };
 
-    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, topDomains1d, topDomains7d, topDomains30d] = await Promise.all([
+    const hourlyRegistrationsSql = `
+      WITH hours AS (
+        SELECT generate_series(
+          DATE_TRUNC('day', NOW()),
+          DATE_TRUNC('hour', NOW()),
+          INTERVAL '1 hour'
+        ) AS hour
+      ),
+      counts AS (
+        SELECT
+          DATE_TRUNC('hour', created_at) AS hour,
+          COUNT(*) AS new_users
+        FROM api_server.users
+        WHERE created_at >= DATE_TRUNC('day', NOW())
+          AND created_at < DATE_TRUNC('day', NOW()) + INTERVAL '1 day'
+          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+          {{INTERNAL_EMAIL_FILTER}}
+        GROUP BY 1
+      )
+      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
+      FROM hours h
+      LEFT JOIN counts c ON c.hour = h.hour
+      ORDER BY h.hour ASC
+    `;
+
+    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw] = await Promise.all([
       getMonthlyUserCounts(filterGridstatus),
       getMonthlyCorpMetrics(filterGridstatus),
       getUsersToday(filterGridstatus),
@@ -40,7 +66,21 @@ export async function GET(request: Request) {
       getTopDomains(1),
       getTopDomains(7),
       getTopDomains(30),
+      query<{ hour: Date; new_users: string }>(
+        renderSqlTemplate(hourlyRegistrationsSql, { filterGridstatus })
+      ),
     ]);
+
+    let cumulativeUsers = 0;
+    const hourlyRegistrations = hourlyRegistrationsRaw.map((row) => {
+      const newUsers = Number(row.new_users);
+      cumulativeUsers += newUsers;
+      return {
+        hour: row.hour.toISOString(),
+        newUsers,
+        cumulativeUsers,
+      };
+    });
 
     const corpMetricsMap = new Map(
       corpMetrics.map((row) => [formatMonthUtc(new Date(row.month)), row])
@@ -89,6 +129,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       monthlyData,
+      hourlyRegistrations,
       usersToday: {
         today: Number(usersToday[0]?.users_today || 0),
         yesterdayAll: Number(usersToday[0]?.users_yesterday_all || 0),
@@ -119,7 +160,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error fetching user data:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching user data:', error);
+      return jsonError(error);
+    }
+  });
 }

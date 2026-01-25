@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getActiveUsers, getActiveUsersByDomain } from '@/lib/queries';
-import { getFilterGridstatus, jsonError } from '@/lib/api-helpers';
+import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = getFilterGridstatus(searchParams);
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
     
     const [summaryResult, domainResult] = await Promise.all([
       getActiveUsers(),
@@ -32,8 +33,9 @@ export async function GET(request: Request) {
       byDomain,
     });
   } catch (error) {
-    console.error('Error fetching domains:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching domains:', error);
+      return jsonError(error);
+    }
+  });
 }
 

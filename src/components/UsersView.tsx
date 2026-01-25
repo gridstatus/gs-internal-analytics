@@ -17,12 +17,14 @@ import {
   Anchor,
   TextInput,
   SegmentedControl,
+  Box,
 } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
-import { IconAlertCircle, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
+import { IconSearch, IconAlertCircle, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
+import { DateTime } from 'luxon';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
+import { CompositeChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -38,10 +40,12 @@ export function UsersView() {
 
   const totalUsersChartRef = useRef<HTMLDivElement>(null);
   const newUsersChartRef = useRef<HTMLDivElement>(null);
+  const hourlyUsersChartRef = useRef<HTMLDivElement>(null);
 
   const chartRefs = [
     { name: 'total_users', ref: totalUsersChartRef },
     { name: 'new_users', ref: newUsersChartRef },
+    { name: 'hourly_users', ref: hourlyUsersChartRef },
   ];
 
   // Get timestamp type from URL, default to 'created_at'
@@ -59,9 +63,10 @@ export function UsersView() {
     router.replace(newUrl, { scroll: false });
   };
 
-  const { filterGridstatus } = useFilter();
+  const { filterGridstatus, timezone } = useFilter();
   const params = new URLSearchParams({
     filterGridstatus: filterGridstatus.toString(),
+    timezone,
   });
   if (debouncedDomainFilter) {
     params.set('domainSearch', debouncedDomainFilter);
@@ -70,7 +75,7 @@ export function UsersView() {
     params.set('timestampType', timestampType);
   }
   const url = `/api/users?${params.toString()}`;
-  const { data, loading, error } = useApiData<UsersResponse>(url, [url, filterGridstatus, debouncedDomainFilter, timestampType]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [url, filterGridstatus, timezone, debouncedDomainFilter, timestampType]);
 
   if (loading) {
     return (
@@ -120,18 +125,14 @@ export function UsersView() {
 
   // Format month for display (e.g., "Jan 2026")
   const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    return DateTime.fromISO(monthStr, { zone: 'utc' }).toFormat('MMM yyyy');
   };
 
   // Calculate last year's month for display
   const formatLastYearMonth = () => {
-    const [year, month] = latestMetric.month.split('-');
-    const lastYearDate = new Date(parseInt(year) - 1, parseInt(month) - 1, 1);
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[lastYearDate.getMonth()]} ${lastYearDate.getFullYear()}`;
+    return DateTime.fromISO(latestMetric.month, { zone: 'utc' })
+      .minus({ years: 1 })
+      .toFormat('MMM yyyy');
   };
   const lastYearMonthLabel = formatLastYearMonth();
   const currentMonthLabel = formatMonth(latestMetric.month);
@@ -146,9 +147,7 @@ export function UsersView() {
 
   // Format today's date for display (e.g., "Jan 15, 2026")
   const formatTodayDate = () => {
-    const today = new Date();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+    return DateTime.now().setZone(timezone).toLocaleString(DateTime.DATE_MED);
   };
   const todayDateLabel = formatTodayDate();
 
@@ -305,6 +304,49 @@ export function UsersView() {
         />
       </SimpleGrid>
 
+      <Paper shadow="sm" p="md" radius="md" withBorder ref={hourlyUsersChartRef} mb="xl">
+        <Text fw={600} size="lg" mb="xs">
+          New Users by Hour (Today)
+        </Text>
+        <Text size="sm" c="dimmed" mb="md">
+          Bar shows new users per hour, line shows cumulative users through the day
+        </Text>
+        {data.hourlyRegistrations && data.hourlyRegistrations.length > 0 ? (
+          <Box>
+            {(() => {
+              const hourlyChartData = data.hourlyRegistrations.map((row) => ({
+                ...row,
+                hourLabel: DateTime.fromISO(row.hour)
+                  .setZone(timezone)
+                  .toLocaleString(DateTime.TIME_SIMPLE),
+              }));
+              return (
+                <CompositeChart
+                  h={300}
+                  data={hourlyChartData}
+                  dataKey="hourLabel"
+                  series={[
+                    { name: 'newUsers', type: 'bar', color: 'teal.6' },
+                    { name: 'cumulativeUsers', type: 'line', color: 'blue.6', yAxisId: 'right' },
+                  ]}
+                  curveType="linear"
+                  withLegend
+                  legendProps={{ verticalAlign: 'bottom', height: 40 }}
+                  yAxisProps={{ domain: [0, 'auto'] }}
+                  withRightYAxis
+                  rightYAxisLabel="Cumulative"
+                  rightYAxisProps={{ domain: [0, 'auto'] }}
+                />
+              );
+            })()}
+          </Box>
+        ) : (
+          <Text c="dimmed" size="sm">
+            No registrations yet today.
+          </Text>
+        )}
+      </Paper>
+
       {/* Top Domains */}
       {data.topDomains && (
         <Stack gap="md">
@@ -449,7 +491,7 @@ export function UsersView() {
           <Table.Tbody>
             {recentMonths.map((row) => (
               <Table.Tr key={row.month}>
-                <Table.Td>{row.month}</Table.Td>
+                <Table.Td>{formatMonth(row.month)}</Table.Td>
                 <Table.Td ta="right">
                   {row.totalUsers.toLocaleString()}
                   {row.totalUsersMomChange !== 0 && (

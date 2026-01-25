@@ -58,6 +58,42 @@ const year = date.getFullYear();
 const month = date.getMonth() + 1;
 ```
 
+#### Timezone Setting (User-Selectable)
+- The app supports a user-selected timezone (default `UTC`) from the sidebar.
+- **Do not show UTC labels** unless the user has selected UTC.
+- For UI date/time labels, format using `Intl.DateTimeFormat` with the selected timezone.
+
+**How to retrieve the timezone in code:**
+
+- Client components:
+```typescript
+import { useFilter } from '@/contexts/FilterContext';
+
+const { timezone } = useFilter();
+```
+
+- API routes:
+```typescript
+import { withRequestContext } from '@/lib/api-helpers';
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    // query() calls here automatically use the request timezone
+  });
+}
+```
+
+- UI formatting (example):
+```typescript
+const label = new Intl.DateTimeFormat('en-US', {
+  timeZone: timezone,
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+}).format(new Date());
+```
+
 ### Charts
 - Use **straight lines** (`curveType="linear"`) - no curved lines
 - Use `chartType="bar"` for MAU and count data

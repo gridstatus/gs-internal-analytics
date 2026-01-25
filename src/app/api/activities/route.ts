@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserActivities, getNewUsersLast3Months } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
+import { withRequestContext } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -9,11 +10,12 @@ function formatMonth(date: Date): string {
 }
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
 
-    const [activities, newUsers] = await Promise.all([
+      const [activities, newUsers] = await Promise.all([
       getUserActivities(filterGridstatus),
       getNewUsersLast3Months(filterGridstatus),
     ]);
@@ -32,11 +34,12 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching activities:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
-  }
+      console.error('Error fetching activities:', error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 }
+      );
+    }
+  });
 }
 

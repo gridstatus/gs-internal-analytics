@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { jsonError } from '@/lib/api-helpers';
+import { jsonError, withRequestContext } from '@/lib/api-helpers';
 
 async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
@@ -112,9 +112,10 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
 }
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month';
+  const { searchParams } = new URL(request.url);
+  return withRequestContext(searchParams, async () => {
+    try {
+      const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month';
     
     if (!['day', 'week', 'month'].includes(period)) {
       return NextResponse.json(
@@ -144,7 +145,8 @@ export async function GET(request: Request) {
       periodType: period,
     });
   } catch (error) {
-    console.error('Error fetching PostHog Active Users:', error);
-    return jsonError(error);
-  }
+      console.error('Error fetching PostHog Active Users:', error);
+      return jsonError(error);
+    }
+  });
 }

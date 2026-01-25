@@ -25,9 +25,9 @@ import { useApiData } from '@/hooks/useApiData';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus } = useFilter();
-  const url = `/api/charts-dashboards?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [url]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/charts-dashboards?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (

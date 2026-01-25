@@ -48,7 +48,7 @@ export function MostEngagedUsersView() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('reactions');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const { filterGridstatus } = useFilter();
+  const { filterGridstatus, timezone } = useFilter();
   
   // Initialize timeFilter from URL params
   const timeFilterParam = searchParams.get('timeFilter');
@@ -75,7 +75,7 @@ export function MostEngagedUsersView() {
       try {
         setLoading(true);
         const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
-        const url = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}${days !== null ? `&days=${days}` : ''}`;
+        const url = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}&timezone=${timezone}${days !== null ? `&days=${days}` : ''}`;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch most engaged users');
@@ -90,7 +90,7 @@ export function MostEngagedUsersView() {
     };
 
     fetchData();
-  }, [filterGridstatus, timeFilter]);
+  }, [filterGridstatus, timezone, timeFilter]);
 
   const getUserName = (user: MostEngagedUser) => {
     return user.username ||

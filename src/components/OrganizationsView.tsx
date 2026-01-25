@@ -15,10 +15,12 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
+import { DateTime } from 'luxon';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { OrganizationListItem, OrganizationsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useFilter } from '@/contexts/FilterContext';
 
 type SortColumn = 'name' | 'userCount' | 'newUsers7d' | 'activeUsers7d' | 'createdAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -28,9 +30,10 @@ export function OrganizationsView() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [sortColumn, setSortColumn] = useState<SortColumn>('userCount');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const { timezone } = useFilter();
 
-  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}`;
-  const { data, loading } = useApiData<OrganizationsResponse>(url, [url]);
+  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}&timezone=${timezone}`;
+  const { data, loading } = useApiData<OrganizationsResponse>(url, [url, timezone]);
   const organizations = data?.organizations ?? [];
 
   const sortedOrganizations = useMemo(() => {
@@ -179,7 +182,9 @@ export function OrganizationsView() {
                     <Table.Td ta="right">{org.newUsers7d}</Table.Td>
                     <Table.Td ta="right">{org.activeUsers7d}</Table.Td>
                     <Table.Td ta="right">
-                      {new Date(org.createdAt).toLocaleDateString()}
+                      {DateTime.fromISO(org.createdAt)
+                        .setZone(timezone)
+                        .toLocaleString(DateTime.DATETIME_SHORT)}
                     </Table.Td>
                   </Table.Tr>
                 ))
