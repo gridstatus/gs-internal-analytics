@@ -116,6 +116,31 @@ interface ApiUsageData {
   rowsReturned: number;
 }
 
+interface PostHogEvent {
+  event: string;
+  timestamp: string;
+  properties: {
+    currentUrl: string | null;
+    pathname: string | null;
+    referrer: string | null;
+    deviceType: string | null;
+    browser: string | null;
+  };
+}
+
+interface PostHogEventCount {
+  event: string;
+  count: number;
+}
+
+interface PostHogData {
+  email: string;
+  days: number;
+  eventCounts: PostHogEventCount[];
+  events: PostHogEvent[];
+  totalEvents: number;
+}
+
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -126,6 +151,12 @@ export default function UserDetailPage() {
   const [apiUsageData, setApiUsageData] = useState<ApiUsageData[]>([]);
   const [apiUsageLoading, setApiUsageLoading] = useState(false);
   const [apiUsageError, setApiUsageError] = useState<string | null>(null);
+  
+  // PostHog events state
+  const [posthogDays, setPosthogDays] = useState<number>(30);
+  const [posthogData, setPosthogData] = useState<PostHogData | null>(null);
+  const [posthogLoading, setPosthogLoading] = useState(false);
+  const [posthogError, setPosthogError] = useState<string | null>(null);
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -196,6 +227,31 @@ export default function UserDetailPage() {
 
     fetchApiUsage();
   }, [id, apiUsageDays]);
+
+  // Fetch PostHog events data
+  useEffect(() => {
+    const fetchPosthogEvents = async () => {
+      if (!id) return;
+      
+      setPosthogLoading(true);
+      setPosthogError(null);
+      
+      try {
+        const response = await fetch(`/api/users-list/${id}/posthog-events?days=${posthogDays}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch PostHog events');
+        }
+        const result = await response.json();
+        setPosthogData(result);
+      } catch (err) {
+        setPosthogError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setPosthogLoading(false);
+      }
+    };
+
+    fetchPosthogEvents();
+  }, [id, posthogDays]);
 
   if (loading) {
     return (
@@ -430,19 +486,16 @@ export default function UserDetailPage() {
               </ScrollArea>
             )}
           </Paper>
-        </Stack>
 
-        {/* Right Main Content - 2 columns */}
-        <SimpleGrid cols={1} spacing="md" style={{ gridColumn: 'span 2' }}>
           {/* API Keys */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Text fw={600} size="lg" mb="md">
               API Keys ({data.apiKeys.length})
             </Text>
             {data.apiKeys.length === 0 ? (
-              <Text c="dimmed" size="sm">User has not created any API keys</Text>
+              <Text c="dimmed" size="sm">No API keys created</Text>
             ) : (
-              <ScrollArea style={{ maxHeight: '300px' }}>
+              <ScrollArea style={{ maxHeight: '200px' }}>
                 <Stack gap="xs">
                   {data.apiKeys.map((key, index) => (
                     <Stack key={index} gap={4}>
@@ -461,6 +514,119 @@ export default function UserDetailPage() {
                   ))}
                 </Stack>
               </ScrollArea>
+            )}
+          </Paper>
+        </Stack>
+
+        {/* Right Main Content - 2 columns */}
+        <SimpleGrid cols={1} spacing="md" style={{ gridColumn: 'span 2' }}>
+          {/* PostHog Events */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                PostHog Events {posthogData && `(${posthogData.totalEvents.toLocaleString()} total)`}
+              </Text>
+              <SegmentedControl
+                value={posthogDays.toString()}
+                onChange={(value) => setPosthogDays(parseInt(value, 10))}
+                data={[
+                  { label: '7 Days', value: '7' },
+                  { label: '30 Days', value: '30' },
+                  { label: '90 Days', value: '90' },
+                ]}
+              />
+            </Group>
+            
+            {posthogError ? (
+              <Alert color="red" title="Error">
+                {posthogError}
+              </Alert>
+            ) : posthogLoading ? (
+              <Stack align="center" py="xl">
+                <Loader />
+              </Stack>
+            ) : !posthogData || posthogData.totalEvents === 0 ? (
+              <Text c="dimmed">No PostHog events found for this user</Text>
+            ) : (
+              <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl">
+                {/* Event Counts */}
+                <Stack gap="xs">
+                  <Text fw={600}>Events by Type</Text>
+                  <ScrollArea h={400}>
+                    <Table striped highlightOnHover>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Event</Table.Th>
+                          <Table.Th style={{ textAlign: 'right' }}>Count</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {posthogData.eventCounts.map((ec) => (
+                          <Table.Tr key={ec.event}>
+                            <Table.Td>
+                              <Text size="sm" ff="monospace">
+                                {ec.event}
+                              </Text>
+                            </Table.Td>
+                            <Table.Td style={{ textAlign: 'right' }}>
+                              <Text size="sm">{ec.count.toLocaleString()}</Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        ))}
+                      </Table.Tbody>
+                    </Table>
+                  </ScrollArea>
+                </Stack>
+
+                {/* Recent Events */}
+                <Stack gap="xs">
+                  <Text fw={600}>Recent Activity (last 100)</Text>
+                  <ScrollArea h={400}>
+                    <Stack gap={4}>
+                      {posthogData.events.map((event, idx) => (
+                        <Group
+                          key={idx}
+                          gap="xs"
+                          wrap="nowrap"
+                          py={6}
+                          style={{
+                            borderBottom: '1px solid var(--mantine-color-default-border)',
+                          }}
+                        >
+                          <Text
+                            size="sm"
+                            ff="monospace"
+                            style={{
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={event.properties.currentUrl || event.properties.pathname || event.event}
+                          >
+                            {event.properties.pathname || event.event}
+                          </Text>
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color={
+                              event.event === '$pageview' ? 'blue' :
+                              event.event === '$autocapture' ? 'gray' :
+                              event.event.startsWith('$') ? 'gray' : 'violet'
+                            }
+                            style={{ flexShrink: 0 }}
+                          >
+                            {event.event.replace('$', '')}
+                          </Badge>
+                          <Text size="xs" c="dimmed" style={{ flexShrink: 0, minWidth: 50, textAlign: 'right' }}>
+                            {formatTimeAgo(event.timestamp)}
+                          </Text>
+                        </Group>
+                      ))}
+                    </Stack>
+                  </ScrollArea>
+                </Stack>
+              </SimpleGrid>
             )}
           </Paper>
 
@@ -524,7 +690,7 @@ export default function UserDetailPage() {
 
       {/* Insights Activity - Full width */}
       {data.insights && (
-        <Paper shadow="sm" p="md" radius="md" withBorder>
+        <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
           <Text fw={600} size="lg" mb="md">
             Insights Activity
           </Text>
