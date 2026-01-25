@@ -95,16 +95,11 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       );
     }
 
-    const series = showMoM && chartType !== 'bar'
+    const series = showMoM
       ? [
           { name: dataKey, type: 'line' as const, color },
           // @ts-expect-error - Mantine charts doesn't fully type yAxisId, but it supports it
           { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right' },
-        ]
-      : showMoM
-      ? [
-          { name: 'momChange', type: 'bar' as const, color: 'gray.4' },
-          { name: dataKey, type: 'line' as const, color },
         ]
       : [{ name: dataKey, type: 'line' as const, color }];
 
@@ -129,10 +124,9 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             legendProps={{ verticalAlign: 'bottom', height: 40 }}
             xAxisProps={xAxisProps}
             yAxisProps={{ domain: [0, 'auto'] }}
-            withRightYAxis={showMoM && chartType !== 'bar'}
-            yAxisLabel={chartType !== 'bar' ? undefined : undefined}
-            rightYAxisLabel={showMoM && chartType !== 'bar' ? 'MoM %' : undefined}
-            rightYAxisProps={showMoM && chartType !== 'bar' ? {
+            withRightYAxis={showMoM}
+            rightYAxisLabel={showMoM ? 'MoM %' : undefined}
+            rightYAxisProps={showMoM ? {
               domain: [-100, 100],
               tickFormatter: (value: number) => {
                 // Format with 1 decimal place
