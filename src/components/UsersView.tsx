@@ -190,7 +190,7 @@ export function UsersView() {
                   {data.usersToday.yesterdayAll > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100)}%)
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100).toLocaleString()}%)
                     </Text>
                   )}
                 </Text>
@@ -199,7 +199,7 @@ export function UsersView() {
                   {data.usersToday.yesterdaySameTime > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100)}%)
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100).toLocaleString()}%)
                     </Text>
                   )}
                 </Text>
@@ -210,7 +210,7 @@ export function UsersView() {
                   {data.usersToday.lastWeekAll > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100)}%)
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100).toLocaleString()}%)
                     </Text>
                   )}
                 </Text>
@@ -219,7 +219,7 @@ export function UsersView() {
                   {data.usersToday.lastWeekSameTime > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100)}%)
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100).toLocaleString()}%)
                     </Text>
                   )}
                 </Text>
@@ -240,7 +240,7 @@ export function UsersView() {
                       {data.monthlyNewUsers.previousMonthAll > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100)}%)
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100).toLocaleString()}%)
                         </Text>
                       )}
                     </Text>
@@ -249,7 +249,7 @@ export function UsersView() {
                       {data.monthlyNewUsers.previousMonthSameTime > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100)}%)
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100).toLocaleString()}%)
                         </Text>
                       )}
                     </Text>
@@ -260,7 +260,7 @@ export function UsersView() {
                       {data.monthlyNewUsers.lastYearMonthAll > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthAll) / data.monthlyNewUsers.lastYearMonthAll) * 100)}%)
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthAll) / data.monthlyNewUsers.lastYearMonthAll) * 100).toLocaleString()}%)
                         </Text>
                       )}
                     </Text>
@@ -269,7 +269,7 @@ export function UsersView() {
                       {data.monthlyNewUsers.lastYearMonthSameTime > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthSameTime) / data.monthlyNewUsers.lastYearMonthSameTime) * 100)}%)
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthSameTime) / data.monthlyNewUsers.lastYearMonthSameTime) * 100).toLocaleString()}%)
                         </Text>
                       )}
                     </Text>
