@@ -2,7 +2,7 @@ services:
   - type: web
     name: gs-internal-analytics
     env: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -37,7 +37,7 @@ services:
 
 databases:
   - name: gs-analytics-db
-    plan: starter
+    plan: free
     databaseName: api_server
     user: postgres
 
