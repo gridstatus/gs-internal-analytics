@@ -2,7 +2,8 @@ SELECT
   SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
   COUNT(*) AS user_count
 FROM api_server.users
-WHERE created_at >= NOW() - INTERVAL '{{DAYS}} days'
+WHERE {{TIMESTAMP_FIELD}} IS NOT NULL
+  AND {{TIMESTAMP_FIELD}} >= NOW() - INTERVAL '{{DAYS}} days'
   AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
     {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
   )

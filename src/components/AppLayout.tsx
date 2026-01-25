@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center } from '@mantine/core';
-import { IconDashboard, IconUsers, IconApi, IconUserPlus, IconActivity, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
+import { IconDashboard, IconApi, IconUserPlus, IconActivity, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -41,12 +41,27 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Title order={4}>Analytics</Title>
                 <UserButton />
               </Group>
+              
+              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb="xs">
+                Overview
+              </Text>
               <NavLink
                 component={Link}
                 href="/"
-                label="Dashboard"
+                label="Home"
                 leftSection={<IconDashboard size={16} />}
                 active={pathname === '/'}
+              />
+              
+              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
+                Users and Orgs
+              </Text>
+              <NavLink
+                component={Link}
+                href="/users-list"
+                label="Users"
+                leftSection={<IconUserSearch size={16} />}
+                active={pathname?.startsWith('/users-list')}
               />
               <NavLink
                 component={Link}
@@ -60,15 +75,25 @@ export function AppLayout({ children }: AppLayoutProps) {
                 href="/active-users"
                 label="Active Users"
                 leftSection={<IconActivity size={16} />}
-                active={pathname?.startsWith('/active-users')}
+                active={pathname === '/active-users'}
               />
               <NavLink
                 component={Link}
-                href="/active-users/posthog-maus"
-                label="PostHog Active Users"
-                leftSection={<IconUsers size={16} />}
-                active={pathname === '/active-users/posthog-maus'}
-                style={{ paddingLeft: '32px' }}
+                href="/organizations"
+                label="Organizations"
+                leftSection={<IconBuilding size={16} />}
+                active={pathname?.startsWith('/organizations')}
+              />
+              
+              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
+                Product Features
+              </Text>
+              <NavLink
+                component={Link}
+                href="/insights"
+                label="Insights"
+                leftSection={<IconBulb size={16} />}
+                active={pathname?.startsWith('/insights')}
               />
               <NavLink
                 component={Link}
@@ -84,33 +109,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                 leftSection={<IconBell size={16} />}
                 active={pathname === '/alerts'}
               />
+              
+              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
+                API
+              </Text>
               <NavLink
                 component={Link}
                 href="/api-usage"
                 label="API Usage"
                 leftSection={<IconApi size={16} />}
                 active={pathname === '/api-usage'}
-              />
-              <NavLink
-                component={Link}
-                href="/insights"
-                label="Insights"
-                leftSection={<IconBulb size={16} />}
-                active={pathname?.startsWith('/insights')}
-              />
-              <NavLink
-                component={Link}
-                href="/organizations"
-                label="Organizations"
-                leftSection={<IconBuilding size={16} />}
-                active={pathname?.startsWith('/organizations')}
-              />
-              <NavLink
-                component={Link}
-                href="/users-list"
-                label="Users"
-                leftSection={<IconUserSearch size={16} />}
-                active={pathname?.startsWith('/users-list')}
               />
               <div style={{ flex: 1 }} />
               <Divider />

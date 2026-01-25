@@ -2,11 +2,12 @@
 
 import { Paper, Text, Group, ThemeIcon } from '@mantine/core';
 import { IconTrendingUp, IconTrendingDown, IconMinus } from '@tabler/icons-react';
+import { ReactNode } from 'react';
 
 interface MetricCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle?: string | ReactNode;
   trend?: number;
   trendLabel?: string;
 }
@@ -49,9 +50,15 @@ export function MetricCard({ title, value, subtitle, trend, trendLabel }: Metric
         )}
       </Group>
       {subtitle && (
-        <Text size="xs" c="dimmed" mt="xs">
-          {subtitle}
-        </Text>
+        <div style={{ marginTop: '8px' }}>
+          {typeof subtitle === 'string' ? (
+            <Text size="xs" c="dimmed">
+              {subtitle}
+            </Text>
+          ) : (
+            subtitle
+          )}
+        </div>
       )}
     </Paper>
   );

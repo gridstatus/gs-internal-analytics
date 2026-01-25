@@ -14,9 +14,11 @@ import {
   Group,
   Table,
   TextInput,
+  Anchor,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { IconAlertCircle } from '@tabler/icons-react';
+import Link from 'next/link';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { ActiveUsersResponse } from '@/lib/api-types';
@@ -70,7 +72,17 @@ export function ActiveUsersView() {
 
   return (
     <Container size="xl" py="xl">
-      <Title order={1} mb="xl">Active Users</Title>
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>Active Users</Title>
+        <Anchor
+          component={Link}
+          href="/active-users/posthog-maus"
+          size="sm"
+          c="dimmed"
+        >
+          View PostHog Active Users →
+        </Anchor>
+      </Group>
 
       {/* Summary Metrics */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
@@ -132,7 +144,7 @@ export function ActiveUsersView() {
           </div>
         </Stack>
         <Text size="xs" c="dimmed" mt="md">
-          Based on last_active_at timestamp. Total users with activity: {data.totalUsers.toLocaleString()}
+          Based on last_active_at timestamp. Total registered users: {data.totalUsers.toLocaleString()}
         </Text>
       </Paper>
 

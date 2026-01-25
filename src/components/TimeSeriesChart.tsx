@@ -27,10 +27,14 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     const chartData = data.map((point, index) => {
       const currentValue = Number(point[dataKey]) || 0;
       const previousValue = index > 0 ? Number(data[index - 1][dataKey]) || 0 : 0;
-      const momChange =
+      let momChange =
         index > 0 && previousValue !== 0
-          ? Math.round(((currentValue - previousValue) / previousValue) * 100)
+          ? ((currentValue - previousValue) / previousValue) * 100
           : 0;
+      
+      // Round to 1 decimal place and cap at ±100%
+      momChange = Math.round(momChange * 10) / 10;
+      momChange = Math.max(-100, Math.min(100, momChange));
 
       return {
         ...point,
@@ -91,7 +95,13 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       );
     }
 
-    const series = showMoM
+    const series = showMoM && chartType !== 'bar'
+      ? [
+          { name: dataKey, type: 'line' as const, color },
+          // @ts-expect-error - Mantine charts doesn't fully type yAxisId, but it supports it
+          { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right' },
+        ]
+      : showMoM
       ? [
           { name: 'momChange', type: 'bar' as const, color: 'gray.4' },
           { name: dataKey, type: 'line' as const, color },
@@ -119,6 +129,17 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             legendProps={{ verticalAlign: 'bottom', height: 40 }}
             xAxisProps={xAxisProps}
             yAxisProps={{ domain: [0, 'auto'] }}
+            withRightYAxis={showMoM && chartType !== 'bar'}
+            yAxisLabel={chartType !== 'bar' ? undefined : undefined}
+            rightYAxisLabel={showMoM && chartType !== 'bar' ? 'MoM %' : undefined}
+            rightYAxisProps={showMoM && chartType !== 'bar' ? {
+              domain: [-100, 100],
+              tickFormatter: (value: number) => {
+                // Format with 1 decimal place
+                return `${value.toFixed(1)}%`;
+              },
+              width: 70, // Constrain width to prevent large numbers from taking too much space
+            } : undefined}
           />
         </Box>
       </Paper>

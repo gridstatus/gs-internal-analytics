@@ -10,17 +10,24 @@ export async function GET(request: Request) {
     
     // Get top domains for different time periods
     const domainSearch = searchParams.get('domainSearch') || '';
+    const timestampType = searchParams.get('timestampType') || 'created_at'; // 'created_at' or 'last_active_at'
+    const timestampField = timestampType === 'last_active_at' ? 'last_active_at' : 'created_at';
+    
     const getTopDomains = async (days: number) => {
       let sql = loadSql('top-domains.sql');
-      sql = sql.replace('{{DAYS}}', days.toString());
+      
+      // Replace custom placeholders first (before renderSqlTemplate)
+      sql = sql.replace(/\{\{DAYS\}\}/g, days.toString());
+      sql = sql.replace(/\{\{TIMESTAMP_FIELD\}\}/g, timestampField);
       
       // Add domain filter if provided
       let domainFilter = '';
       if (domainSearch) {
         domainFilter = `AND SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
       }
-      sql = sql.replace('{{DOMAIN_FILTER}}', domainFilter);
+      sql = sql.replace(/\{\{DOMAIN_FILTER\}\}/g, domainFilter);
       
+      // Then render the template placeholders
       sql = renderSqlTemplate(sql, { filterGridstatus });
       return query<{ domain: string; user_count: string }>(sql);
     };

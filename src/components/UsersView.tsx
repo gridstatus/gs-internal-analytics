@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
   Container,
@@ -16,6 +16,7 @@ import {
   Button,
   Anchor,
   TextInput,
+  SegmentedControl,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { IconAlertCircle, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
@@ -24,12 +25,16 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 
 export function UsersView() {
   const [domainFilter, setDomainFilter] = useState<string>('');
   const [debouncedDomainFilter] = useDebouncedValue(domainFilter, 300);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const totalUsersChartRef = useRef<HTMLDivElement>(null);
   const newUsersChartRef = useRef<HTMLDivElement>(null);
@@ -39,6 +44,21 @@ export function UsersView() {
     { name: 'new_users', ref: newUsersChartRef },
   ];
 
+  // Get timestamp type from URL, default to 'created_at'
+  const timestampType = searchParams.get('timestampType') || 'created_at';
+
+  // Handler for segment control changes
+  const handleTimestampTypeChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'created_at') {
+      params.delete('timestampType');
+    } else {
+      params.set('timestampType', value);
+    }
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  };
+
   const { filterGridstatus } = useFilter();
   const params = new URLSearchParams({
     filterGridstatus: filterGridstatus.toString(),
@@ -46,8 +66,11 @@ export function UsersView() {
   if (debouncedDomainFilter) {
     params.set('domainSearch', debouncedDomainFilter);
   }
+  if (timestampType !== 'created_at') {
+    params.set('timestampType', timestampType);
+  }
   const url = `/api/users?${params.toString()}`;
-  const { data, loading, error } = useApiData<UsersResponse>(url, [url]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [url, filterGridstatus, debouncedDomainFilter, timestampType]);
 
   if (loading) {
     return (
@@ -255,6 +278,7 @@ export function UsersView() {
           data={data.monthlyData}
           dataKey="totalUsers"
           color="blue.6"
+          showMoM={false}
         />
         <TimeSeriesChart
           ref={newUsersChartRef}
@@ -274,13 +298,23 @@ export function UsersView() {
             <Text fw={600} size="lg">
               Top Domains
             </Text>
-            <TextInput
-              placeholder="Filter domains..."
-              leftSection={<IconSearch size={16} />}
-              value={domainFilter}
-              onChange={(e) => setDomainFilter(e.currentTarget.value)}
-              style={{ maxWidth: 300 }}
-            />
+            <Group gap="md">
+              <SegmentedControl
+                value={timestampType}
+                onChange={handleTimestampTypeChange}
+                data={[
+                  { label: 'Registration Date', value: 'created_at' },
+                  { label: 'Last Active', value: 'last_active_at' },
+                ]}
+              />
+              <TextInput
+                placeholder="Filter domains..."
+                leftSection={<IconSearch size={16} />}
+                value={domainFilter}
+                onChange={(e) => setDomainFilter(e.currentTarget.value)}
+                style={{ maxWidth: 300 }}
+              />
+            </Group>
           </Group>
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
             {/* Top Domains - 1 Day */}
