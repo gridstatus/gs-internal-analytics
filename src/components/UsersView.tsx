@@ -186,7 +186,7 @@ export function UsersView() {
             <SimpleGrid cols={2} spacing="xs">
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
-                  vs Yesterday (all day): {data.usersToday.yesterdayAll}
+                  vs Yesterday (all day): {data.usersToday.yesterdayAll.toLocaleString()}
                   {data.usersToday.yesterdayAll > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
@@ -195,7 +195,7 @@ export function UsersView() {
                   )}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  vs Yesterday (same time): {data.usersToday.yesterdaySameTime}
+                  vs Yesterday (same time): {data.usersToday.yesterdaySameTime.toLocaleString()}
                   {data.usersToday.yesterdaySameTime > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
@@ -206,7 +206,7 @@ export function UsersView() {
               </Stack>
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
-                  vs Last Week (all day): {data.usersToday.lastWeekAll}
+                  vs Last Week (all day): {data.usersToday.lastWeekAll.toLocaleString()}
                   {data.usersToday.lastWeekAll > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
@@ -215,7 +215,7 @@ export function UsersView() {
                   )}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  vs Last Week (same time): {data.usersToday.lastWeekSameTime}
+                  vs Last Week (same time): {data.usersToday.lastWeekSameTime.toLocaleString()}
                   {data.usersToday.lastWeekSameTime > 0 && (
                     <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
                       {' '}({data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
@@ -236,7 +236,7 @@ export function UsersView() {
                 <SimpleGrid cols={2} spacing="xs">
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">
-                      vs Last Month (all month): {data.monthlyNewUsers.previousMonthAll}
+                      vs Last Month (all month): {data.monthlyNewUsers.previousMonthAll.toLocaleString()}
                       {data.monthlyNewUsers.previousMonthAll > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
@@ -245,7 +245,7 @@ export function UsersView() {
                       )}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      vs Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime}
+                      vs Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime.toLocaleString()}
                       {data.monthlyNewUsers.previousMonthSameTime > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
@@ -256,7 +256,7 @@ export function UsersView() {
                   </Stack>
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">
-                      vs {lastYearMonthLabel} (all month): {data.monthlyNewUsers.lastYearMonthAll}
+                      vs {lastYearMonthLabel} (all month): {data.monthlyNewUsers.lastYearMonthAll.toLocaleString()}
                       {data.monthlyNewUsers.lastYearMonthAll > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? '+' : ''}
@@ -265,7 +265,7 @@ export function UsersView() {
                       )}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      vs {lastYearMonthLabel} (same time): {data.monthlyNewUsers.lastYearMonthSameTime}
+                      vs {lastYearMonthLabel} (same time): {data.monthlyNewUsers.lastYearMonthSameTime.toLocaleString()}
                       {data.monthlyNewUsers.lastYearMonthSameTime > 0 && (
                         <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? 'green' : 'red'}>
                           {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? '+' : ''}
