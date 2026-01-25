@@ -89,6 +89,14 @@ export function InsightsView() {
       ? (timeFilterParam as '24h' | '7d' | '1m')
       : null
   );
+  
+  // Initialize chartPeriod from URL params
+  const chartPeriodParam = searchParams.get('chartPeriod');
+  const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>(
+    chartPeriodParam && ['day', 'week', 'month'].includes(chartPeriodParam)
+      ? (chartPeriodParam as 'day' | 'week' | 'month')
+      : 'month'
+  );
 
   const postsChartRef = useRef<HTMLDivElement>(null);
   const impressionsChartRef = useRef<HTMLDivElement>(null);
@@ -113,9 +121,17 @@ export function InsightsView() {
     if (newFilter !== timeFilter) {
       setTimeFilter(newFilter);
     }
+    
+    const urlPeriod = searchParams.get('chartPeriod');
+    const newPeriod = urlPeriod && ['day', 'week', 'month'].includes(urlPeriod)
+      ? (urlPeriod as 'day' | 'week' | 'month')
+      : 'month';
+    if (newPeriod !== chartPeriod) {
+      setChartPeriod(newPeriod);
+    }
   }, [searchParams]);
 
-  // Update URL when timeFilter changes
+  // Update URL when timeFilter or chartPeriod changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     if (timeFilter) {
@@ -123,20 +139,32 @@ export function InsightsView() {
     } else {
       params.delete('timeFilter');
     }
+    if (chartPeriod !== 'month') {
+      params.set('chartPeriod', chartPeriod);
+    } else {
+      params.delete('chartPeriod');
+    }
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
     // Only update if URL would actually change
     if (newUrl !== currentUrl) {
       router.replace(newUrl, { scroll: false });
     }
-  }, [timeFilter, pathname, router, searchParams]);
+  }, [timeFilter, chartPeriod, pathname, router, searchParams]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const url = timeFilter 
-          ? `/api/insights?timeFilter=${timeFilter}`
+        const params = new URLSearchParams();
+        if (timeFilter) {
+          params.set('timeFilter', timeFilter);
+        }
+        if (chartPeriod !== 'month') {
+          params.set('chartPeriod', chartPeriod);
+        }
+        const url = params.toString() 
+          ? `/api/insights?${params.toString()}`
           : '/api/insights';
         const response = await fetch(url);
         if (!response.ok) {
@@ -152,7 +180,7 @@ export function InsightsView() {
     };
 
     fetchData();
-  }, [timeFilter]);
+  }, [timeFilter, chartPeriod]);
 
   if (loading) {
     return (
@@ -260,11 +288,23 @@ export function InsightsView() {
       </SimpleGrid>
 
       {/* Charts */}
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Summary Charts</Title>
+        <SegmentedControl
+          value={chartPeriod}
+          onChange={(value) => setChartPeriod(value as 'day' | 'week' | 'month')}
+          data={[
+            { label: 'Day', value: 'day' },
+            { label: 'Week', value: 'week' },
+            { label: 'Month', value: 'month' },
+          ]}
+        />
+      </Group>
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" mb="xl">
         <TimeSeriesChart
           ref={postsChartRef}
           title="Posts Published"
-          subtitle="Published posts per month"
+          subtitle={`Published posts per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="posts"
           color="blue.6"
@@ -273,7 +313,7 @@ export function InsightsView() {
         <TimeSeriesChart
           ref={impressionsChartRef}
           title="Impressions"
-          subtitle="Feed impressions per month"
+          subtitle={`Feed impressions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="impressions"
           color="cyan.6"
@@ -282,7 +322,7 @@ export function InsightsView() {
         <TimeSeriesChart
           ref={viewsChartRef}
           title="Post Views"
-          subtitle="Feed expanded + detail views per month"
+          subtitle={`Feed expanded + detail views per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="views"
           color="green.6"
@@ -291,7 +331,7 @@ export function InsightsView() {
         <TimeSeriesChart
           ref={reactionsChartRef}
           title="Reactions"
-          subtitle="Total reactions per month"
+          subtitle={`Total reactions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="reactions"
           color="violet.6"
@@ -300,7 +340,7 @@ export function InsightsView() {
         <TimeSeriesChart
           ref={authorsChartRef}
           title="Unique Authors"
-          subtitle="Authors publishing per month"
+          subtitle={`Authors publishing per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="authors"
           color="orange.6"

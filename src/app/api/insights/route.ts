@@ -13,15 +13,38 @@ function formatMonth(date: Date): string {
   return `${year}-${month.toString().padStart(2, '0')}`;
 }
 
+function formatPeriod(date: Date, period: 'day' | 'week' | 'month'): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  
+  if (period === 'day') {
+    return `${year}-${month}-${day}`;
+  } else if (period === 'week') {
+    // Get Monday of the week (ISO week starts on Monday)
+    const weekStart = new Date(date);
+    const dayOfWeek = weekStart.getUTCDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
+    weekStart.setUTCDate(weekStart.getUTCDate() + diff);
+    const weekYear = weekStart.getUTCFullYear();
+    const weekMonth = String(weekStart.getUTCMonth() + 1).padStart(2, '0');
+    const weekDay = String(weekStart.getUTCDate()).padStart(2, '0');
+    return `${weekYear}-${weekMonth}-${weekDay}`;
+  } else {
+    return `${year}-${month}`;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const timeFilter = searchParams.get('timeFilter') as '24h' | '7d' | '1m' | null;
+    const chartPeriod = (searchParams.get('chartPeriod') as 'day' | 'week' | 'month') || 'month';
     
     const [posts, views, reactions, topPosts] = await Promise.all([
-      getMonthlyInsightsPosts(),
-      getMonthlyInsightsViews(),
-      getMonthlyInsightsReactions(),
+      getMonthlyInsightsPosts(chartPeriod),
+      getMonthlyInsightsViews(chartPeriod),
+      getMonthlyInsightsReactions(chartPeriod),
       getTopInsightsPosts(timeFilter || undefined),
     ]);
 
@@ -32,14 +55,14 @@ export async function GET(request: Request) {
     const totalReactions = reactions.reduce((sum, r) => sum + Number(r.total_reactions), 0);
     const uniqueAuthors = new Set(posts.flatMap((p) => [Number(p.unique_authors)])).size;
 
-    // Format monthly data
+    // Format period data (day/week/month)
     const monthlyData = posts.map((p) => {
-      const monthStr = formatMonth(p.month);
-      const viewData = views.find((v) => formatMonth(v.month) === monthStr);
-      const reactionData = reactions.find((r) => formatMonth(r.month) === monthStr);
+      const periodStr = formatPeriod(p.month, chartPeriod);
+      const viewData = views.find((v) => formatPeriod(v.month, chartPeriod) === periodStr);
+      const reactionData = reactions.find((r) => formatPeriod(r.month, chartPeriod) === periodStr);
 
       return {
-        month: monthStr,
+        month: periodStr,
         posts: Number(p.total_posts),
         authors: Number(p.unique_authors),
         impressions: viewData ? Number(viewData.impressions) : 0,

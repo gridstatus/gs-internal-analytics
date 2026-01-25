@@ -257,18 +257,24 @@ export interface TopInsightsPost {
   engagement_rate: number;
 }
 
-export async function getMonthlyInsightsPosts(): Promise<MonthlyInsightsPosts[]> {
-  const sql = loadSql('monthly-insights-posts.sql');
+export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsPosts[]> {
+  let sql = loadSql('monthly-insights-posts.sql');
+  // Replace DATE_TRUNC('month' with the appropriate period
+  sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsPosts>(sql);
 }
 
-export async function getMonthlyInsightsViews(): Promise<MonthlyInsightsViews[]> {
-  const sql = loadSql('monthly-insights-views.sql');
+export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsViews[]> {
+  let sql = loadSql('monthly-insights-views.sql');
+  // Replace DATE_TRUNC('month' with the appropriate period
+  sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsViews>(sql);
 }
 
-export async function getMonthlyInsightsReactions(): Promise<MonthlyInsightsReactions[]> {
-  const sql = loadSql('monthly-insights-reactions.sql');
+export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsReactions[]> {
+  let sql = loadSql('monthly-insights-reactions.sql');
+  // Replace DATE_TRUNC('month' with the appropriate period
+  sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsReactions>(sql);
 }
 
