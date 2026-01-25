@@ -16,6 +16,8 @@ Full-stack TypeScript analytics dashboard built with Next.js 14 (App Router), Ma
 ## Authentication
 Auth is handled by Clerk middleware in `src/proxy.ts`. All API routes require authentication by default.
 
+**CRITICAL**: All API routes MUST require authentication unless explicitly added to `PUBLIC_API_ROUTES`. Never expose data endpoints without auth - only utility endpoints like health checks should be public.
+
 ### Public API Routes
 To make an API route public (no auth required), add it to the `PUBLIC_API_ROUTES` array in `src/proxy.ts`:
 ```typescript
