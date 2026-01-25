@@ -13,9 +13,12 @@ SELECT
   COALESCE(COUNT(DISTINCT sp.id), 0) as total_engagement_score
 FROM api_server.users u
 LEFT JOIN insights.reactions r ON u.id = r.user_id
+  {{TIME_FILTER_REACTIONS}}
 LEFT JOIN insights.post_views pv ON u.id = pv.user_id 
   AND pv.view_source IN ('feed_expanded', 'detail')
+  {{TIME_FILTER_VIEWS}}
 LEFT JOIN insights.saved_posts sp ON u.id = sp.user_id
+  {{TIME_FILTER_SAVES}}
 WHERE u.username IS NOT NULL
   AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) NOT IN (
     {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}

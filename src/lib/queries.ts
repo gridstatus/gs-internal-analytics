@@ -336,8 +336,32 @@ export interface MostEngagedUser {
   total_engagement_score: number;
 }
 
-export async function getMostEngagedUsers(filterGridstatus: boolean = true): Promise<MostEngagedUser[]> {
+export async function getMostEngagedUsers(filterGridstatus: boolean = true, days: number | null = null): Promise<MostEngagedUser[]> {
   let sql = loadSql('most-engaged-users.sql');
+  
+  // Build time filter conditions
+  let timeFilterReactions = '';
+  let timeFilterViews = '';
+  let timeFilterSaves = '';
+  
+  if (days !== null) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setHours(0, 0, 0, 0);
+    const cutoffDateStr = cutoffDate.toISOString();
+    
+    // reactions table uses created_at
+    timeFilterReactions = `AND r.created_at >= '${cutoffDateStr}'`;
+    // post_views table uses viewed_at
+    timeFilterViews = `AND pv.viewed_at >= '${cutoffDateStr}'`;
+    // saved_posts table uses created_at
+    timeFilterSaves = `AND sp.created_at >= '${cutoffDateStr}'`;
+  }
+  
+  sql = sql.replace(/\{\{TIME_FILTER_REACTIONS\}\}/g, timeFilterReactions);
+  sql = sql.replace(/\{\{TIME_FILTER_VIEWS\}\}/g, timeFilterViews);
+  sql = sql.replace(/\{\{TIME_FILTER_SAVES\}\}/g, timeFilterSaves);
+  
   sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
   return query<MostEngagedUser>(sql);
 }

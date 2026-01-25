@@ -12,12 +12,14 @@ import {
   Alert,
   Stack,
   Badge,
+  SegmentedControl,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft, IconThumbUp, IconEye, IconBookmark, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import { UserHoverCard } from './UserHoverCard';
 import { Anchor } from '@mantine/core';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 interface MostEngagedUser {
   user_id: number;
@@ -34,19 +36,47 @@ interface MostEngagedUser {
 
 type SortBy = 'total' | 'reactions' | 'engagements' | 'saves' | null;
 type SortDirection = 'asc' | 'desc';
+type TimeFilter = '1' | '7' | '30' | '90' | 'all';
 
 export function MostEngagedUsersView() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
   const [data, setData] = useState<MostEngagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('reactions');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { filterGridstatus } = useFilter();
+  
+  // Initialize timeFilter from URL params
+  const timeFilterParam = searchParams.get('timeFilter');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(
+    (timeFilterParam && ['1', '7', '30', '90', 'all'].includes(timeFilterParam))
+      ? (timeFilterParam as TimeFilter)
+      : '7'
+  );
+
+  // Update URL when timeFilter changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (timeFilter !== '7') {
+      params.set('timeFilter', timeFilter);
+    } else {
+      params.delete('timeFilter');
+    }
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [timeFilter, pathname, router, searchParams]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}`);
+        setLoading(true);
+        const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
+        const url = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}${days !== null ? `&days=${days}` : ''}`;
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch most engaged users');
         }
@@ -60,7 +90,7 @@ export function MostEngagedUsersView() {
     };
 
     fetchData();
-  }, [filterGridstatus]);
+  }, [filterGridstatus, timeFilter]);
 
   const getUserName = (user: MostEngagedUser) => {
     return user.username ||
@@ -141,7 +171,20 @@ export function MostEngagedUsersView() {
         </Anchor>
       </Group>
 
-      <Title order={1} mb="xl">Most Engaged Users</Title>
+      <Group justify="space-between" mb="xl" wrap="wrap">
+        <Title order={1}>Most Engaged Users</Title>
+        <SegmentedControl
+          value={timeFilter}
+          onChange={(value) => setTimeFilter(value as TimeFilter)}
+          data={[
+            { label: 'All Time', value: 'all' },
+            { label: '1 Day', value: '1' },
+            { label: '7 Days', value: '7' },
+            { label: '30 Days', value: '30' },
+            { label: '90 Days', value: '90' },
+          ]}
+        />
+      </Group>
 
       <Paper shadow="sm" p="md" radius="md" withBorder>
         <Table striped highlightOnHover>
