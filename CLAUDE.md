@@ -10,7 +10,20 @@ Full-stack TypeScript analytics dashboard built with Next.js 14 (App Router), Ma
 - **UI**: Mantine v7
 - **Charts**: @mantine/charts (built on Recharts)
 - **Database**: PostgreSQL via `pg` package
+- **Auth**: Clerk (via middleware in `src/proxy.ts`)
 - **External APIs**: PostHog HogQL API for MAU data
+
+## Authentication
+Auth is handled by Clerk middleware in `src/proxy.ts`. All API routes require authentication by default.
+
+### Public API Routes
+To make an API route public (no auth required), add it to the `PUBLIC_API_ROUTES` array in `src/proxy.ts`:
+```typescript
+const PUBLIC_API_ROUTES = ['/api/health'];
+```
+
+### Keep-Alive Endpoint
+The `/api/health` endpoint is public and used by external cron services (e.g., cron-job.org) to keep the free Render instance awake. Render's free tier spins down after 15 minutes of inactivity.
 
 ## Database
 - Schema: `api_server`
