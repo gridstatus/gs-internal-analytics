@@ -182,48 +182,58 @@ export default function InsightDetailPage() {
   return (
     <Container size="xl" py="md">
       {/* Compact Header */}
-      <Group justify="space-between" mb="md" wrap="wrap">
-        <Group gap="md">
-          <Anchor
-            component={Link}
-            href="/insights"
-            size="sm"
-            c="dimmed"
-            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            <IconArrowLeft size={16} />
-            Back
-          </Anchor>
-          <Anchor
-            href={`https://gridstatus.io/insights/${data.post.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            fw={500}
-          >
-            View on GridStatus.io →
-          </Anchor>
-          <Badge variant="light" color={data.post.status === 'PUBLISHED' ? 'green' : 'gray'}>
-            {data.post.status}
-          </Badge>
-        </Group>
-        <Group gap="md">
-          <Text size="sm" c="dimmed">
-            By <UserHoverCard userId={data.post.author.id} userName={authorName} />
-          </Text>
-          <Text size="sm" c="dimmed">
-            {new Date(data.post.createdAt).toLocaleDateString()}
-          </Text>
-          {data.tags.length > 0 && (
-            <Group gap="xs">
-              {data.tags.map((tag) => (
-                <Badge key={tag.id} variant="light" color="blue" size="sm">
-                  {tag.name}
-                </Badge>
-              ))}
-            </Group>
-          )}
-        </Group>
+      <Group mb="md">
+        <Anchor
+          component={Link}
+          href="/insights"
+          size="sm"
+          c="dimmed"
+          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+        >
+          <IconArrowLeft size={16} />
+          Back
+        </Anchor>
       </Group>
+
+      {/* Post Content Preview */}
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="md">
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed" lineClamp={4}>
+            {data.post.content}
+          </Text>
+          <Group justify="space-between" wrap="wrap">
+            <Group gap="md">
+              <Text size="sm" c="dimmed">
+                By <UserHoverCard userId={data.post.author.id} userName={authorName} />
+              </Text>
+              <Text size="sm" c="dimmed">
+                {new Date(data.post.createdAt).toLocaleDateString()}
+              </Text>
+              <Badge variant="light" color={data.post.status === 'PUBLISHED' ? 'green' : 'gray'}>
+                {data.post.status}
+              </Badge>
+              {data.tags.length > 0 && (
+                <Group gap="xs">
+                  {data.tags.map((tag) => (
+                    <Badge key={tag.id} variant="light" color="blue" size="sm">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </Group>
+              )}
+            </Group>
+            <Anchor
+              href={`https://gridstatus.io/insights/${data.post.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              fw={500}
+            >
+              View on GridStatus.io →
+            </Anchor>
+          </Group>
+        </Stack>
+      </Paper>
 
       {/* Two-column layout: Stats + Chart */}
       <Grid gutter="md" mb="md">
@@ -246,17 +256,7 @@ export default function InsightDetailPage() {
                 value={data.stats.engagementRate > 0 ? `${data.stats.engagementRate.toFixed(1)}%` : 'N/A'}
                 subtitle="views / impressions"
               />
-              <MetricCard
-                title="Reactions"
-                value={data.stats.reactions.total}
-                subtitle={`👍 ${data.stats.reactions.likes} 👎 ${data.stats.reactions.dislikes}`}
-              />
             </SimpleGrid>
-            <MetricCard
-              title="Saves"
-              value={data.stats.saves.total}
-              subtitle={`${data.stats.saves.uniqueUsers} unique users`}
-            />
           </Stack>
         </Grid.Col>
 

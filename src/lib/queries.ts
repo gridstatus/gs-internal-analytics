@@ -323,6 +323,25 @@ export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'mont
   return query<MonthlyInsightsReactions>(sql);
 }
 
+export interface MostEngagedUser {
+  user_id: number;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+  reaction_count: number;
+  likes_count: number;
+  dislikes_count: number;
+  engagement_count: number;
+  save_count: number;
+  total_engagement_score: number;
+}
+
+export async function getMostEngagedUsers(filterGridstatus: boolean = true): Promise<MostEngagedUser[]> {
+  let sql = loadSql('most-engaged-users.sql');
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  return query<MostEngagedUser>(sql);
+}
+
 export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m'): Promise<TopInsightsPost[]> {
   let sql = loadSql('top-insights-posts.sql');
   

@@ -15,8 +15,9 @@ import {
   TextInput,
   Anchor,
   SegmentedControl,
+  Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconAlertCircle, IconSearch, IconUsers } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
@@ -182,7 +183,17 @@ export function InsightsView() {
     <Container size="xl" py="xl">
       <Group justify="space-between" mb="xl">
         <Title order={1}>Insights</Title>
-        <ExportButton charts={chartRefs} />
+        <Group>
+          <Button
+            component={Link}
+            href="/insights/most-engaged-users"
+            leftSection={<IconUsers size={16} />}
+            variant="light"
+          >
+            Most Engaged Users
+          </Button>
+          <ExportButton charts={chartRefs} />
+        </Group>
       </Group>
 
       {/* Summary Metrics */}
