@@ -16,6 +16,7 @@ import {
   Anchor,
   Badge,
   SegmentedControl,
+  ScrollArea,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
@@ -45,6 +46,30 @@ interface ApiKey {
   requestCount: number;
 }
 
+interface InsightPost {
+  postId: string;
+  content: string;
+  createdAt: string;
+  authorId: number;
+  authorUsername: string | null;
+}
+
+interface InsightReaction extends InsightPost {
+  reactionType: string;
+  reactionDate: string;
+}
+
+interface InsightSaved extends InsightPost {
+  savedDate: string;
+}
+
+interface InsightView extends InsightPost {
+  firstViewed: string;
+  lastViewed: string;
+  viewCount: number;
+  viewSources: string;
+}
+
 interface UserDetails {
   user: User;
   organizations: Organization[];
@@ -55,6 +80,11 @@ interface UserDetails {
     apiRows30d: number;
   };
   apiKeys: ApiKey[];
+  insights?: {
+    reactions: InsightReaction[];
+    saved: InsightSaved[];
+    views: InsightView[];
+  };
 }
 
 interface ApiUsageData {
@@ -73,6 +103,25 @@ export default function UserDetailPage() {
   const [apiUsageData, setApiUsageData] = useState<ApiUsageData[]>([]);
   const [apiUsageLoading, setApiUsageLoading] = useState(false);
   const [apiUsageError, setApiUsageError] = useState<string | null>(null);
+
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffWeeks < 4) return `${diffWeeks}w ago`;
+    if (diffMonths < 12) return `${diffMonths}mo ago`;
+    return `${Math.floor(diffDays / 365)}y ago`;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -320,7 +369,7 @@ export default function UserDetailPage() {
       </Paper>
 
       {/* API Keys */}
-      <Paper shadow="sm" p="md" radius="md" withBorder>
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
         <Text fw={600} size="lg" mb="md">
           API Keys ({data.apiKeys.length})
         </Text>
@@ -359,6 +408,125 @@ export default function UserDetailPage() {
           </Table>
         )}
       </Paper>
+
+      {/* Insights Activity */}
+      {data.insights && (
+        <Paper shadow="sm" p="md" radius="md" withBorder>
+          <Text fw={600} size="lg" mb="md">
+            Insights Activity
+          </Text>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            {/* Likes */}
+            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+              <Text fw={600} mb="sm">
+                Likes ({data.insights.reactions.filter(r => r.reactionType === 'LIKE').length})
+              </Text>
+              <ScrollArea style={{ flex: 1 }}>
+                <Stack gap="xs">
+                  {data.insights.reactions
+                    .filter(r => r.reactionType === 'LIKE')
+                    .map((reaction) => (
+                      <Anchor
+                        key={reaction.postId}
+                        component={Link}
+                        href={`/insights/${reaction.postId}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <Paper p="xs" withBorder style={{ cursor: 'pointer' }}>
+                          <Text size="sm" lineClamp={3} mb={4}>
+                            {reaction.content}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {formatTimeAgo(reaction.reactionDate)}
+                          </Text>
+                        </Paper>
+                      </Anchor>
+                    ))}
+                  {data.insights.reactions.filter(r => r.reactionType === 'LIKE').length === 0 && (
+                    <Text c="dimmed" size="sm">No likes</Text>
+                  )}
+                </Stack>
+              </ScrollArea>
+            </Paper>
+
+            {/* Saved */}
+            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+              <Text fw={600} mb="sm">
+                Saved ({data.insights.saved.length})
+              </Text>
+              <ScrollArea style={{ flex: 1 }}>
+                <Stack gap="xs">
+                  {data.insights.saved.map((saved) => (
+                    <Anchor
+                      key={saved.postId}
+                      component={Link}
+                      href={`/insights/${saved.postId}`}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <Paper p="xs" withBorder style={{ cursor: 'pointer' }}>
+                        <Text size="sm" lineClamp={3} mb={4}>
+                          {saved.content}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          {formatTimeAgo(saved.savedDate)}
+                        </Text>
+                      </Paper>
+                    </Anchor>
+                  ))}
+                  {data.insights.saved.length === 0 && (
+                    <Text c="dimmed" size="sm">No saved posts</Text>
+                  )}
+                </Stack>
+              </ScrollArea>
+            </Paper>
+
+            {/* Engagements (Views) */}
+            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+              <Text fw={600} mb="sm">
+                Engagements ({data.insights.views.length})
+              </Text>
+              <ScrollArea style={{ flex: 1 }}>
+                <Stack gap="xs">
+                  {data.insights.views.map((view) => {
+                    const engagementTypes = view.viewSources.split(', ').map(s => {
+                      if (s === 'feed_expanded') return 'Expanded';
+                      if (s === 'detail') return 'Detail';
+                      return s;
+                    });
+                    return (
+                      <Anchor
+                        key={view.postId}
+                        component={Link}
+                        href={`/insights/${view.postId}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <Paper p="xs" withBorder style={{ cursor: 'pointer' }}>
+                          <Text size="sm" lineClamp={3} mb={4}>
+                            {view.content}
+                          </Text>
+                          <Group gap="xs" mb={4}>
+                            {engagementTypes.map((type, idx) => (
+                              <Badge key={idx} size="xs" variant="light" color="blue">
+                                {type}
+                              </Badge>
+                            ))}
+                          </Group>
+                          <Text size="xs" c="dimmed">
+                            {formatTimeAgo(view.lastViewed)}
+                          </Text>
+                        </Paper>
+                      </Anchor>
+                    );
+                  })}
+                  {data.insights.views.length === 0 && (
+                    <Text c="dimmed" size="sm">No engagements</Text>
+                  )}
+                </Stack>
+              </ScrollArea>
+            </Paper>
+          </SimpleGrid>
+        </Paper>
+      )}
     </Container>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
+import { loadSql } from '@/lib/queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -77,6 +78,43 @@ export async function GET(request: Request) {
         ORDER BY MAX(timestamp) DESC
       `, [id]);
 
+      // Get posts user has reacted to
+      const reactionsSql = loadSql('user-insights-reactions.sql');
+      const reactions = await query<{
+        id: string;
+        content: string;
+        created_at: Date;
+        author_id: number;
+        author_username: string | null;
+        reaction_type: string;
+        reaction_date: Date;
+      }>(reactionsSql, [id]);
+
+      // Get posts user has saved
+      const savedSql = loadSql('user-insights-saved.sql');
+      const saved = await query<{
+        id: string;
+        content: string;
+        created_at: Date;
+        author_id: number;
+        author_username: string | null;
+        saved_date: Date;
+      }>(savedSql, [id]);
+
+      // Get posts user has viewed (feed_expanded or detail)
+      const viewsSql = loadSql('user-insights-views.sql');
+      const views = await query<{
+        id: string;
+        content: string;
+        created_at: Date;
+        author_id: number;
+        author_username: string | null;
+        first_viewed: Date;
+        last_viewed: Date;
+        view_count: string;
+        view_sources: string;
+      }>(viewsSql, [id]);
+
       return NextResponse.json({
         user: {
           id: user.id,
@@ -104,6 +142,36 @@ export async function GET(request: Request) {
           lastUsed: k.last_used,
           requestCount: Number(k.request_count),
         })),
+        insights: {
+          reactions: reactions.map(r => ({
+            postId: r.id,
+            content: r.content,
+            createdAt: r.created_at,
+            authorId: r.author_id,
+            authorUsername: r.author_username,
+            reactionType: r.reaction_type,
+            reactionDate: r.reaction_date,
+          })),
+          saved: saved.map(s => ({
+            postId: s.id,
+            content: s.content,
+            createdAt: s.created_at,
+            authorId: s.author_id,
+            authorUsername: s.author_username,
+            savedDate: s.saved_date,
+          })),
+          views: views.map(v => ({
+            postId: v.id,
+            content: v.content,
+            createdAt: v.created_at,
+            authorId: v.author_id,
+            authorUsername: v.author_username,
+            firstViewed: v.first_viewed,
+            lastViewed: v.last_viewed,
+            viewCount: Number(v.view_count),
+            viewSources: v.view_sources,
+          })),
+        },
       });
     }
 
