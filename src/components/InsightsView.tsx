@@ -229,7 +229,6 @@ export function InsightsView() {
         <MetricCard
           title="Total Posts"
           value={data.summary.totalPosts}
-          subtitle={`${data.summary.uniqueAuthors} authors`}
         />
         <MetricCard
           title="Impressions"
