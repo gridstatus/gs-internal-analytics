@@ -11,7 +11,11 @@ WITH user_data AS (
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users
-  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+    {{FREE_EMAIL_DOMAINS}}
+  )
+    {{EDU_GOV_FILTER}}
+    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 )
 SELECT

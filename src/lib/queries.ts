@@ -511,10 +511,6 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM today_start)
         AND created_at < (SELECT start_time FROM today_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -523,10 +519,6 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM yesterday_start)
         AND created_at < (SELECT start_time FROM yesterday_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -535,10 +527,6 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM yesterday_start)
         AND created_at < (SELECT start_time FROM yesterday_start) + (NOW() - (SELECT start_time FROM today_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -547,10 +535,6 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM last_week_start)
         AND created_at < (SELECT start_time FROM last_week_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -559,10 +543,6 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       FROM api_server.users
       WHERE created_at >= (SELECT start_time FROM last_week_start)
         AND created_at < (SELECT start_time FROM last_week_start) + (NOW() - (SELECT start_time FROM today_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          {{FREE_EMAIL_DOMAINS}}
-        )
-        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     )

@@ -123,6 +123,7 @@ export function UserHoverCard({
         <Anchor 
           component={Link} 
           href={`/users-list/${userId}`}
+          size="sm"
           style={{ 
             display: 'block',
             overflow: 'hidden',

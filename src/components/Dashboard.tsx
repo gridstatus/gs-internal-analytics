@@ -268,13 +268,6 @@ export function Dashboard() {
                         key={`${activity.userId}-${activity.activityType}-${activity.activityDate}-${index}`}
                         p={6}
                         withBorder
-                        style={{ cursor: 'pointer' }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
                       >
                         <Stack gap={2}>
                           <Group justify="space-between" gap={4} wrap="nowrap">
@@ -343,13 +336,6 @@ export function Dashboard() {
                             key={`${activity.userId}-${activity.activityType}-${activity.activityDate}-${index}`}
                             p={6}
                             withBorder
-                            style={{ cursor: 'pointer' }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
                           >
                             <Stack gap={2}>
                               <Group justify="space-between" gap={4} wrap="nowrap">
