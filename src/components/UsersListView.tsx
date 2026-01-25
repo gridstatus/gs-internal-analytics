@@ -17,17 +17,9 @@ import {
 import { IconSearch, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import Link from 'next/link';
-import { useEffect, useMemo } from 'react';
-
-interface User {
-  id: number;
-  username: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  lastActiveAt: string | null;
-  hasApiKey: boolean;
-}
+import { useMemo } from 'react';
+import { UsersListItem, UsersListResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 type SortColumn = 'username' | 'name' | 'hasApiKey' | 'createdAt' | 'lastActiveAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -35,27 +27,12 @@ type SortDirection = 'asc' | 'desc';
 export function UsersListView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('lastActiveAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/users-list?search=${encodeURIComponent(debouncedSearch)}`);
-        const data = await response.json();
-        setUsers(data.users || []);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [debouncedSearch]);
+  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}`;
+  const { data, loading } = useApiData<UsersListResponse>(url, [url]);
+  const users = data?.users ?? [];
 
   const sortedUsers = useMemo(() => {
     if (!sortColumn) return users;

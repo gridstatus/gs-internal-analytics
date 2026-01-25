@@ -17,7 +17,7 @@ import {
   Badge,
   Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import Link from 'next/link';
 
@@ -134,9 +134,21 @@ export default function OrganizationDetailPage() {
         </Anchor>
       </Group>
 
-      <Title order={1} mb="xl">
-        {data.organization.name}
-      </Title>
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>
+          {data.organization.name}
+        </Title>
+        <Button
+          component="a"
+          href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/organizations/${data.organization.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          leftSection={<IconExternalLink size={16} />}
+          variant="light"
+        >
+          Open in Clerk
+        </Button>
+      </Group>
 
       {/* Stats */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">

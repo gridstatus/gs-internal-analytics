@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useRef } from 'react';
 import {
   Container,
   Title,
@@ -20,27 +20,10 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-
-interface MonthlyUserData {
-  month: string;
-  totalCorpUsers: number;
-  newCorpUsers: number;
-  corpDomains: number;
-  teams: number;
-  usersOnTeams: number;
-  corpUsersMomChange: number;
-  [key: string]: string | number;
-}
-
-interface CorporateTeamsResponse {
-  monthlyData: MonthlyUserData[];
-}
+import { CorporateTeamsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function CorporateTeamsView() {
-  const [data, setData] = useState<CorporateTeamsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const corpUsersChartRef = useRef<HTMLDivElement>(null);
   const teamsChartRef = useRef<HTMLDivElement>(null);
   const corpDomainsChartRef = useRef<HTMLDivElement>(null);
@@ -52,25 +35,8 @@ export function CorporateTeamsView() {
   ];
 
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/users/corporate-teams?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch corporate and teams data');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/users/corporate-teams?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url]);
 
   if (loading) {
     return (

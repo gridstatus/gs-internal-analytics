@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getActiveUsers, getActiveUsersByDomain } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
+import { getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
     
     const [summaryResult, domainResult] = await Promise.all([
       getActiveUsers(),
@@ -33,9 +33,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching active users:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }

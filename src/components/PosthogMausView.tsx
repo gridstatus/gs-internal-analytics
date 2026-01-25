@@ -20,18 +20,8 @@ import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-
-interface PeriodData {
-  period: string;
-  activeUsers: number;
-  periodChange: number;
-  [key: string]: string | number;
-}
-
-interface PosthogActiveUsersResponse {
-  periodData: PeriodData[];
-  periodType: 'day' | 'week' | 'month';
-}
+import { PosthogActiveUsersResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 
 export function PosthogMausView() {
@@ -42,10 +32,6 @@ export function PosthogMausView() {
   const [period, setPeriod] = useState<'day' | 'week' | 'month'>(
     (searchParams.get('period') as 'day' | 'week' | 'month') || 'month'
   );
-  const [data, setData] = useState<PosthogActiveUsersResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const activeUsersChartRef = useRef<HTMLDivElement>(null);
 
   const chartRefs = [
@@ -64,25 +50,8 @@ export function PosthogMausView() {
     router.replace(newUrl, { scroll: false });
   }, [period, pathname, router, searchParams]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/posthog-maus?period=${period}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch PostHog Active Users');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [period]);
+  const url = `/api/posthog-maus?period=${period}`;
+  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url]);
 
   if (loading) {
     return (

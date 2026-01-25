@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import { query, getErrorMessage } from '@/lib/db';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { renderSqlTemplate } from '@/lib/queries';
-
-function formatDate(date: Date | null): string | null {
-  if (!date) return null;
-  return new Date(date).toISOString().slice(0, 10);
-}
+import { query } from '@/lib/db';
+import { loadRenderedSql, renderSqlTemplate } from '@/lib/queries';
+import { formatDateOnly, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
 
     // Get summary stats (filtered)
     const summarySql = `
@@ -26,10 +20,9 @@ export async function GET(request: Request) {
     const alertStats = await query<{ total: string; users: string }>(filteredSummarySql);
 
     // Get user breakdown for alerts
-    const alertsSqlPath = join(process.cwd(), 'src/sql/alerts-by-user.sql');
-    let alertsSql = readFileSync(alertsSqlPath, 'utf-8');
-    alertsSql = renderSqlTemplate(alertsSql, { filterGridstatus });
+    const alertsSql = loadRenderedSql('alerts-by-user.sql', { filterGridstatus });
     const alertsBreakdown = await query<{
+      user_id: number;
       username: string;
       domain: string;
       alert_count: string;
@@ -42,18 +35,16 @@ export async function GET(request: Request) {
         alertUsers: Number(alertStats[0]?.users || 0),
       },
       users: alertsBreakdown.map((row) => ({
+        userId: row.user_id,
         username: row.username,
         domain: row.domain,
         alertCount: Number(row.alert_count),
-        lastAlertCreated: formatDate(row.last_alert_created),
+        lastAlertCreated: formatDateOnly(row.last_alert_created),
       })),
     });
   } catch (error) {
     console.error('Error fetching alerts:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }
 

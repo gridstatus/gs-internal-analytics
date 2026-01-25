@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -19,50 +19,14 @@ import { IconSearch } from '@tabler/icons-react';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
-
-interface DomainActivity {
-  domain: string;
-  active24h: number;
-  active7d: number;
-  active30d: number;
-  active90d: number;
-  totalUsers: number;
-}
-
-interface ActiveUsersData {
-  active24h: number;
-  active7d: number;
-  active30d: number;
-  active90d: number;
-  totalUsers: number;
-  byDomain: DomainActivity[];
-}
+import { ActiveUsersResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function ActiveUsersView() {
-  const [data, setData] = useState<ActiveUsersData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/active-users?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch active users');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/active-users?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url]);
 
   if (loading) {
     return (

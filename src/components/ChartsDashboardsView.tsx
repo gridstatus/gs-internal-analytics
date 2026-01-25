@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -19,52 +19,14 @@ import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-
-interface UserChartsDashboards {
-  userId: number;
-  username: string;
-  domain: string;
-  chartCount: number;
-  dashboardCount: number;
-  lastChartCreated: string | null;
-  lastDashboardCreated: string | null;
-}
-
-interface ChartsDashboardsData {
-  summary: {
-    totalCharts: number;
-    totalDashboards: number;
-    chartUsers: number;
-    dashboardUsers: number;
-  };
-  users: UserChartsDashboards[];
-}
+import { ChartsDashboardsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function ChartsDashboardsView() {
-  const [data, setData] = useState<ChartsDashboardsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/charts-dashboards?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/charts-dashboards?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [url]);
 
   if (loading) {
     return (

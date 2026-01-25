@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -13,51 +13,20 @@ import {
   Table,
   TextInput,
   Group,
+  Anchor,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
-
-interface UserAlerts {
-  username: string;
-  domain: string;
-  alertCount: number;
-  lastAlertCreated: string | null;
-}
-
-interface AlertsData {
-  summary: {
-    totalAlerts: number;
-    alertUsers: number;
-  };
-  users: UserAlerts[];
-}
+import { AlertsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
+import Link from 'next/link';
 
 export function AlertsView() {
-  const [data, setData] = useState<AlertsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/alerts?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/alerts?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<AlertsResponse>(url, [url]);
 
   if (loading) {
     return (
@@ -145,8 +114,12 @@ export function AlertsView() {
               </Table.Thead>
               <Table.Tbody>
                 {filteredUsers.slice(0, 100).map((user) => (
-                  <Table.Tr key={user.username}>
-                    <Table.Td>{user.username}</Table.Td>
+                  <Table.Tr key={user.userId}>
+                    <Table.Td>
+                      <Anchor component={Link} href={`/users-list/${user.userId}`}>
+                        {user.username}
+                      </Anchor>
+                    </Table.Td>
                     <Table.Td>{user.domain}</Table.Td>
                     <Table.Td ta="right">{user.alertCount}</Table.Td>
                     <Table.Td ta="right">{user.lastAlertCreated || '—'}</Table.Td>

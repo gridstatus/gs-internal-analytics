@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
   Container,
@@ -24,56 +24,10 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-
-interface MonthlyUserData {
-  month: string;
-  totalUsers: number;
-  newUsers: number;
-  totalCorpUsers: number;
-  newCorpUsers: number;
-  corpDomains: number;
-  teams: number;
-  usersOnTeams: number;
-  totalUsersMomChange: number;
-  newUsersMomChange: number;
-  corpUsersMomChange: number;
-  [key: string]: string | number;
-}
-
-interface TopDomain {
-  domain: string;
-  userCount: number;
-}
-
-interface UsersTodayData {
-  today: number;
-  yesterdayAll: number;
-  yesterdaySameTime: number;
-  lastWeekAll: number;
-  lastWeekSameTime: number;
-}
-
-interface MonthlyNewUsersData {
-  currentMonth: number;
-  previousMonthAll: number;
-  previousMonthSameTime: number;
-}
-
-interface UsersResponse {
-  monthlyData: MonthlyUserData[];
-  usersToday: UsersTodayData;
-  monthlyNewUsers?: MonthlyNewUsersData;
-  topDomains?: {
-    '1d': TopDomain[];
-    '7d': TopDomain[];
-    '30d': TopDomain[];
-  };
-}
+import { UsersResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function UsersView() {
-  const [data, setData] = useState<UsersResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [domainFilter, setDomainFilter] = useState<string>('');
   const [debouncedDomainFilter] = useDebouncedValue(domainFilter, 300);
 
@@ -86,31 +40,14 @@ export function UsersView() {
   ];
 
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const params = new URLSearchParams({
-          filterGridstatus: filterGridstatus.toString(),
-        });
-        if (debouncedDomainFilter) {
-          params.set('domainSearch', debouncedDomainFilter);
-        }
-        const response = await fetch(`/api/users?${params.toString()}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus, debouncedDomainFilter]);
+  const params = new URLSearchParams({
+    filterGridstatus: filterGridstatus.toString(),
+  });
+  if (debouncedDomainFilter) {
+    params.set('domainSearch', debouncedDomainFilter);
+  }
+  const url = `/api/users?${params.toString()}`;
+  const { data, loading, error } = useApiData<UsersResponse>(url, [url]);
 
   if (loading) {
     return (
@@ -158,6 +95,15 @@ export function UsersView() {
       ? data.monthlyData[data.monthlyData.length - 2]
       : null;
 
+  // Calculate last year's month for display
+  const formatLastYearMonth = () => {
+    const [year, month] = latestMetric.month.split('-');
+    const lastYearDate = new Date(parseInt(year) - 1, parseInt(month) - 1, 1);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[lastYearDate.getMonth()]}, ${lastYearDate.getFullYear()}`;
+  };
+  const lastYearMonthLabel = formatLastYearMonth();
+
   const calculateTrend = (current: number, previous: number | undefined) => {
     if (previous === undefined || previous === 0) return undefined;
     return Math.round(((current - previous) / previous) * 100);
@@ -197,73 +143,101 @@ export function UsersView() {
           title="Users Today"
           value={data.usersToday.today}
           subtitle={
-            <Stack gap={2}>
-              <Text size="xs" c="dimmed">
-                vs Yesterday (all day): {data.usersToday.yesterdayAll}
-                {data.usersToday.yesterdayAll > 0 && (
-                  <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
-                    {' '}({data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
-                    {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100)}%)
-                  </Text>
-                )}
-              </Text>
-              <Text size="xs" c="dimmed">
-                vs Yesterday (same time): {data.usersToday.yesterdaySameTime}
-                {data.usersToday.yesterdaySameTime > 0 && (
-                  <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
-                    {' '}({data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
-                    {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100)}%)
-                  </Text>
-                )}
-              </Text>
-              <Text size="xs" c="dimmed">
-                vs Last Week (all day): {data.usersToday.lastWeekAll}
-                {data.usersToday.lastWeekAll > 0 && (
-                  <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
-                    {' '}({data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
-                    {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100)}%)
-                  </Text>
-                )}
-              </Text>
-              <Text size="xs" c="dimmed">
-                vs Last Week (same time): {data.usersToday.lastWeekSameTime}
-                {data.usersToday.lastWeekSameTime > 0 && (
-                  <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
-                    {' '}({data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
-                    {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100)}%)
-                  </Text>
-                )}
-              </Text>
-            </Stack>
+            <SimpleGrid cols={2} spacing="xs">
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed">
+                  vs Yesterday (all day): {data.usersToday.yesterdayAll}
+                  {data.usersToday.yesterdayAll > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
+                      {' '}({data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100)}%)
+                    </Text>
+                  )}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  vs Yesterday (same time): {data.usersToday.yesterdaySameTime}
+                  {data.usersToday.yesterdaySameTime > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
+                      {' '}({data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100)}%)
+                    </Text>
+                  )}
+                </Text>
+              </Stack>
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed">
+                  vs Last Week (all day): {data.usersToday.lastWeekAll}
+                  {data.usersToday.lastWeekAll > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
+                      {' '}({data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100)}%)
+                    </Text>
+                  )}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  vs Last Week (same time): {data.usersToday.lastWeekSameTime}
+                  {data.usersToday.lastWeekSameTime > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
+                      {' '}({data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100)}%)
+                    </Text>
+                  )}
+                </Text>
+              </Stack>
+            </SimpleGrid>
           }
         />
         <MetricCard
           title="New Users"
-          value={latestMetric.newUsers}
+          value={data.monthlyNewUsers?.currentMonth ?? latestMetric.newUsers}
           subtitle={
             data.monthlyNewUsers ? (
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
                   {latestMetric.month}
                 </Text>
-                <Text size="xs" c="dimmed">
-                  vs Last Month (all month): {data.monthlyNewUsers.previousMonthAll}
-                  {data.monthlyNewUsers.previousMonthAll > 0 && (
-                    <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
-                      {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
-                      {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100)}%)
+                <SimpleGrid cols={2} spacing="xs">
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed">
+                      vs Last Month (all month): {data.monthlyNewUsers.previousMonthAll}
+                      {data.monthlyNewUsers.previousMonthAll > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
+                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100)}%)
+                        </Text>
+                      )}
                     </Text>
-                  )}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  vs Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime}
-                  {data.monthlyNewUsers.previousMonthSameTime > 0 && (
-                    <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
-                      {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
-                      {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100)}%)
+                    <Text size="xs" c="dimmed">
+                      vs Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime}
+                      {data.monthlyNewUsers.previousMonthSameTime > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
+                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100)}%)
+                        </Text>
+                      )}
                     </Text>
-                  )}
-                </Text>
+                  </Stack>
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed">
+                      vs {lastYearMonthLabel} (all month): {data.monthlyNewUsers.lastYearMonthAll}
+                      {data.monthlyNewUsers.lastYearMonthAll > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? 'green' : 'red'}>
+                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthAll) / data.monthlyNewUsers.lastYearMonthAll) * 100)}%)
+                        </Text>
+                      )}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      vs {lastYearMonthLabel} (same time): {data.monthlyNewUsers.lastYearMonthSameTime}
+                      {data.monthlyNewUsers.lastYearMonthSameTime > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? 'green' : 'red'}>
+                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthSameTime) / data.monthlyNewUsers.lastYearMonthSameTime) * 100)}%)
+                        </Text>
+                      )}
+                    </Text>
+                  </Stack>
+                </SimpleGrid>
               </Stack>
             ) : (
               latestMetric.month

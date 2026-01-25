@@ -22,64 +22,14 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-
-interface MonthlyInsightData {
-  month: string;
-  posts: number;
-  authors: number;
-  impressions: number;
-  views: number;
-  postsViewed: number;
-  uniqueViewers: number;
-  uniqueImpressionUsers: number;
-  reactions: number;
-  likes: number;
-  dislikes: number;
-  postsWithReactions: number;
-  uniqueReactors: number;
-  postsMomChange: number;
-  impressionsMomChange: number;
-  viewsMomChange: number;
-  reactionsMomChange: number;
-}
-
-interface TopPost {
-  id: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-  authorId: number;
-  username: string | null;
-  email: string | null;
-  impressions: number;
-  viewCount: number;
-  reactionCount: number;
-  saveCount: number;
-  likeCount: number;
-  dislikeCount: number;
-  engagementRate: number;
-}
-
-interface InsightsResponse {
-  summary: {
-    totalPosts: number;
-    totalImpressions: number;
-    totalViews: number;
-    totalReactions: number;
-    uniqueAuthors: number;
-  };
-  monthlyData: MonthlyInsightData[];
-  topPosts: TopPost[];
-}
+import { InsightsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function InsightsView() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   
-  const [data, setData] = useState<InsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   
   // Initialize timeFilter from URL params
@@ -152,35 +102,17 @@ export function InsightsView() {
     }
   }, [timeFilter, chartPeriod, pathname, router, searchParams]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (timeFilter) {
-          params.set('timeFilter', timeFilter);
-        }
-        if (chartPeriod !== 'month') {
-          params.set('chartPeriod', chartPeriod);
-        }
-        const url = params.toString() 
-          ? `/api/insights?${params.toString()}`
-          : '/api/insights';
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Failed to fetch insights data');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [timeFilter, chartPeriod]);
+  const params = new URLSearchParams();
+  if (timeFilter) {
+    params.set('timeFilter', timeFilter);
+  }
+  if (chartPeriod !== 'month') {
+    params.set('chartPeriod', chartPeriod);
+  }
+  const url = params.toString()
+    ? `/api/insights?${params.toString()}`
+    : '/api/insights';
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [url]);
 
   if (loading) {
     return (

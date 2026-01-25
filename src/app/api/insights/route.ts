@@ -5,7 +5,7 @@ import {
   getMonthlyInsightsReactions,
   getTopInsightsPosts,
 } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
+import { jsonError } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -126,10 +126,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching insights data:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }
 

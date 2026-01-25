@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyApiUsage } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
-
-function formatMonth(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-}
+import { formatMonthUtc, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
 
     const apiUsage = await getMonthlyApiUsage(filterGridstatus);
 
@@ -37,7 +31,7 @@ export async function GET(request: Request) {
         : 0;
 
       return {
-        month: formatMonth(new Date(row.month)),
+        month: formatMonthUtc(new Date(row.month)),
         totalApiRequests: requests,
         totalApiRowsReturned: rows,
         uniqueApiUsers: users,
@@ -50,9 +44,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ monthlyData });
   } catch (error) {
     console.error('Error fetching API usage:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }

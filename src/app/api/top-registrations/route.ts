@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getTopRegistrations } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
+import { getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
     
     const data = await getTopRegistrations(filterGridstatus);
 
@@ -19,10 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: formatted });
   } catch (error) {
     console.error('Error fetching top registrations:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }
 

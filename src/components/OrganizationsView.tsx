@@ -16,16 +16,9 @@ import {
 import { IconSearch, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import Link from 'next/link';
-import { useEffect, useMemo } from 'react';
-
-interface Organization {
-  id: string;
-  name: string;
-  createdAt: string;
-  userCount: number;
-  newUsers7d: number;
-  activeUsers7d: number;
-}
+import { useMemo } from 'react';
+import { OrganizationListItem, OrganizationsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 type SortColumn = 'name' | 'userCount' | 'newUsers7d' | 'activeUsers7d' | 'createdAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -33,27 +26,12 @@ type SortDirection = 'asc' | 'desc';
 export function OrganizationsView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [loading, setLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('userCount');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  useEffect(() => {
-    const fetchOrgs = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/organizations?search=${encodeURIComponent(debouncedSearch)}`);
-        const data = await response.json();
-        setOrganizations(data.organizations || []);
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrgs();
-  }, [debouncedSearch]);
+  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}`;
+  const { data, loading } = useApiData<OrganizationsResponse>(url, [url]);
+  const organizations = data?.organizations ?? [];
 
   const sortedOrganizations = useMemo(() => {
     if (!sortColumn) return organizations;

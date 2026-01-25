@@ -4,6 +4,26 @@ import { query } from './db';
 
 const sqlDir = join(process.cwd(), 'src/sql');
 
+const FREE_EMAIL_DOMAINS = [
+  'gmail.com',
+  'comcast.net',
+  'yahoo.com',
+  'hotmail.com',
+  'qq.com',
+  'outlook.com',
+  'icloud.com',
+  'aol.com',
+  'me.com',
+  'protonmail.com',
+  'live.com',
+  'msn.com',
+  'zoho.com',
+  'gmx.com',
+  'yandex.com',
+] as const;
+
+const FREE_EMAIL_DOMAINS_SQL = FREE_EMAIL_DOMAINS.map((domain) => `'${domain}'`).join(', ');
+
 interface TemplateContext {
   filterGridstatus: boolean;
   usernamePrefix?: string; // 'u.' or '' - determined from SQL context
@@ -13,6 +33,18 @@ export function loadSql(filename: string): string {
   return readFileSync(join(sqlDir, filename), 'utf-8');
 }
 
+export function loadRenderedSql(filename: string, context: TemplateContext): string {
+  return renderSqlTemplate(loadSql(filename), context);
+}
+
+function buildEduGovFilter(usernamePrefix: string): string {
+  const usernameRef = `${usernamePrefix}username`;
+  return `AND NOT (
+    SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) LIKE '%.edu'
+    OR SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) LIKE '%.gov'
+  )`;
+}
+
 /**
  * Renders SQL template with placeholders.
  * 
@@ -20,6 +52,8 @@ export function loadSql(filename: string): string {
  * - {{GRIDSTATUS_FILTER_STANDALONE}} - Replaced with "NOT IN ('gridstatus.io')" or removed
  * - {{GRIDSTATUS_FILTER_IN_LIST}} - Replaced with ", 'gridstatus.io'" or empty string
  * - {{INTERNAL_EMAIL_FILTER}} - Replaced with "AND {usernamePrefix}username != 'kmax12+dev@gmail.com'" or empty string
+ * - {{FREE_EMAIL_DOMAINS}} - Replaced with the standard free-domain exclusion list
+ * - {{EDU_GOV_FILTER}} - Replaced with "AND NOT (...)" for .edu/.gov exclusions
  */
 export function renderSqlTemplate(sql: string, context: TemplateContext): string {
   let rendered = sql;
@@ -31,6 +65,12 @@ export function renderSqlTemplate(sql: string, context: TemplateContext): string
       : '';
   }
   
+  // Handle FREE_EMAIL_DOMAINS list (shared across multiple queries)
+  rendered = rendered.replace(/\{\{FREE_EMAIL_DOMAINS\}\}/g, FREE_EMAIL_DOMAINS_SQL);
+
+  // Handle EDU_GOV_FILTER (shared domain exclusion)
+  rendered = rendered.replace(/\{\{EDU_GOV_FILTER\}\}/g, buildEduGovFilter(context.usernamePrefix));
+
   // Handle GRIDSTATUS_FILTER_STANDALONE (for standalone NOT IN ('gridstatus.io'))
   if (context.filterGridstatus) {
     rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, "NOT IN ('gridstatus.io')");
@@ -82,7 +122,12 @@ export function renderSqlTemplate(sql: string, context: TemplateContext): string
  */
 export function applyGridstatusFilter(sql: string, filterGridstatus: boolean): string {
   // Try to detect if this is a template-based SQL file
-  if (sql.includes('{{GRIDSTATUS_FILTER') || sql.includes('{{INTERNAL_EMAIL_FILTER}}')) {
+  if (
+    sql.includes('{{GRIDSTATUS_FILTER') ||
+    sql.includes('{{INTERNAL_EMAIL_FILTER}}') ||
+    sql.includes('{{FREE_EMAIL_DOMAINS}}') ||
+    sql.includes('{{EDU_GOV_FILTER}}')
+  ) {
     return renderSqlTemplate(sql, { filterGridstatus });
   }
   
@@ -365,6 +410,8 @@ export interface MonthlyNewUsers {
   current_month_all: number;
   previous_month_all: number;
   previous_month_same_time: number;
+  last_year_month_all: number;
+  last_year_month_same_time: number;
 }
 
 export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = true): Promise<MonthlyNewUsers[]> {
@@ -381,14 +428,9 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       WHERE created_at >= (SELECT start_time FROM current_month_start)
         AND created_at < (SELECT start_time FROM current_month_start) + INTERVAL '1 month'
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -398,14 +440,9 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       WHERE created_at >= (SELECT start_time FROM previous_month_start)
         AND created_at < (SELECT start_time FROM previous_month_start) + INTERVAL '1 month'
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -415,21 +452,45 @@ export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = t
       WHERE created_at >= (SELECT start_time FROM previous_month_start)
         AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        {{EDU_GOV_FILTER}}
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    last_year_month_start AS (
+      SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 year') AS start_time
+    ),
+    last_year_month_all AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM last_year_month_start)
+        AND created_at < (SELECT start_time FROM last_year_month_start) + INTERVAL '1 month'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          {{FREE_EMAIL_DOMAINS}}
         )
+        {{EDU_GOV_FILTER}}
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    last_year_month_same_time AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM last_year_month_start)
+        AND created_at < (SELECT start_time FROM last_year_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          {{FREE_EMAIL_DOMAINS}}
+        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     )
     SELECT 
       (SELECT count FROM current_month_all) as current_month_all,
       (SELECT count FROM previous_month_all) as previous_month_all,
-      (SELECT count FROM previous_month_same_time) as previous_month_same_time
+      (SELECT count FROM previous_month_same_time) as previous_month_same_time,
+      (SELECT count FROM last_year_month_all) as last_year_month_all,
+      (SELECT count FROM last_year_month_same_time) as last_year_month_same_time
   `;
   sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<MonthlyNewUsers>(sql);
@@ -452,14 +513,9 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       WHERE created_at >= (SELECT start_time FROM today_start)
         AND created_at < (SELECT start_time FROM today_start) + INTERVAL '1 day'
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -469,14 +525,9 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       WHERE created_at >= (SELECT start_time FROM yesterday_start)
         AND created_at < (SELECT start_time FROM yesterday_start) + INTERVAL '1 day'
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -486,14 +537,9 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       WHERE created_at >= (SELECT start_time FROM yesterday_start)
         AND created_at < (SELECT start_time FROM yesterday_start) + (NOW() - (SELECT start_time FROM today_start))
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -503,14 +549,9 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       WHERE created_at >= (SELECT start_time FROM last_week_start)
         AND created_at < (SELECT start_time FROM last_week_start) + INTERVAL '1 day'
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     ),
@@ -520,14 +561,9 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
       WHERE created_at >= (SELECT start_time FROM last_week_start)
         AND created_at < (SELECT start_time FROM last_week_start) + (NOW() - (SELECT start_time FROM today_start))
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+          {{FREE_EMAIL_DOMAINS}}
         )
-        AND NOT (
-          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-        )
+        {{EDU_GOV_FILTER}}
         AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     )

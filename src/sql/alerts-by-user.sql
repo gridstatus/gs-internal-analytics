@@ -1,4 +1,5 @@
 SELECT
+  u.id AS user_id,
   u.username,
   SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) AS domain,
   COUNT(DISTINCT a.id) AS alert_count,

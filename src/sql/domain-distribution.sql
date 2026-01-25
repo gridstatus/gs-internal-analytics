@@ -2,14 +2,9 @@ WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users
   WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-    'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-    'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-    'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'{{GRIDSTATUS_FILTER_IN_LIST}}
+    {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
   )
-  AND NOT (
-    SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-    OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-  )
+  {{EDU_GOV_FILTER}}
   {{INTERNAL_EMAIL_FILTER}}
 ),
 domain_counts AS (

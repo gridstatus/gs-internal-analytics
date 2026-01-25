@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getErrorMessage } from '@/lib/db';
+import { jsonError } from '@/lib/api-helpers';
 
 async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
@@ -145,9 +145,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching PostHog Active Users:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }

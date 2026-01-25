@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison } from '@/lib/queries';
-import { getErrorMessage, query } from '@/lib/db';
-import { loadSql, renderSqlTemplate } from '@/lib/queries';
-
-function formatMonth(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-}
+import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, loadSql, renderSqlTemplate } from '@/lib/queries';
+import { query } from '@/lib/db';
+import { formatMonthUtc, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
     
     // Get top domains for different time periods
     const domainSearch = searchParams.get('domainSearch') || '';
@@ -42,11 +36,11 @@ export async function GET(request: Request) {
     ]);
 
     const corpMetricsMap = new Map(
-      corpMetrics.map((row) => [formatMonth(new Date(row.month)), row])
+      corpMetrics.map((row) => [formatMonthUtc(new Date(row.month)), row])
     );
 
     const monthlyData = userCounts.map((row, index) => {
-      const monthKey = formatMonth(new Date(row.month));
+      const monthKey = formatMonthUtc(new Date(row.month));
       const corp = corpMetricsMap.get(monthKey);
       const prevRow = index > 0 ? userCounts[index - 1] : null;
 
@@ -99,6 +93,8 @@ export async function GET(request: Request) {
         currentMonth: Number(monthlyNewUsers[0]?.current_month_all || 0),
         previousMonthAll: Number(monthlyNewUsers[0]?.previous_month_all || 0),
         previousMonthSameTime: Number(monthlyNewUsers[0]?.previous_month_same_time || 0),
+        lastYearMonthAll: Number(monthlyNewUsers[0]?.last_year_month_all || 0),
+        lastYearMonthSameTime: Number(monthlyNewUsers[0]?.last_year_month_same_time || 0),
       },
       topDomains: {
         '1d': topDomains1d.map(d => ({
@@ -117,9 +113,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching user data:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }

@@ -3,14 +3,9 @@ WITH user_data AS (
     created_at,
     CASE
       WHEN SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-        'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-        'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-        'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        {{FREE_EMAIL_DOMAINS}}
       )
-      AND NOT (
-        SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-        OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-      ) THEN TRUE
+      {{EDU_GOV_FILTER}} THEN TRUE
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users

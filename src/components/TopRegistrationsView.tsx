@@ -17,48 +17,21 @@ import {
 import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-
-interface TopRegistration {
-  period: string;
-  periodType: 'day' | 'week' | 'month';
-  registrationCount: number;
-}
-
-interface TopRegistrationsResponse {
-  data: TopRegistration[];
-}
+import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function TopRegistrationsView() {
-  const [data, setData] = useState<TopRegistrationsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('day');
 
   const { filterGridstatus } = useFilter();
+  const url = `/api/top-registrations?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/top-registrations?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch top registrations data');
-        }
-        const result = await response.json();
-        setData(result);
-        // Set initial tab to first available period type if not set
-        if (result.data && result.data.length > 0 && activeTab === null) {
-          setActiveTab(result.data[0].periodType);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterGridstatus]);
+    if (data?.data && data.data.length > 0 && activeTab === null) {
+      setActiveTab(data.data[0].periodType);
+    }
+  }, [data, activeTab]);
 
   if (loading) {
     return (

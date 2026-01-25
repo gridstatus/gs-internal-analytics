@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Container,
   Title,
@@ -20,24 +20,8 @@ import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-
-interface Activity {
-  userId: number;
-  username: string;
-  activityDate: string;
-  activityType: 'user_registered' | 'joined_org' | 'created_chart' | 'created_dashboard' | 'created_api_key' | 'created_alert';
-  activityDetail: string | null;
-}
-
-interface NewUsersSummary {
-  month: string;
-  newUsers: number;
-}
-
-interface ActivitiesResponse {
-  activities: Activity[];
-  newUsersSummary: NewUsersSummary[];
-}
+import { ActivitiesResponse, Activity, ActivityType } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
   user_registered: 'User Registered',
@@ -57,8 +41,6 @@ const activityTypeColors: Record<Activity['activityType'], string> = {
   created_alert: 'red',
 };
 
-type ActivityType = Activity['activityType'];
-
 const ALL_ACTIVITY_TYPES: ActivityType[] = [
   'user_registered',
   'joined_org',
@@ -72,32 +54,12 @@ const ALL_ACTIVITY_TYPES: ActivityType[] = [
 const CHARTS_DASHBOARDS_TYPES: ActivityType[] = ['created_chart', 'created_dashboard'];
 
 export function Dashboard() {
-  const [data, setData] = useState<ActivitiesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/activities?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch activities');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/activities?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<ActivitiesResponse>(url, [url]);
 
   // Group activities by type and filter by search
   const activitiesByType = useMemo(() => {

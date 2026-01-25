@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getMonthlyCorpMetrics } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
-
-function formatMonth(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-}
+import { formatMonthUtc, getFilterGridstatus, jsonError } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+    const filterGridstatus = getFilterGridstatus(searchParams);
     
     const [userCounts, corpMetrics] = await Promise.all([
       getMonthlyUserCounts(filterGridstatus),
@@ -19,11 +13,11 @@ export async function GET(request: Request) {
     ]);
 
     const corpMetricsMap = new Map(
-      corpMetrics.map((row) => [formatMonth(new Date(row.month)), row])
+      corpMetrics.map((row) => [formatMonthUtc(new Date(row.month)), row])
     );
 
     const monthlyData = userCounts.map((row, index) => {
-      const monthKey = formatMonth(new Date(row.month));
+      const monthKey = formatMonthUtc(new Date(row.month));
       const corp = corpMetricsMap.get(monthKey);
       const prevRow = index > 0 ? userCounts[index - 1] : null;
 
@@ -50,10 +44,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ monthlyData });
   } catch (error) {
     console.error('Error fetching corporate and teams data:', error);
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return jsonError(error);
   }
 }
 

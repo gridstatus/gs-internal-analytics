@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useRef } from 'react';
 import {
   Container,
   Title,
@@ -18,27 +18,10 @@ import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
-
-interface MonthlyApiUsage {
-  month: string;
-  totalApiRequests: number;
-  totalApiRowsReturned: number;
-  uniqueApiUsers: number;
-  requestsMomChange: number;
-  rowsMomChange: number;
-  usersMomChange: number;
-  [key: string]: string | number;
-}
-
-interface ApiUsageResponse {
-  monthlyData: MonthlyApiUsage[];
-}
+import { ApiUsageResponse } from '@/lib/api-types';
+import { useApiData } from '@/hooks/useApiData';
 
 export function ApiUsageView() {
-  const [data, setData] = useState<ApiUsageResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const requestsChartRef = useRef<HTMLDivElement>(null);
   const rowsChartRef = useRef<HTMLDivElement>(null);
   const usersChartRef = useRef<HTMLDivElement>(null);
@@ -50,25 +33,8 @@ export function ApiUsageView() {
   ];
 
   const { filterGridstatus } = useFilter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/api-usage?filterGridstatus=${filterGridstatus}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch API usage');
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus]);
+  const url = `/api/api-usage?filterGridstatus=${filterGridstatus}`;
+  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [url]);
 
   if (loading) {
     return (
