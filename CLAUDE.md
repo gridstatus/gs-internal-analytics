@@ -3,6 +3,8 @@
 ## Project Overview
 Full-stack TypeScript analytics dashboard built with Next.js 14 (App Router), Mantine UI, and PostgreSQL.
 
+**Important**: This is an internal tool. Never add meta tags (description, Open Graph, Twitter cards, etc.) - only set the title to "Grid Status" in the root layout.
+
 ## Tech Stack
 - **Framework**: Next.js 15 with App Router
 - **UI**: Mantine v7

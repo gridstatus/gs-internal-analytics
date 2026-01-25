@@ -7,8 +7,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { FilterProvider } from '@/contexts/FilterContext';
 
 export const metadata = {
-  title: 'User Analytics Dashboard',
-  description: 'Dashboard for analyzing user metrics and growth',
+  title: 'Grid Status',
 };
 
 export default function RootLayout({
