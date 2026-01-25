@@ -162,23 +162,18 @@ export default function DomainDetailPage() {
 
       {/* Monthly Registrations Chart */}
       {data.monthlyRegistrations.length > 0 && (
-        <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-          <Text fw={600} size="lg" mb="md">
-            User Registrations Over Time
-          </Text>
-          <TimeSeriesChart
-            title="Monthly User Registrations"
-            subtitle="New users registered each month"
-            data={data.monthlyRegistrations.map(m => ({
-              month: new Date(m.month).toISOString().slice(0, 7),
-              users: m.userCount,
-            }))}
-            dataKey="users"
-            color="blue.6"
-            chartType="bar"
-            showMoM={false}
-          />
-        </Paper>
+        <TimeSeriesChart
+          title="Monthly User Registrations"
+          subtitle="New users registered each month"
+          data={data.monthlyRegistrations.map(m => ({
+            month: new Date(m.month).toISOString().slice(0, 7),
+            users: m.userCount,
+          }))}
+          dataKey="users"
+          color="blue.6"
+          chartType="bar"
+          showMoM={false}
+        />
       )}
 
       {/* Users Table */}

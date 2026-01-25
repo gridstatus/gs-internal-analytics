@@ -127,6 +127,7 @@ Each analytics page follows this pattern:
 ### Component Conventions
 - Use `MetricCard` for summary stats at top of page
 - Use `Paper` with `shadow="sm"` and `withBorder` for sections
+- Avoid nesting `Paper`/card components inside other cards
 - Loading state: use `Skeleton` components matching layout
 - Error state: use `Alert` with `IconAlertCircle`
 
