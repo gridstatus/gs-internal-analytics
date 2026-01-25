@@ -20,6 +20,7 @@ import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
+import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { InsightsResponse } from '@/lib/api-types';
@@ -328,7 +329,12 @@ export function InsightsView() {
                     {truncateContent(post.content)}
                   </Anchor>
                 </Table.Td>
-                <Table.Td>{post.username || post.email || `User ${post.authorId}`}</Table.Td>
+                <Table.Td>
+                  <UserHoverCard 
+                    userId={post.authorId} 
+                    userName={post.username || post.email || `User ${post.authorId}`} 
+                  />
+                </Table.Td>
                 <Table.Td ta="right">{post.impressions.toLocaleString()}</Table.Td>
                 <Table.Td ta="right">{post.viewCount.toLocaleString()}</Table.Td>
                 <Table.Td ta="right">

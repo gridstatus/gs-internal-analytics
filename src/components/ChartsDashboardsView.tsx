@@ -18,6 +18,7 @@ import {
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
+import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
 import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
@@ -123,9 +124,7 @@ export function ChartsDashboardsView() {
             {filteredUsers.slice(0, 100).map((user) => (
               <Table.Tr key={user.username}>
                 <Table.Td>
-                  <Anchor component={Link} href={`/users-list/${user.userId}`}>
-                    {user.username}
-                  </Anchor>
+                  <UserHoverCard userId={user.userId} userName={user.username} />
                 </Table.Td>
                 <Table.Td>{user.domain}</Table.Td>
                 <Table.Td ta="right">{user.chartCount}</Table.Td>

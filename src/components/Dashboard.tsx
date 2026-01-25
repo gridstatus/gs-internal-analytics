@@ -20,6 +20,7 @@ import {
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useFilter } from '@/contexts/FilterContext';
+import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
 import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
@@ -263,50 +264,44 @@ export function Dashboard() {
                     </Text>
                   ) : (
                     (activitiesByType['charts_dashboards'] || []).map((activity, index) => (
-                      <Anchor
+                      <Paper
                         key={`${activity.userId}-${activity.activityType}-${activity.activityDate}-${index}`}
-                        component={Link}
-                        href={`/users-list/${activity.userId}`}
-                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        p={6}
+                        withBorder
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <Paper
-                          p={6}
-                          withBorder
-                          style={{ cursor: 'pointer' }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                        >
-                          <Stack gap={2}>
-                            <Group justify="space-between" gap={4} wrap="nowrap">
-                              <Text size="xs" fw={500} lineClamp={1} style={{ flex: 1, minWidth: 0 }}>
-                                {activity.username}
-                              </Text>
-                              <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-                                {formatDate(activity.activityDate, true)}
-                              </Text>
-                            </Group>
-                            <Group gap={4} wrap="nowrap">
-                              <Badge 
-                                color={activityTypeColors[activity.activityType]} 
-                                variant="light" 
-                                size="xs"
-                                style={{ flexShrink: 0 }}
-                              >
-                                {activityTypeLabels[activity.activityType]}
-                              </Badge>
-                            </Group>
-                            {activity.activityDetail && (
-                              <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
-                                {activity.activityDetail}
-                              </Text>
-                            )}
-                          </Stack>
-                        </Paper>
-                      </Anchor>
+                        <Stack gap={2}>
+                          <Group justify="space-between" gap={4} wrap="nowrap">
+                            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                              <UserHoverCard userId={activity.userId} userName={activity.username} />
+                            </div>
+                            <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                              {formatDate(activity.activityDate, true)}
+                            </Text>
+                          </Group>
+                          <Group gap={4} wrap="nowrap">
+                            <Badge 
+                              color={activityTypeColors[activity.activityType]} 
+                              variant="light" 
+                              size="xs"
+                              style={{ flexShrink: 0 }}
+                            >
+                              {activityTypeLabels[activity.activityType]}
+                            </Badge>
+                          </Group>
+                          {activity.activityDetail && (
+                            <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
+                              {activity.activityDetail}
+                            </Text>
+                          )}
+                        </Stack>
+                      </Paper>
                     ))
                   )}
                 </Stack>
@@ -344,40 +339,34 @@ export function Dashboard() {
                         </Text>
                       ) : (
                         activities.map((activity, index) => (
-                          <Anchor
+                          <Paper
                             key={`${activity.userId}-${activity.activityType}-${activity.activityDate}-${index}`}
-                            component={Link}
-                            href={`/users-list/${activity.userId}`}
-                            style={{ textDecoration: 'none', color: 'inherit' }}
+                            p={6}
+                            withBorder
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
                           >
-                            <Paper
-                              p={6}
-                              withBorder
-                              style={{ cursor: 'pointer' }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                            >
-                              <Stack gap={2}>
-                                <Group justify="space-between" gap={4} wrap="nowrap">
-                                  <Text size="xs" fw={500} lineClamp={1} style={{ flex: 1, minWidth: 0 }}>
-                                    {activity.username}
-                                  </Text>
-                                  <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-                                    {formatDate(activity.activityDate, true)}
-                                  </Text>
-                                </Group>
-                                {activity.activityDetail && (
-                                  <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
-                                    {activity.activityDetail}
-                                  </Text>
-                                )}
-                              </Stack>
-                            </Paper>
-                          </Anchor>
+                            <Stack gap={2}>
+                              <Group justify="space-between" gap={4} wrap="nowrap">
+                                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                  <UserHoverCard userId={activity.userId} userName={activity.username} />
+                                </div>
+                                <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                                  {formatDate(activity.activityDate, true)}
+                                </Text>
+                              </Group>
+                              {activity.activityDetail && (
+                                <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
+                                  {activity.activityDetail}
+                                </Text>
+                              )}
+                            </Stack>
+                          </Paper>
                         ))
                       )}
                     </Stack>

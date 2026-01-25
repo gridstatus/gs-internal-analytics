@@ -20,6 +20,7 @@ import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { AlertsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
 
 export function AlertsView() {
@@ -116,9 +117,7 @@ export function AlertsView() {
                 {filteredUsers.slice(0, 100).map((user) => (
                   <Table.Tr key={user.userId}>
                     <Table.Td>
-                      <Anchor component={Link} href={`/users-list/${user.userId}`}>
-                        {user.username}
-                      </Anchor>
+                      <UserHoverCard userId={user.userId} userName={user.username} />
                     </Table.Td>
                     <Table.Td>{user.domain}</Table.Td>
                     <Table.Td ta="right">{user.alertCount}</Table.Td>

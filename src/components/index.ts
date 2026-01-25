@@ -7,3 +7,4 @@ export { ExportButton } from './ExportButton';
 export { PosthogMausView } from './PosthogMausView';
 export { OrganizationsView } from './OrganizationsView';
 export { UsersListView } from './UsersListView';
+export { UserHoverCard } from './UserHoverCard';

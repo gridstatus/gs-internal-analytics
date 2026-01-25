@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { UsersListItem, UsersListResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { UserHoverCard } from './UserHoverCard';
 
 type SortColumn = 'username' | 'name' | 'hasApiKey' | 'createdAt' | 'lastActiveAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -171,9 +172,7 @@ export function UsersListView() {
                 sortedUsers.map((user) => (
                   <Table.Tr key={user.id}>
                     <Table.Td>
-                      <Anchor component={Link} href={`/users-list/${user.id}`}>
-                        {user.username}
-                      </Anchor>
+                      <UserHoverCard userId={user.id} userName={user.username} />
                     </Table.Td>
                     <Table.Td>
                       {user.firstName} {user.lastName}

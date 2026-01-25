@@ -19,6 +19,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
+import { UserHoverCard } from '@/components/UserHoverCard';
 import Link from 'next/link';
 
 interface Organization {
@@ -238,9 +239,7 @@ export default function OrganizationDetailPage() {
               {data.users.map((user) => (
                 <Table.Tr key={user.id}>
                   <Table.Td>
-                    <Anchor component={Link} href={`/users-list/${user.id}`}>
-                      {user.username}
-                    </Anchor>
+                    <UserHoverCard userId={user.id} userName={user.username} />
                   </Table.Td>
                   <Table.Td>
                     {user.firstName} {user.lastName}
@@ -286,9 +285,7 @@ export default function OrganizationDetailPage() {
               {data.potentialAdditions.map((user) => (
                 <Table.Tr key={user.id}>
                   <Table.Td>
-                    <Anchor component={Link} href={`/users-list/${user.id}`}>
-                      {user.username}
-                    </Anchor>
+                    <UserHoverCard userId={user.id} userName={user.username} />
                   </Table.Td>
                   <Table.Td>
                     {user.firstName} {user.lastName}

@@ -166,6 +166,21 @@ Benefits:
   - User IDs in organization detail page → link to `/users-list/${userId}`
   - Post IDs in insights overview → link to `/insights/${postId}`
 
+### User Name Display
+- **ALWAYS use `UserHoverCard` component** when displaying user names/links
+- The `UserHoverCard` component provides:
+  - Clickable link to user detail page
+  - Hover card with user summary (after ~400ms delay)
+  - Lazy-loaded user data (fetches on first hover)
+  - Shows: name, email, domain, organizations, stats (charts/dashboards/alerts), activity dates
+- Usage:
+  ```typescript
+  import { UserHoverCard } from '@/components/UserHoverCard';
+  
+  <UserHoverCard userId={user.id} userName={user.username} />
+  ```
+- **Never use plain `Anchor` links for user names** - always use `UserHoverCard` for consistency and better UX
+
 ### API Routes
 - Overview pages: `src/app/api/[name]/route.ts` - returns list/aggregate data
 - Instance pages: `src/app/api/[name]/[id]/route.ts` - returns detail for single entity

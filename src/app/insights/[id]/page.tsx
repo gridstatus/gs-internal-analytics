@@ -21,6 +21,7 @@ import {
 import { IconAlertCircle, IconArrowLeft, IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
+import { UserHoverCard } from '@/components/UserHoverCard';
 import Link from 'next/link';
 
 interface InsightDetail {
@@ -207,7 +208,7 @@ export default function InsightDetailPage() {
         </Group>
         <Group gap="md">
           <Text size="sm" c="dimmed">
-            By <Anchor component={Link} href={`/users-list/${data.post.author.id}`}>{authorName}</Anchor>
+            By <UserHoverCard userId={data.post.author.id} userName={authorName} />
           </Text>
           <Text size="sm" c="dimmed">
             {new Date(data.post.createdAt).toLocaleDateString()}
@@ -359,9 +360,7 @@ export default function InsightDetailPage() {
                     {data.viewers.map((viewer) => (
                       <Table.Tr key={viewer.userId}>
                         <Table.Td>
-                          <Anchor component={Link} href={`/users-list/${viewer.userId}`}>
-                            {getUserName(viewer)}
-                          </Anchor>
+                          <UserHoverCard userId={viewer.userId} userName={getUserName(viewer)} />
                         </Table.Td>
                         <Table.Td ta="right">{viewer.impressions}</Table.Td>
                         <Table.Td ta="right">{viewer.views}</Table.Td>
@@ -397,9 +396,7 @@ export default function InsightDetailPage() {
                     {data.reactors.map((reactor, index) => (
                       <Table.Tr key={`${reactor.userId}-${index}`}>
                         <Table.Td>
-                          <Anchor component={Link} href={`/users-list/${reactor.userId}`}>
-                            {getUserName(reactor)}
-                          </Anchor>
+                          <UserHoverCard userId={reactor.userId} userName={getUserName(reactor)} />
                         </Table.Td>
                         <Table.Td>
                           <Badge
@@ -439,9 +436,7 @@ export default function InsightDetailPage() {
                     {data.savers.map((saver) => (
                       <Table.Tr key={saver.userId}>
                         <Table.Td>
-                          <Anchor component={Link} href={`/users-list/${saver.userId}`}>
-                            {getUserName(saver)}
-                          </Anchor>
+                          <UserHoverCard userId={saver.userId} userName={getUserName(saver)} />
                         </Table.Td>
                         <Table.Td>{new Date(saver.createdAt).toLocaleString()}</Table.Td>
                       </Table.Tr>

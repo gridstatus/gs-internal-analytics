@@ -19,6 +19,7 @@ import {
 import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
+import { UserHoverCard } from '@/components/UserHoverCard';
 import Link from 'next/link';
 
 interface DomainUser {
@@ -198,9 +199,7 @@ export default function DomainDetailPage() {
             {data.users.map((user) => (
               <Table.Tr key={user.id}>
                 <Table.Td>
-                  <Anchor component={Link} href={`/users-list/${user.id}`}>
-                    {user.username}
-                  </Anchor>
+                  <UserHoverCard userId={user.id} userName={user.username} />
                 </Table.Td>
                 <Table.Td>
                   {user.firstName} {user.lastName}
