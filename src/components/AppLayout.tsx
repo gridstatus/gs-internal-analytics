@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
-import { IconDashboard, IconApi, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -112,16 +112,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                 active={pathname === '/alerts'}
               />
               
-              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
-                API
-              </Text>
-              <NavLink
-                component={Link}
-                href="/api-usage"
-                label="API Usage"
-                leftSection={<IconApi size={16} />}
-                active={pathname === '/api-usage'}
-              />
               <div style={{ flex: 1 }} />
               <Divider />
               <Stack gap="xs" mt="md">
