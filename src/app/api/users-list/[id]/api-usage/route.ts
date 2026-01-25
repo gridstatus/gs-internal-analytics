@@ -3,11 +3,10 @@ import { query, getErrorMessage } from '@/lib/db';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '1', 10);
     
