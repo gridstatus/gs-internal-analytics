@@ -286,12 +286,12 @@ export function Dashboard() {
                               >
                                 {activityTypeLabels[activity.activityType]}
                               </Badge>
-                              {activity.activityDetail && (
-                                <Text size="xs" c="dimmed" lineClamp={1} style={{ flex: 1, minWidth: 0 }}>
-                                  {activity.activityDetail}
-                                </Text>
-                              )}
                             </Group>
+                            {activity.activityDetail && (
+                              <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
+                                {activity.activityDetail}
+                              </Text>
+                            )}
                           </Stack>
                         </Paper>
                       </Anchor>
@@ -359,7 +359,7 @@ export function Dashboard() {
                                   </Text>
                                 </Group>
                                 {activity.activityDetail && (
-                                  <Text size="xs" c="dimmed" lineClamp={1} style={{ marginTop: 2 }}>
+                                  <Text size="xs" fw={500} lineClamp={2} style={{ marginTop: 2 }}>
                                     {activity.activityDetail}
                                   </Text>
                                 )}
