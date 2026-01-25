@@ -10,18 +10,16 @@ import {
   Stack,
   Paper,
   Text,
-  Table,
   TextInput,
   Group,
-  Anchor,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
-import Link from 'next/link';
 import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
@@ -63,11 +61,58 @@ export function ChartsDashboardsView() {
     return null;
   }
 
-  const filteredUsers = data.users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.domain.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = data.users
+    .filter(
+      (user) =>
+        user.username.toLowerCase().includes(search.toLowerCase()) ||
+        user.domain.toLowerCase().includes(search.toLowerCase())
+    )
+    .slice(0, 100);
+
+  const columns: Column<typeof filteredUsers[0]>[] = [
+    {
+      id: 'user',
+      header: 'User',
+      align: 'left',
+      render: (row) => <UserHoverCard userId={row.userId} userName={row.username} />,
+      sortValue: (row) => row.username.toLowerCase(),
+    },
+    {
+      id: 'domain',
+      header: 'Domain',
+      align: 'left',
+      render: (row) => row.domain,
+      sortValue: (row) => row.domain.toLowerCase(),
+    },
+    {
+      id: 'chartCount',
+      header: 'Charts',
+      align: 'right',
+      render: (row) => row.chartCount,
+      sortValue: (row) => row.chartCount,
+    },
+    {
+      id: 'dashboardCount',
+      header: 'Dashboards',
+      align: 'right',
+      render: (row) => row.dashboardCount,
+      sortValue: (row) => row.dashboardCount,
+    },
+    {
+      id: 'lastChartCreated',
+      header: 'Last Chart',
+      align: 'right',
+      render: (row) => row.lastChartCreated || '—',
+      sortValue: (row) => row.lastChartCreated || '',
+    },
+    {
+      id: 'lastDashboardCreated',
+      header: 'Last Dashboard',
+      align: 'right',
+      render: (row) => row.lastDashboardCreated || '—',
+      sortValue: (row) => row.lastDashboardCreated || '',
+    },
+  ];
 
   return (
     <Container size="xl" py="xl">
@@ -109,32 +154,12 @@ export function ChartsDashboardsView() {
             style={{ width: 300 }}
           />
         </Group>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>User</Table.Th>
-              <Table.Th>Domain</Table.Th>
-              <Table.Th ta="right">Charts</Table.Th>
-              <Table.Th ta="right">Dashboards</Table.Th>
-              <Table.Th ta="right">Last Chart</Table.Th>
-              <Table.Th ta="right">Last Dashboard</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {filteredUsers.slice(0, 100).map((user) => (
-              <Table.Tr key={user.username}>
-                <Table.Td>
-                  <UserHoverCard userId={user.userId} userName={user.username} />
-                </Table.Td>
-                <Table.Td>{user.domain}</Table.Td>
-                <Table.Td ta="right">{user.chartCount}</Table.Td>
-                <Table.Td ta="right">{user.dashboardCount}</Table.Td>
-                <Table.Td ta="right">{user.lastChartCreated || '—'}</Table.Td>
-                <Table.Td ta="right">{user.lastDashboardCreated || '—'}</Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <DataTable
+          data={filteredUsers}
+          columns={columns}
+          keyField="username"
+          defaultSort={{ column: 'chartCount', direction: 'desc' }}
+        />
         <Text size="xs" c="dimmed" mt="md">
           Showing up to 100 users, sorted by total charts + dashboards.
         </Text>

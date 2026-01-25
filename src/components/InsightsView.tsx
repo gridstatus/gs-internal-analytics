@@ -9,7 +9,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
   TextInput,
@@ -22,6 +21,7 @@ import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { UserHoverCard } from './UserHoverCard';
+import { DataTable, Column } from './DataTable';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { InsightsResponse } from '@/lib/api-types';
@@ -168,17 +168,101 @@ export function InsightsView() {
     return Math.round(((current - previous) / previous) * 100);
   };
 
-  const filteredPosts = data.topPosts.filter(
-    (post) =>
-      post.content.toLowerCase().includes(search.toLowerCase()) ||
-      (post.username && post.username.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredPosts = data.topPosts
+    .filter(
+      (post) =>
+        post.content.toLowerCase().includes(search.toLowerCase()) ||
+        (post.username && post.username.toLowerCase().includes(search.toLowerCase()))
+    )
+    .slice(0, 100);
 
   // Truncate content for table display
   const truncateContent = (content: string, maxLength: number = 100) => {
     if (content.length <= maxLength) return content;
     return content.slice(0, maxLength) + '...';
   };
+
+  const columns: Column<typeof filteredPosts[0]>[] = [
+    {
+      id: 'content',
+      header: 'Content',
+      align: 'left',
+      render: (row) => (
+        <Anchor component={Link} href={`/insights/${row.id}`}>
+          {truncateContent(row.content)}
+        </Anchor>
+      ),
+      sortValue: (row) => row.content.toLowerCase(),
+    },
+    {
+      id: 'author',
+      header: 'Author',
+      align: 'left',
+      render: (row) => (
+        <UserHoverCard
+          userId={row.authorId}
+          userName={row.username || row.email || `User ${row.authorId}`}
+        />
+      ),
+      sortValue: (row) => (row.username || row.email || '').toLowerCase(),
+    },
+    {
+      id: 'impressions',
+      header: 'Impressions',
+      align: 'right',
+      render: (row) => row.impressions.toLocaleString(),
+      sortValue: (row) => row.impressions,
+    },
+    {
+      id: 'viewCount',
+      header: 'Views',
+      align: 'right',
+      render: (row) => row.viewCount.toLocaleString(),
+      sortValue: (row) => row.viewCount,
+    },
+    {
+      id: 'engagementRate',
+      header: 'Engagement',
+      align: 'right',
+      render: (row) =>
+        row.impressions > 0 ? (
+          <Text span fw={600} c={row.engagementRate >= 10 ? 'green' : row.engagementRate >= 5 ? 'yellow' : 'red'}>
+            {row.engagementRate.toFixed(1)}%
+          </Text>
+        ) : (
+          <Text span c="dimmed">N/A</Text>
+        ),
+      sortValue: (row) => row.engagementRate,
+    },
+    {
+      id: 'likeCount',
+      header: 'Up',
+      align: 'right',
+      render: (row) => row.likeCount,
+      sortValue: (row) => row.likeCount,
+    },
+    {
+      id: 'dislikeCount',
+      header: 'Down',
+      align: 'right',
+      render: (row) => row.dislikeCount,
+      sortValue: (row) => row.dislikeCount,
+    },
+    {
+      id: 'saveCount',
+      header: 'Saves',
+      align: 'right',
+      render: (row) => row.saveCount,
+      sortValue: (row) => row.saveCount,
+    },
+    {
+      id: 'createdAt',
+      header: 'Created',
+      align: 'left',
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      sortValue: (row) => new Date(row.createdAt).getTime(),
+    },
+  ];
 
   return (
     <Container size="xl" py="xl">
@@ -319,55 +403,12 @@ export function InsightsView() {
             />
           </Group>
         </Group>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Content</Table.Th>
-              <Table.Th>Author</Table.Th>
-              <Table.Th ta="right">Impressions</Table.Th>
-              <Table.Th ta="right">Views</Table.Th>
-              <Table.Th ta="right">Engagement</Table.Th>
-              <Table.Th ta="right">Up</Table.Th>
-              <Table.Th ta="right">Down</Table.Th>
-              <Table.Th ta="right">Saves</Table.Th>
-              <Table.Th>Created</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {filteredPosts.slice(0, 100).map((post) => (
-              <Table.Tr key={post.id}>
-                <Table.Td>
-                  <Anchor component={Link} href={`/insights/${post.id}`}>
-                    {truncateContent(post.content)}
-                  </Anchor>
-                </Table.Td>
-                <Table.Td>
-                  <UserHoverCard 
-                    userId={post.authorId} 
-                    userName={post.username || post.email || `User ${post.authorId}`} 
-                  />
-                </Table.Td>
-                <Table.Td ta="right">{post.impressions.toLocaleString()}</Table.Td>
-                <Table.Td ta="right">{post.viewCount.toLocaleString()}</Table.Td>
-                <Table.Td ta="right">
-                  {post.impressions > 0 ? (
-                    <Text span fw={600} c={post.engagementRate >= 10 ? 'green' : post.engagementRate >= 5 ? 'yellow' : 'red'}>
-                      {post.engagementRate.toFixed(1)}%
-                    </Text>
-                  ) : (
-                    <Text span c="dimmed">N/A</Text>
-                  )}
-                </Table.Td>
-                <Table.Td ta="right">{post.likeCount}</Table.Td>
-                <Table.Td ta="right">{post.dislikeCount}</Table.Td>
-                <Table.Td ta="right">{post.saveCount}</Table.Td>
-                <Table.Td>
-                  {new Date(post.createdAt).toLocaleDateString()}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <DataTable
+          data={filteredPosts}
+          columns={columns}
+          keyField="id"
+          defaultSort={{ column: 'viewCount', direction: 'desc' }}
+        />
         <Text size="xs" c="dimmed" mt="md">
           Showing up to 100 posts, sorted by views and reactions. Engagement rate = (Views / Impressions) × 100%. Click on a post to see details.
         </Text>

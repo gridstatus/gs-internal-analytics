@@ -9,7 +9,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
   Anchor,
@@ -26,6 +25,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { CorporateTeamsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function CorporateTeamsView() {
   const [showHelp, setShowHelp] = useState(false);
@@ -254,37 +254,63 @@ export function CorporateTeamsView() {
         <Text fw={600} size="lg" mb="md">
           Recent Months
         </Text>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Month</Table.Th>
-              <Table.Th ta="right">Corp Users</Table.Th>
-              <Table.Th ta="right">New Corp Users</Table.Th>
-              <Table.Th ta="right">Corp Domains</Table.Th>
-              <Table.Th ta="right">Teams</Table.Th>
-              <Table.Th ta="right">Users on Teams</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {recentMonths.map((row) => (
-              <Table.Tr key={row.month}>
-                <Table.Td>{formatMonthLabel(row.month)}</Table.Td>
-                <Table.Td ta="right">
+        <DataTable
+          data={recentMonths}
+          columns={[
+            {
+              id: 'month',
+              header: 'Month',
+              align: 'left',
+              render: (row) => formatMonthLabel(row.month),
+              sortValue: (row) => row.month,
+            },
+            {
+              id: 'totalCorpUsers',
+              header: 'Corp Users',
+              align: 'right',
+              render: (row) => (
+                <>
                   {row.totalCorpUsers.toLocaleString()}
                   {row.corpUsersMomChange !== 0 && (
                     <Text span size="xs" c={row.corpUsersMomChange >= 0 ? 'green' : 'red'} ml="xs">
                       ({row.corpUsersMomChange >= 0 ? '+' : ''}{row.corpUsersMomChange}%)
                     </Text>
                   )}
-                </Table.Td>
-                <Table.Td ta="right">{row.newCorpUsers.toLocaleString()}</Table.Td>
-                <Table.Td ta="right">{row.corpDomains.toLocaleString()}</Table.Td>
-                <Table.Td ta="right">{row.teams}</Table.Td>
-                <Table.Td ta="right">{row.usersOnTeams.toLocaleString()}</Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+                </>
+              ),
+              sortValue: (row) => row.totalCorpUsers,
+            },
+            {
+              id: 'newCorpUsers',
+              header: 'New Corp Users',
+              align: 'right',
+              render: (row) => row.newCorpUsers.toLocaleString(),
+              sortValue: (row) => row.newCorpUsers,
+            },
+            {
+              id: 'corpDomains',
+              header: 'Corp Domains',
+              align: 'right',
+              render: (row) => row.corpDomains.toLocaleString(),
+              sortValue: (row) => row.corpDomains,
+            },
+            {
+              id: 'teams',
+              header: 'Teams',
+              align: 'right',
+              render: (row) => row.teams,
+              sortValue: (row) => row.teams,
+            },
+            {
+              id: 'usersOnTeams',
+              header: 'Users on Teams',
+              align: 'right',
+              render: (row) => row.usersOnTeams.toLocaleString(),
+              sortValue: (row) => row.usersOnTeams,
+            },
+          ]}
+          keyField="month"
+        />
       </Paper>
     </Container>
   );

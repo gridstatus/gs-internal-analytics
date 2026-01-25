@@ -20,6 +20,7 @@ import {
 import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { UserHoverCard } from '@/components/UserHoverCard';
+import { DataTable, Column } from '@/components/DataTable';
 import Link from 'next/link';
 
 interface Organization {
@@ -222,44 +223,49 @@ export default function OrganizationDetailPage() {
         <Text fw={600} size="lg" mb="md">
           Users ({data.users.length})
         </Text>
-        {data.users.length === 0 ? (
-          <Text c="dimmed">No users in this organization</Text>
-        ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Username</Table.Th>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Role</Table.Th>
-                <Table.Th>Created</Table.Th>
-                <Table.Th>Last Active</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.users.map((user) => (
-                <Table.Tr key={user.id}>
-                  <Table.Td>
-                    <UserHoverCard userId={user.id} userName={user.username} />
-                  </Table.Td>
-                  <Table.Td>
-                    {user.firstName} {user.lastName}
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge variant="light">{user.role}</Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </Table.Td>
-                  <Table.Td>
-                    {user.lastActiveAt
-                      ? new Date(user.lastActiveAt).toLocaleDateString()
-                      : 'Never'}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
+        <DataTable
+          data={data.users}
+          columns={[
+            {
+              id: 'username',
+              header: 'Username',
+              align: 'left',
+              render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
+              sortValue: (row) => row.username.toLowerCase(),
+            },
+            {
+              id: 'name',
+              header: 'Name',
+              align: 'left',
+              render: (row) => `${row.firstName} ${row.lastName}`,
+              sortValue: (row) => `${row.firstName} ${row.lastName}`.toLowerCase(),
+            },
+            {
+              id: 'role',
+              header: 'Role',
+              align: 'left',
+              render: (row) => <Badge variant="light">{row.role}</Badge>,
+              sortValue: (row) => row.role.toLowerCase(),
+            },
+            {
+              id: 'createdAt',
+              header: 'Created',
+              align: 'left',
+              render: (row) => new Date(row.createdAt).toLocaleDateString(),
+              sortValue: (row) => new Date(row.createdAt).getTime(),
+            },
+            {
+              id: 'lastActiveAt',
+              header: 'Last Active',
+              align: 'left',
+              render: (row) =>
+                row.lastActiveAt ? new Date(row.lastActiveAt).toLocaleDateString() : 'Never',
+              sortValue: (row) => row.lastActiveAt ? new Date(row.lastActiveAt).getTime() : 0,
+            },
+          ]}
+          keyField="id"
+          emptyMessage="No users in this organization"
+        />
       </Paper>
 
       {/* Potential Additions */}
@@ -271,42 +277,48 @@ export default function OrganizationDetailPage() {
           <Text size="sm" c="dimmed" mb="md">
             Users who share a domain with organization members but aren't in the organization
           </Text>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Username</Table.Th>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Domain</Table.Th>
-                <Table.Th>Created</Table.Th>
-                <Table.Th>Last Active</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.potentialAdditions.map((user) => (
-                <Table.Tr key={user.id}>
-                  <Table.Td>
-                    <UserHoverCard userId={user.id} userName={user.username} />
-                  </Table.Td>
-                  <Table.Td>
-                    {user.firstName} {user.lastName}
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge variant="light" color="blue">
-                      {user.domain}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </Table.Td>
-                  <Table.Td>
-                    {user.lastActiveAt
-                      ? new Date(user.lastActiveAt).toLocaleDateString()
-                      : 'Never'}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <DataTable
+            data={data.potentialAdditions}
+            columns={[
+              {
+                id: 'username',
+                header: 'Username',
+                align: 'left',
+                render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
+                sortValue: (row) => row.username.toLowerCase(),
+              },
+              {
+                id: 'name',
+                header: 'Name',
+                align: 'left',
+                render: (row) => `${row.firstName} ${row.lastName}`,
+                sortValue: (row) => `${row.firstName} ${row.lastName}`.toLowerCase(),
+              },
+              {
+                id: 'domain',
+                header: 'Domain',
+                align: 'left',
+                render: (row) => <Badge variant="light" color="blue">{row.domain}</Badge>,
+                sortValue: (row) => row.domain.toLowerCase(),
+              },
+              {
+                id: 'createdAt',
+                header: 'Created',
+                align: 'left',
+                render: (row) => new Date(row.createdAt).toLocaleDateString(),
+                sortValue: (row) => new Date(row.createdAt).getTime(),
+              },
+              {
+                id: 'lastActiveAt',
+                header: 'Last Active',
+                align: 'left',
+                render: (row) =>
+                  row.lastActiveAt ? new Date(row.lastActiveAt).toLocaleDateString() : 'Never',
+                sortValue: (row) => row.lastActiveAt ? new Date(row.lastActiveAt).getTime() : 0,
+              },
+            ]}
+            keyField="id"
+          />
           {data.potentialAdditions.length >= 100 && (
             <Text size="xs" c="dimmed" mt="md">
               Showing first 100 potential additions

@@ -9,7 +9,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
   Tooltip,
@@ -23,6 +22,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PosthogActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useFilter } from '@/contexts/FilterContext';
+import { DataTable, Column } from './DataTable';
 
 
 export function PosthogMausView() {
@@ -198,35 +198,41 @@ export function PosthogMausView() {
         <Text fw={600} size="lg" mb="md">
           Recent {periodLabel} Periods
         </Text>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{periodLabel === 'Daily' ? 'Day' : periodLabel === 'Weekly' ? 'Week' : 'Month'}</Table.Th>
-              <Table.Th ta="right">Active Users</Table.Th>
-              <Table.Th ta="right">{changeLabel}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {recentPeriods.map((row) => (
-              <Table.Tr key={row.period}>
-                <Table.Td>{formatPeriod(row.period)}</Table.Td>
-                <Table.Td ta="right">
-                  {row.activeUsers.toLocaleString()}
-                </Table.Td>
-                <Table.Td ta="right">
-                  {row.periodChange !== 0 ? (
-                    <Text c={row.periodChange >= 0 ? 'green' : 'red'} span>
-                      {row.periodChange >= 0 ? '+' : ''}
-                      {row.periodChange}%
-                    </Text>
-                  ) : (
-                    '—'
-                  )}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <DataTable
+          data={recentPeriods}
+          columns={[
+            {
+              id: 'period',
+              header: periodLabel === 'Daily' ? 'Day' : periodLabel === 'Weekly' ? 'Week' : 'Month',
+              align: 'left',
+              render: (row) => formatPeriod(row.period),
+              sortValue: (row) => row.period,
+            },
+            {
+              id: 'activeUsers',
+              header: 'Active Users',
+              align: 'right',
+              render: (row) => row.activeUsers.toLocaleString(),
+              sortValue: (row) => row.activeUsers,
+            },
+            {
+              id: 'periodChange',
+              header: changeLabel,
+              align: 'right',
+              render: (row) =>
+                row.periodChange !== 0 ? (
+                  <Text c={row.periodChange >= 0 ? 'green' : 'red'} span>
+                    {row.periodChange >= 0 ? '+' : ''}
+                    {row.periodChange}%
+                  </Text>
+                ) : (
+                  '—'
+                ),
+              sortValue: (row) => row.periodChange,
+            },
+          ]}
+          keyField="period"
+        />
       </Paper>
     </Container>
   );

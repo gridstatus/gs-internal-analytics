@@ -9,7 +9,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
 } from '@mantine/core';
@@ -20,6 +19,7 @@ import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
 import { ApiUsageResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function ApiUsageView() {
   const requestsChartRef = useRef<HTMLDivElement>(null);
@@ -89,6 +89,64 @@ export function ApiUsageView() {
 
   // Get last 12 months for the table
   const recentMonths = data.monthlyData.slice(-12).reverse();
+
+  const columns: Column<typeof recentMonths[0]>[] = [
+    {
+      id: 'month',
+      header: 'Month',
+      align: 'left',
+      render: (row) => row.month,
+      sortValue: (row) => row.month,
+    },
+    {
+      id: 'totalApiRequests',
+      header: 'Requests',
+      align: 'right',
+      render: (row) => (
+        <>
+          {row.totalApiRequests.toLocaleString()}
+          {row.requestsMomChange !== 0 && (
+            <Text span size="xs" c={row.requestsMomChange >= 0 ? 'green' : 'red'} ml="xs">
+              ({row.requestsMomChange >= 0 ? '+' : ''}{row.requestsMomChange}%)
+            </Text>
+          )}
+        </>
+      ),
+      sortValue: (row) => row.totalApiRequests,
+    },
+    {
+      id: 'totalApiRowsReturned',
+      header: 'Rows',
+      align: 'right',
+      render: (row) => (
+        <>
+          {row.totalApiRowsReturned.toLocaleString()}
+          {row.rowsMomChange !== 0 && (
+            <Text span size="xs" c={row.rowsMomChange >= 0 ? 'green' : 'red'} ml="xs">
+              ({row.rowsMomChange >= 0 ? '+' : ''}{row.rowsMomChange}%)
+            </Text>
+          )}
+        </>
+      ),
+      sortValue: (row) => row.totalApiRowsReturned,
+    },
+    {
+      id: 'uniqueApiUsers',
+      header: 'Users',
+      align: 'right',
+      render: (row) => (
+        <>
+          {row.uniqueApiUsers.toLocaleString()}
+          {row.usersMomChange !== 0 && (
+            <Text span size="xs" c={row.usersMomChange >= 0 ? 'green' : 'red'} ml="xs">
+              ({row.usersMomChange >= 0 ? '+' : ''}{row.usersMomChange}%)
+            </Text>
+          )}
+        </>
+      ),
+      sortValue: (row) => row.uniqueApiUsers,
+    },
+  ];
 
   return (
     <Container size="xl" py="xl">
@@ -167,47 +225,11 @@ export function ApiUsageView() {
         <Text fw={600} size="lg" mb="md">
           Recent Months
         </Text>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Month</Table.Th>
-              <Table.Th ta="right">Requests</Table.Th>
-              <Table.Th ta="right">Rows</Table.Th>
-              <Table.Th ta="right">Users</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {recentMonths.map((row) => (
-              <Table.Tr key={row.month}>
-                <Table.Td>{row.month}</Table.Td>
-                <Table.Td ta="right">
-                  {row.totalApiRequests.toLocaleString()}
-                  {row.requestsMomChange !== 0 && (
-                    <Text span size="xs" c={row.requestsMomChange >= 0 ? 'green' : 'red'} ml="xs">
-                      ({row.requestsMomChange >= 0 ? '+' : ''}{row.requestsMomChange}%)
-                    </Text>
-                  )}
-                </Table.Td>
-                <Table.Td ta="right">
-                  {row.totalApiRowsReturned.toLocaleString()}
-                  {row.rowsMomChange !== 0 && (
-                    <Text span size="xs" c={row.rowsMomChange >= 0 ? 'green' : 'red'} ml="xs">
-                      ({row.rowsMomChange >= 0 ? '+' : ''}{row.rowsMomChange}%)
-                    </Text>
-                  )}
-                </Table.Td>
-                <Table.Td ta="right">
-                  {row.uniqueApiUsers.toLocaleString()}
-                  {row.usersMomChange !== 0 && (
-                    <Text span size="xs" c={row.usersMomChange >= 0 ? 'green' : 'red'} ml="xs">
-                      ({row.usersMomChange >= 0 ? '+' : ''}{row.usersMomChange}%)
-                    </Text>
-                  )}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <DataTable
+          data={recentMonths}
+          columns={columns}
+          keyField="month"
+        />
       </Paper>
     </Container>
   );

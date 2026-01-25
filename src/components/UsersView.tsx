@@ -10,7 +10,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
   Button,
@@ -30,6 +29,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function UsersView() {
   const [domainFilter, setDomainFilter] = useState<string>('');
@@ -378,99 +378,96 @@ export function UsersView() {
               <Text fw={600} size="lg" mb="md">
                 Top Domains (1 Day)
               </Text>
-            {data.topDomains['1d'].length === 0 ? (
-              <Text c="dimmed" size="sm">
-                {domainFilter ? 'No domains match the filter' : 'No registrations in the last day'}
-              </Text>
-            ) : (
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Domain</Table.Th>
-                    <Table.Th ta="right">Users</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {data.topDomains['1d'].map((item, index) => (
-                    <Table.Tr key={item.domain}>
-                      <Table.Td>
-                        <Anchor component={Link} href={`/domains/${encodeURIComponent(item.domain)}`}>
-                          {item.domain}
-                        </Anchor>
-                      </Table.Td>
-                      <Table.Td ta="right">{item.userCount}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            )}
-          </Paper>
+              <DataTable
+                data={data.topDomains['1d']}
+                columns={[
+                  {
+                    id: 'domain',
+                    header: 'Domain',
+                    align: 'left',
+                    render: (row) => (
+                      <Anchor component={Link} href={`/domains/${encodeURIComponent(row.domain)}`}>
+                        {row.domain}
+                      </Anchor>
+                    ),
+                    sortValue: (row) => row.domain.toLowerCase(),
+                  },
+                  {
+                    id: 'userCount',
+                    header: 'Users',
+                    align: 'right',
+                    render: (row) => row.userCount,
+                    sortValue: (row) => row.userCount,
+                  },
+                ]}
+                keyField="domain"
+                emptyMessage={domainFilter ? 'No domains match the filter' : 'No registrations in the last day'}
+              />
+            </Paper>
 
-          {/* Top Domains - 7 Days */}
-          <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              Top Domains (7 Days)
-            </Text>
-            {data.topDomains['7d'].length === 0 ? (
-              <Text c="dimmed" size="sm">
-                {domainFilter ? 'No domains match the filter' : 'No registrations in the last 7 days'}
+            {/* Top Domains - 7 Days */}
+            <Paper shadow="sm" p="md" radius="md" withBorder>
+              <Text fw={600} size="lg" mb="md">
+                Top Domains (7 Days)
               </Text>
-            ) : (
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Domain</Table.Th>
-                    <Table.Th ta="right">Users</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {data.topDomains['7d'].map((item, index) => (
-                    <Table.Tr key={item.domain}>
-                      <Table.Td>
-                        <Anchor component={Link} href={`/domains/${encodeURIComponent(item.domain)}`}>
-                          {item.domain}
-                        </Anchor>
-                      </Table.Td>
-                      <Table.Td ta="right">{item.userCount}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            )}
-          </Paper>
+              <DataTable
+                data={data.topDomains['7d']}
+                columns={[
+                  {
+                    id: 'domain',
+                    header: 'Domain',
+                    align: 'left',
+                    render: (row) => (
+                      <Anchor component={Link} href={`/domains/${encodeURIComponent(row.domain)}`}>
+                        {row.domain}
+                      </Anchor>
+                    ),
+                    sortValue: (row) => row.domain.toLowerCase(),
+                  },
+                  {
+                    id: 'userCount',
+                    header: 'Users',
+                    align: 'right',
+                    render: (row) => row.userCount,
+                    sortValue: (row) => row.userCount,
+                  },
+                ]}
+                keyField="domain"
+                emptyMessage={domainFilter ? 'No domains match the filter' : 'No registrations in the last 7 days'}
+              />
+            </Paper>
 
-          {/* Top Domains - 30 Days */}
-          <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              Top Domains (30 Days)
-            </Text>
-            {data.topDomains['30d'].length === 0 ? (
-              <Text c="dimmed" size="sm">
-                {domainFilter ? 'No domains match the filter' : 'No registrations in the last 30 days'}
+            {/* Top Domains - 30 Days */}
+            <Paper shadow="sm" p="md" radius="md" withBorder>
+              <Text fw={600} size="lg" mb="md">
+                Top Domains (30 Days)
               </Text>
-            ) : (
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Domain</Table.Th>
-                    <Table.Th ta="right">Users</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {data.topDomains['30d'].map((item, index) => (
-                    <Table.Tr key={item.domain}>
-                      <Table.Td>
-                        <Anchor component={Link} href={`/domains/${encodeURIComponent(item.domain)}`}>
-                          {item.domain}
-                        </Anchor>
-                      </Table.Td>
-                      <Table.Td ta="right">{item.userCount}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            )}
-          </Paper>
+              <DataTable
+                data={data.topDomains['30d']}
+                columns={[
+                  {
+                    id: 'domain',
+                    header: 'Domain',
+                    align: 'left',
+                    render: (row) => (
+                      <Anchor component={Link} href={`/domains/${encodeURIComponent(row.domain)}`}>
+                        {row.domain}
+                      </Anchor>
+                    ),
+                    sortValue: (row) => row.domain.toLowerCase(),
+                  },
+                  {
+                    id: 'userCount',
+                    header: 'Users',
+                    align: 'right',
+                    render: (row) => row.userCount,
+                    sortValue: (row) => row.userCount,
+                  },
+                ]}
+                keyField="domain"
+                emptyMessage={domainFilter ? 'No domains match the filter' : 'No registrations in the last 30 days'}
+              />
+            </Paper>
           </SimpleGrid>
         </Stack>
       )}
@@ -480,38 +477,51 @@ export function UsersView() {
         <Text fw={600} size="lg" mb="md">
           Recent Months
         </Text>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Month</Table.Th>
-                <Table.Th ta="right">Total</Table.Th>
-                <Table.Th ta="right">New</Table.Th>
-              </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {recentMonths.map((row) => (
-              <Table.Tr key={row.month}>
-                <Table.Td>{formatMonth(row.month)}</Table.Td>
-                <Table.Td ta="right">
+        <DataTable
+          data={recentMonths}
+          columns={[
+            {
+              id: 'month',
+              header: 'Month',
+              align: 'left',
+              render: (row) => formatMonth(row.month),
+              sortValue: (row) => row.month,
+            },
+            {
+              id: 'totalUsers',
+              header: 'Total',
+              align: 'right',
+              render: (row) => (
+                <>
                   {row.totalUsers.toLocaleString()}
                   {row.totalUsersMomChange !== 0 && (
                     <Text span size="xs" c={row.totalUsersMomChange >= 0 ? 'green' : 'red'} ml="xs">
                       ({row.totalUsersMomChange >= 0 ? '+' : ''}{row.totalUsersMomChange}%)
                     </Text>
                   )}
-                </Table.Td>
-                <Table.Td ta="right">
+                </>
+              ),
+              sortValue: (row) => row.totalUsers,
+            },
+            {
+              id: 'newUsers',
+              header: 'New',
+              align: 'right',
+              render: (row) => (
+                <>
                   {row.newUsers.toLocaleString()}
                   {row.newUsersMomChange !== 0 && (
                     <Text span size="xs" c={row.newUsersMomChange >= 0 ? 'green' : 'red'} ml="xs">
                       ({row.newUsersMomChange >= 0 ? '+' : ''}{row.newUsersMomChange}%)
                     </Text>
                   )}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+                </>
+              ),
+              sortValue: (row) => row.newUsers,
+            },
+          ]}
+          keyField="month"
+        />
       </Paper>
     </Container>
   );

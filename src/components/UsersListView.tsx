@@ -5,93 +5,80 @@ import {
   Container,
   Title,
   TextInput,
-  Table,
   Paper,
   Text,
-  Anchor,
   Loader,
   Stack,
   Badge,
-  Group,
 } from '@mantine/core';
-import { IconSearch, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { DateTime } from 'luxon';
-import Link from 'next/link';
-import { useMemo } from 'react';
 import { UsersListItem, UsersListResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { UserHoverCard } from './UserHoverCard';
 import { useFilter } from '@/contexts/FilterContext';
-
-type SortColumn = 'username' | 'name' | 'hasApiKey' | 'createdAt' | 'lastActiveAt' | null;
-type SortDirection = 'asc' | 'desc';
+import { DataTable, Column } from './DataTable';
 
 export function UsersListView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const [sortColumn, setSortColumn] = useState<SortColumn>('lastActiveAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { timezone } = useFilter();
 
   const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}&timezone=${timezone}`;
   const { data, loading } = useApiData<UsersListResponse>(url, [url, timezone]);
   const users = data?.users ?? [];
 
-  const sortedUsers = useMemo(() => {
-    if (!sortColumn) return users;
-
-    return [...users].sort((a, b) => {
-      let aValue: string | number | boolean | null;
-      let bValue: string | number | boolean | null;
-
-      switch (sortColumn) {
-        case 'username':
-          aValue = a.username.toLowerCase();
-          bValue = b.username.toLowerCase();
-          break;
-        case 'name':
-          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
-          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
-          break;
-        case 'hasApiKey':
-          aValue = a.hasApiKey ? 1 : 0;
-          bValue = b.hasApiKey ? 1 : 0;
-          break;
-        case 'createdAt':
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
-          break;
-        case 'lastActiveAt':
-          aValue = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
-          bValue = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue === null || aValue === undefined) return 1;
-      if (bValue === null || bValue === undefined) return -1;
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [users, sortColumn, sortDirection]);
-
-  const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === 'asc' ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />;
-  };
+  const columns: Column<UsersListItem>[] = [
+    {
+      id: 'username',
+      header: 'Username',
+      align: 'left',
+      render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
+      sortValue: (row) => row.username.toLowerCase(),
+    },
+    {
+      id: 'name',
+      header: 'Name',
+      align: 'left',
+      render: (row) => `${row.firstName} ${row.lastName}`,
+      sortValue: (row) => `${row.firstName} ${row.lastName}`.toLowerCase(),
+    },
+    {
+      id: 'hasApiKey',
+      header: 'API Key',
+      align: 'left',
+      render: (row) =>
+        row.hasApiKey ? (
+          <Badge color="green" variant="light">Yes</Badge>
+        ) : (
+          <Badge color="gray" variant="light">No</Badge>
+        ),
+      sortValue: (row) => row.hasApiKey ? 1 : 0,
+    },
+    {
+      id: 'createdAt',
+      header: 'Created',
+      align: 'left',
+      render: (row) =>
+        DateTime.fromISO(row.createdAt)
+          .setZone(timezone)
+          .toLocaleString(DateTime.DATETIME_SHORT),
+      sortValue: (row) => new Date(row.createdAt).getTime(),
+    },
+    {
+      id: 'lastActiveAt',
+      header: 'Last Active',
+      align: 'left',
+      render: (row) =>
+        row.lastActiveAt
+          ? DateTime.fromISO(row.lastActiveAt)
+              .setZone(timezone)
+              .toLocaleString(DateTime.DATETIME_SHORT)
+          : 'Never',
+      sortValue: (row) => row.lastActiveAt ? new Date(row.lastActiveAt).getTime() : 0,
+    },
+  ];
 
   return (
     <Container size="xl" py="xl">
@@ -112,98 +99,13 @@ export function UsersListView() {
             <Loader />
           </Stack>
         ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  onClick={() => handleSort('username')}
-                >
-                  <Group gap={4}>
-                    Username
-                    <SortIcon column="username" />
-                  </Group>
-                </Table.Th>
-                <Table.Th 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  onClick={() => handleSort('name')}
-                >
-                  <Group gap={4}>
-                    Name
-                    <SortIcon column="name" />
-                  </Group>
-                </Table.Th>
-                <Table.Th 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  onClick={() => handleSort('hasApiKey')}
-                >
-                  <Group gap={4}>
-                    API Key
-                    <SortIcon column="hasApiKey" />
-                  </Group>
-                </Table.Th>
-                <Table.Th 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  onClick={() => handleSort('createdAt')}
-                >
-                  <Group gap={4}>
-                    Created
-                    <SortIcon column="createdAt" />
-                  </Group>
-                </Table.Th>
-                <Table.Th 
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  onClick={() => handleSort('lastActiveAt')}
-                >
-                  <Group gap={4}>
-                    Last Active
-                    <SortIcon column="lastActiveAt" />
-                  </Group>
-                </Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {sortedUsers.length === 0 ? (
-                <Table.Tr>
-                  <Table.Td colSpan={5}>
-                    <Text c="dimmed" ta="center">
-                      {search ? 'No users found' : 'Start typing to search users'}
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              ) : (
-                sortedUsers.map((user) => (
-                  <Table.Tr key={user.id}>
-                    <Table.Td>
-                      <UserHoverCard userId={user.id} userName={user.username} />
-                    </Table.Td>
-                    <Table.Td>
-                      {user.firstName} {user.lastName}
-                    </Table.Td>
-                    <Table.Td>
-                      {user.hasApiKey ? (
-                        <Badge color="green" variant="light">Yes</Badge>
-                      ) : (
-                        <Badge color="gray" variant="light">No</Badge>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      {DateTime.fromISO(user.createdAt)
-                        .setZone(timezone)
-                        .toLocaleString(DateTime.DATETIME_SHORT)}
-                    </Table.Td>
-                    <Table.Td>
-                      {user.lastActiveAt
-                        ? DateTime.fromISO(user.lastActiveAt)
-                            .setZone(timezone)
-                            .toLocaleString(DateTime.DATETIME_SHORT)
-                        : 'Never'}
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
+          <DataTable
+            data={users}
+            columns={columns}
+            keyField="id"
+            defaultSort={{ column: 'lastActiveAt', direction: 'desc' }}
+            emptyMessage={search ? 'No users found' : 'Start typing to search users'}
+          />
         )}
         <Text size="xs" c="dimmed" mt="md">
           Showing up to 100 users. Click column headers to sort.

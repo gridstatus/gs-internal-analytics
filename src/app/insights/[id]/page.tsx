@@ -22,6 +22,7 @@ import { IconAlertCircle, IconArrowLeft, IconEye, IconThumbUp, IconBookmark } fr
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import { UserHoverCard } from '@/components/UserHoverCard';
+import { DataTable, Column } from '@/components/DataTable';
 import Link from 'next/link';
 
 interface InsightDetail {
@@ -344,113 +345,124 @@ export default function InsightDetailPage() {
           </Tabs.List>
 
           <Tabs.Panel value="viewers" pt="md">
-            {data.viewers.length > 0 ? (
-              <>
-                <Table striped highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>User</Table.Th>
-                      <Table.Th ta="right">Impressions</Table.Th>
-                      <Table.Th ta="right">Views</Table.Th>
-                      <Table.Th>First Viewed</Table.Th>
-                      <Table.Th>Last Viewed</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {data.viewers.map((viewer) => (
-                      <Table.Tr key={viewer.userId}>
-                        <Table.Td>
-                          <UserHoverCard userId={viewer.userId} userName={getUserName(viewer)} />
-                        </Table.Td>
-                        <Table.Td ta="right">{viewer.impressions}</Table.Td>
-                        <Table.Td ta="right">{viewer.views}</Table.Td>
-                        <Table.Td>{new Date(viewer.firstViewed).toLocaleString()}</Table.Td>
-                        <Table.Td>{new Date(viewer.lastViewed).toLocaleString()}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-                {data.viewers.length >= 100 && (
-                  <Text size="xs" c="dimmed" mt="md">
-                    Showing first 100 viewers
-                  </Text>
-                )}
-              </>
-            ) : (
-              <Text c="dimmed" py="md">No viewers yet</Text>
+            <DataTable
+              data={data.viewers}
+              columns={[
+                {
+                  id: 'user',
+                  header: 'User',
+                  align: 'left',
+                  render: (row) => <UserHoverCard userId={row.userId} userName={getUserName(row)} />,
+                  sortValue: (row) => getUserName(row).toLowerCase(),
+                },
+                {
+                  id: 'impressions',
+                  header: 'Impressions',
+                  align: 'right',
+                  render: (row) => row.impressions,
+                  sortValue: (row) => row.impressions,
+                },
+                {
+                  id: 'views',
+                  header: 'Views',
+                  align: 'right',
+                  render: (row) => row.views,
+                  sortValue: (row) => row.views,
+                },
+                {
+                  id: 'firstViewed',
+                  header: 'First Viewed',
+                  align: 'left',
+                  render: (row) => new Date(row.firstViewed).toLocaleString(),
+                  sortValue: (row) => new Date(row.firstViewed).getTime(),
+                },
+                {
+                  id: 'lastViewed',
+                  header: 'Last Viewed',
+                  align: 'left',
+                  render: (row) => new Date(row.lastViewed).toLocaleString(),
+                  sortValue: (row) => new Date(row.lastViewed).getTime(),
+                },
+              ]}
+              keyField="userId"
+              emptyMessage="No viewers yet"
+            />
+            {data.viewers.length >= 100 && (
+              <Text size="xs" c="dimmed" mt="md">
+                Showing first 100 viewers
+              </Text>
             )}
           </Tabs.Panel>
 
           <Tabs.Panel value="reactors" pt="md">
-            {data.reactors.length > 0 ? (
-              <>
-                <Table striped highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>User</Table.Th>
-                      <Table.Th>Reaction</Table.Th>
-                      <Table.Th>Date</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {data.reactors.map((reactor, index) => (
-                      <Table.Tr key={`${reactor.userId}-${index}`}>
-                        <Table.Td>
-                          <UserHoverCard userId={reactor.userId} userName={getUserName(reactor)} />
-                        </Table.Td>
-                        <Table.Td>
-                          <Badge
-                            variant="light"
-                            color={reactor.reactionType === 'LIKE' ? 'green' : 'red'}
-                          >
-                            {reactor.reactionType === 'LIKE' ? '👍 Like' : '👎 Dislike'}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td>{new Date(reactor.createdAt).toLocaleString()}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-                {data.reactors.length >= 100 && (
-                  <Text size="xs" c="dimmed" mt="md">
-                    Showing first 100 reactions
-                  </Text>
-                )}
-              </>
-            ) : (
-              <Text c="dimmed" py="md">No reactions yet</Text>
+            <DataTable
+              data={data.reactors.map((reactor, index) => ({ ...reactor, _key: `${reactor.userId}-${index}` }))}
+              columns={[
+                {
+                  id: 'user',
+                  header: 'User',
+                  align: 'left',
+                  render: (row) => <UserHoverCard userId={row.userId} userName={getUserName(row)} />,
+                  sortValue: (row) => getUserName(row).toLowerCase(),
+                },
+                {
+                  id: 'reaction',
+                  header: 'Reaction',
+                  align: 'left',
+                  render: (row) => (
+                    <Badge
+                      variant="light"
+                      color={row.reactionType === 'LIKE' ? 'green' : 'red'}
+                    >
+                      {row.reactionType === 'LIKE' ? '👍 Like' : '👎 Dislike'}
+                    </Badge>
+                  ),
+                  sortValue: (row) => row.reactionType,
+                },
+                {
+                  id: 'createdAt',
+                  header: 'Date',
+                  align: 'left',
+                  render: (row) => new Date(row.createdAt).toLocaleString(),
+                  sortValue: (row) => new Date(row.createdAt).getTime(),
+                },
+              ]}
+              keyField="_key"
+              emptyMessage="No reactions yet"
+            />
+            {data.reactors.length >= 100 && (
+              <Text size="xs" c="dimmed" mt="md">
+                Showing first 100 reactions
+              </Text>
             )}
           </Tabs.Panel>
 
           <Tabs.Panel value="savers" pt="md">
-            {data.savers.length > 0 ? (
-              <>
-                <Table striped highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>User</Table.Th>
-                      <Table.Th>Saved Date</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {data.savers.map((saver) => (
-                      <Table.Tr key={saver.userId}>
-                        <Table.Td>
-                          <UserHoverCard userId={saver.userId} userName={getUserName(saver)} />
-                        </Table.Td>
-                        <Table.Td>{new Date(saver.createdAt).toLocaleString()}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-                {data.savers.length >= 100 && (
-                  <Text size="xs" c="dimmed" mt="md">
-                    Showing first 100 saves
-                  </Text>
-                )}
-              </>
-            ) : (
-              <Text c="dimmed" py="md">No saves yet</Text>
+            <DataTable
+              data={data.savers}
+              columns={[
+                {
+                  id: 'user',
+                  header: 'User',
+                  align: 'left',
+                  render: (row) => <UserHoverCard userId={row.userId} userName={getUserName(row)} />,
+                  sortValue: (row) => getUserName(row).toLowerCase(),
+                },
+                {
+                  id: 'createdAt',
+                  header: 'Saved Date',
+                  align: 'left',
+                  render: (row) => new Date(row.createdAt).toLocaleString(),
+                  sortValue: (row) => new Date(row.createdAt).getTime(),
+                },
+              ]}
+              keyField="userId"
+              emptyMessage="No saves yet"
+            />
+            {data.savers.length >= 100 && (
+              <Text size="xs" c="dimmed" mt="md">
+                Showing first 100 saves
+              </Text>
             )}
           </Tabs.Panel>
         </Tabs>

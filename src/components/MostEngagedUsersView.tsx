@@ -5,7 +5,6 @@ import {
   Container,
   Title,
   Paper,
-  Table,
   Text,
   Group,
   Loader,
@@ -14,12 +13,13 @@ import {
   Badge,
   SegmentedControl,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconThumbUp, IconEye, IconBookmark, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconThumbUp, IconEye, IconBookmark } from '@tabler/icons-react';
 import { UserHoverCard } from './UserHoverCard';
 import { Anchor } from '@mantine/core';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { DataTable, Column } from './DataTable';
 
 interface MostEngagedUser {
   user_id: number;
@@ -34,8 +34,6 @@ interface MostEngagedUser {
   total_engagement_score: number;
 }
 
-type SortBy = 'total' | 'reactions' | 'engagements' | 'saves' | null;
-type SortDirection = 'asc' | 'desc';
 type TimeFilter = '1' | '7' | '30' | '90' | 'all';
 
 export function MostEngagedUsersView() {
@@ -46,8 +44,6 @@ export function MostEngagedUsersView() {
   const [data, setData] = useState<MostEngagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortBy>('reactions');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { filterGridstatus, timezone } = useFilter();
   
   // Initialize timeFilter from URL params
@@ -98,39 +94,74 @@ export function MostEngagedUsersView() {
       `User ${user.user_id}`;
   };
 
-  const handleSort = (column: SortBy) => {
-    if (sortBy === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortDirection('desc');
-    }
-  };
-
-  const SortIcon = ({ column }: { column: SortBy }) => {
-    if (sortBy !== column) return null;
-    return sortDirection === 'asc' ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />;
-  };
-
-  const sortedData = [...data].sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'reactions':
-        comparison = a.reaction_count - b.reaction_count;
-        break;
-      case 'engagements':
-        comparison = a.engagement_count - b.engagement_count;
-        break;
-      case 'saves':
-        comparison = a.save_count - b.save_count;
-        break;
-      case 'total':
-      default:
-        comparison = a.total_engagement_score - b.total_engagement_score;
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  const columns: Column<MostEngagedUser>[] = [
+    {
+      id: 'user',
+      header: 'User',
+      align: 'left',
+      render: (row) => <UserHoverCard userId={row.user_id} userName={getUserName(row)} />,
+      sortValue: (row) => getUserName(row).toLowerCase(),
+    },
+    {
+      id: 'reactions',
+      header: (
+        <Group gap={4} justify="flex-end">
+          <IconThumbUp size={16} />
+          Reactions
+        </Group>
+      ),
+      align: 'right',
+      render: (row) => (
+        <Stack gap={2} align="flex-end">
+          <Text fw={600}>{row.reaction_count.toLocaleString()}</Text>
+          <Group gap={4} justify="flex-end">
+            <Badge variant="light" color="green" size="xs">
+              👍 {row.likes_count}
+            </Badge>
+            <Badge variant="light" color="red" size="xs">
+              👎 {row.dislikes_count}
+            </Badge>
+          </Group>
+        </Stack>
+      ),
+      sortValue: (row) => row.reaction_count,
+    },
+    {
+      id: 'engagements',
+      header: (
+        <Group gap={4} justify="flex-end">
+          <IconEye size={16} />
+          Engagements
+        </Group>
+      ),
+      align: 'right',
+      render: (row) => <Text fw={600}>{row.engagement_count.toLocaleString()}</Text>,
+      sortValue: (row) => row.engagement_count,
+    },
+    {
+      id: 'saves',
+      header: (
+        <Group gap={4} justify="flex-end">
+          <IconBookmark size={16} />
+          Saves
+        </Group>
+      ),
+      align: 'right',
+      render: (row) => <Text fw={600}>{row.save_count.toLocaleString()}</Text>,
+      sortValue: (row) => row.save_count,
+    },
+    {
+      id: 'total',
+      header: 'Total Score',
+      align: 'right',
+      render: (row) => (
+        <Badge variant="light" color="blue" size="lg">
+          {row.total_engagement_score.toLocaleString()}
+        </Badge>
+      ),
+      sortValue: (row) => row.total_engagement_score,
+    },
+  ];
 
   if (loading) {
     return (
@@ -187,104 +218,14 @@ export function MostEngagedUsersView() {
       </Group>
 
       <Paper shadow="sm" p="md" radius="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Rank</Table.Th>
-              <Table.Th>User</Table.Th>
-              <Table.Th 
-                ta="right"
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => handleSort('reactions')}
-              >
-                <Group gap={4} justify="flex-end">
-                  <IconThumbUp size={16} />
-                  Reactions
-                  <SortIcon column="reactions" />
-                </Group>
-              </Table.Th>
-              <Table.Th 
-                ta="right"
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => handleSort('engagements')}
-              >
-                <Group gap={4} justify="flex-end">
-                  <IconEye size={16} />
-                  Engagements
-                  <SortIcon column="engagements" />
-                </Group>
-              </Table.Th>
-              <Table.Th 
-                ta="right"
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => handleSort('saves')}
-              >
-                <Group gap={4} justify="flex-end">
-                  <IconBookmark size={16} />
-                  Saves
-                  <SortIcon column="saves" />
-                </Group>
-              </Table.Th>
-              <Table.Th 
-                ta="right"
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => handleSort('total')}
-              >
-                <Group gap={4} justify="flex-end">
-                  Total Score
-                  <SortIcon column="total" />
-                </Group>
-              </Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {sortedData.length === 0 ? (
-              <Table.Tr>
-                <Table.Td colSpan={6}>
-                  <Text c="dimmed" ta="center" py="md">
-                    No engaged users found
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            ) : (
-              sortedData.map((user, index) => (
-                <Table.Tr key={user.user_id}>
-                  <Table.Td>
-                    <Text fw={600}>#{index + 1}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <UserHoverCard userId={user.user_id} userName={getUserName(user)} />
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Stack gap={2} align="flex-end">
-                      <Text fw={600}>{user.reaction_count.toLocaleString()}</Text>
-                      <Group gap={4} justify="flex-end">
-                        <Badge variant="light" color="green" size="xs">
-                          👍 {user.likes_count}
-                        </Badge>
-                        <Badge variant="light" color="red" size="xs">
-                          👎 {user.dislikes_count}
-                        </Badge>
-                      </Group>
-                    </Stack>
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Text fw={600}>{user.engagement_count.toLocaleString()}</Text>
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Text fw={600}>{user.save_count.toLocaleString()}</Text>
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Badge variant="light" color="blue" size="lg">
-                      {user.total_engagement_score.toLocaleString()}
-                    </Badge>
-                  </Table.Td>
-                </Table.Tr>
-              ))
-            )}
-          </Table.Tbody>
-        </Table>
-        {sortedData.length >= 100 && (
+        <DataTable
+          data={data}
+          columns={columns}
+          keyField="user_id"
+          defaultSort={{ column: 'reactions', direction: 'desc' }}
+          emptyMessage="No engaged users found"
+        />
+        {data.length >= 100 && (
           <Text size="xs" c="dimmed" mt="md">
             Showing top 100 most engaged users
           </Text>

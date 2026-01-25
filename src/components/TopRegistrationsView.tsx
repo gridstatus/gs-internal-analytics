@@ -7,7 +7,6 @@ import {
   Skeleton,
   Alert,
   Stack,
-  Table,
   Paper,
   Text,
   Group,
@@ -20,6 +19,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function TopRegistrationsView() {
   const [activeTab, setActiveTab] = useState<string | null>('day');
@@ -89,28 +89,45 @@ export function TopRegistrationsView() {
     }
   };
 
-  const renderTable = (periodData: TopRegistration[], type: string) => (
-    <Table striped highlightOnHover>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Rank</Table.Th>
-          <Table.Th>
-            {type === 'day' ? 'Day' : type === 'week' ? 'Week' : 'Month'}
-          </Table.Th>
-          <Table.Th ta="right">Registrations</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {periodData.map((row, index) => (
-          <Table.Tr key={`${row.period}-${row.periodType}`}>
-            <Table.Td>{index + 1}</Table.Td>
-            <Table.Td>{formatPeriod(row.period, row.periodType)}</Table.Td>
-            <Table.Td ta="right">{row.registrationCount.toLocaleString()}</Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
-  );
+  const createColumns = (type: string): Column<TopRegistration & { rank: number }>[] => [
+    {
+      id: 'rank',
+      header: 'Rank',
+      align: 'left',
+      render: (row) => row.rank,
+      sortable: false,
+    },
+    {
+      id: 'period',
+      header: type === 'day' ? 'Day' : type === 'week' ? 'Week' : 'Month',
+      align: 'left',
+      render: (row) => formatPeriod(row.period, row.periodType),
+      sortValue: (row) => row.period,
+    },
+    {
+      id: 'registrationCount',
+      header: 'Registrations',
+      align: 'right',
+      render: (row) => row.registrationCount.toLocaleString(),
+      sortValue: (row) => row.registrationCount,
+    },
+  ];
+
+  const renderTable = (periodData: TopRegistration[], type: string) => {
+    const dataWithRank = periodData.map((row, index) => ({
+      ...row,
+      rank: index + 1,
+    }));
+
+    return (
+      <DataTable
+        data={dataWithRank}
+        columns={createColumns(type)}
+        keyField="period"
+        defaultSort={{ column: 'registrationCount', direction: 'desc' }}
+      />
+    );
+  };
 
   return (
     <Container size="xl" py="xl">

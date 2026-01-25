@@ -10,7 +10,6 @@ import {
   Paper,
   Text,
   Group,
-  Table,
   TextInput,
   Anchor,
 } from '@mantine/core';
@@ -20,6 +19,7 @@ import Link from 'next/link';
 import { useFilter } from '@/contexts/FilterContext';
 import { ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { DataTable, Column } from './DataTable';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
@@ -56,6 +56,59 @@ export function DomainsView() {
     return null;
   }
 
+  const filteredData = data.byDomain
+    .filter((row) => row.domain.toLowerCase().includes(search.toLowerCase()))
+    .slice(0, 100);
+
+  const columns: Column<typeof filteredData[0]>[] = [
+    {
+      id: 'domain',
+      header: 'Domain',
+      align: 'left',
+      render: (row) => (
+        <Anchor component={Link} href={`/domains/${encodeURIComponent(row.domain)}`}>
+          {row.domain}
+        </Anchor>
+      ),
+      sortValue: (row) => row.domain.toLowerCase(),
+    },
+    {
+      id: 'active24h',
+      header: '24h',
+      align: 'right',
+      render: (row) => row.active24h,
+      sortValue: (row) => row.active24h,
+    },
+    {
+      id: 'active7d',
+      header: '7d',
+      align: 'right',
+      render: (row) => row.active7d,
+      sortValue: (row) => row.active7d,
+    },
+    {
+      id: 'active30d',
+      header: '30d',
+      align: 'right',
+      render: (row) => row.active30d,
+      sortValue: (row) => row.active30d,
+    },
+    {
+      id: 'active90d',
+      header: '90d',
+      align: 'right',
+      render: (row) => row.active90d,
+      sortValue: (row) => row.active90d,
+    },
+    {
+      id: 'totalUsers',
+      header: 'Total',
+      align: 'right',
+      render: (row) => row.totalUsers,
+      sortValue: (row) => row.totalUsers,
+    },
+  ];
+
   return (
     <Container size="xl" py="xl">
       <Title order={1} mb="xl">Domains</Title>
@@ -74,37 +127,12 @@ export function DomainsView() {
             style={{ width: 250 }}
           />
         </Group>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Domain</Table.Th>
-              <Table.Th ta="right">24h</Table.Th>
-              <Table.Th ta="right">7d</Table.Th>
-              <Table.Th ta="right">30d</Table.Th>
-              <Table.Th ta="right">90d</Table.Th>
-              <Table.Th ta="right">Total</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {data.byDomain
-              .filter((row) => row.domain.toLowerCase().includes(search.toLowerCase()))
-              .slice(0, 100)
-              .map((row) => (
-                <Table.Tr key={row.domain}>
-                  <Table.Td>
-                    <Anchor component={Link} href={`/domains/${encodeURIComponent(row.domain)}`}>
-                      {row.domain}
-                    </Anchor>
-                  </Table.Td>
-                  <Table.Td ta="right">{row.active24h}</Table.Td>
-                  <Table.Td ta="right">{row.active7d}</Table.Td>
-                  <Table.Td ta="right">{row.active30d}</Table.Td>
-                  <Table.Td ta="right">{row.active90d}</Table.Td>
-                  <Table.Td ta="right">{row.totalUsers}</Table.Td>
-                </Table.Tr>
-              ))}
-          </Table.Tbody>
-        </Table>
+        <DataTable
+          data={filteredData}
+          columns={columns}
+          keyField="domain"
+          defaultSort={{ column: 'totalUsers', direction: 'desc' }}
+        />
         <Text size="xs" c="dimmed" mt="md">
           Showing up to 100 domains. Excludes free email providers only.
         </Text>

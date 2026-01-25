@@ -8,3 +8,5 @@ export { PosthogMausView } from './PosthogMausView';
 export { OrganizationsView } from './OrganizationsView';
 export { UsersListView } from './UsersListView';
 export { UserHoverCard } from './UserHoverCard';
+export { DataTable } from './DataTable';
+export type { Column, DataTableProps } from './DataTable';

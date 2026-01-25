@@ -10,10 +10,8 @@ import {
   Stack,
   Paper,
   Text,
-  Table,
   TextInput,
   Group,
-  Anchor,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
@@ -21,7 +19,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import { AlertsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { UserHoverCard } from './UserHoverCard';
-import Link from 'next/link';
+import { DataTable, Column } from './DataTable';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
@@ -63,11 +61,44 @@ export function AlertsView() {
     return null;
   }
 
-  const filteredUsers = data.users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.domain.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = data.users
+    .filter(
+      (user) =>
+        user.username.toLowerCase().includes(search.toLowerCase()) ||
+        user.domain.toLowerCase().includes(search.toLowerCase())
+    )
+    .slice(0, 100);
+
+  const columns: Column<typeof filteredUsers[0]>[] = [
+    {
+      id: 'user',
+      header: 'User',
+      align: 'left',
+      render: (row) => <UserHoverCard userId={row.userId} userName={row.username} />,
+      sortValue: (row) => row.username.toLowerCase(),
+    },
+    {
+      id: 'domain',
+      header: 'Domain',
+      align: 'left',
+      render: (row) => row.domain,
+      sortValue: (row) => row.domain.toLowerCase(),
+    },
+    {
+      id: 'alertCount',
+      header: 'Alerts',
+      align: 'right',
+      render: (row) => row.alertCount,
+      sortValue: (row) => row.alertCount,
+    },
+    {
+      id: 'lastAlertCreated',
+      header: 'Last Alert',
+      align: 'right',
+      render: (row) => row.lastAlertCreated || '—',
+      sortValue: (row) => row.lastAlertCreated || '',
+    },
+  ];
 
   return (
     <Container size="xl" py="xl">
@@ -100,37 +131,16 @@ export function AlertsView() {
             style={{ width: 300 }}
           />
         </Group>
-        {filteredUsers.length === 0 ? (
-          <Text c="dimmed">No alerts found</Text>
-        ) : (
-          <>
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>User</Table.Th>
-                  <Table.Th>Domain</Table.Th>
-                  <Table.Th ta="right">Alerts</Table.Th>
-                  <Table.Th ta="right">Last Alert</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredUsers.slice(0, 100).map((user) => (
-                  <Table.Tr key={user.userId}>
-                    <Table.Td>
-                      <UserHoverCard userId={user.userId} userName={user.username} />
-                    </Table.Td>
-                    <Table.Td>{user.domain}</Table.Td>
-                    <Table.Td ta="right">{user.alertCount}</Table.Td>
-                    <Table.Td ta="right">{user.lastAlertCreated || '—'}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-            <Text size="xs" c="dimmed" mt="md">
-              Showing up to 100 users, sorted by alert count.
-            </Text>
-          </>
-        )}
+        <DataTable
+          data={filteredUsers}
+          columns={columns}
+          keyField="userId"
+          defaultSort={{ column: 'alertCount', direction: 'desc' }}
+          emptyMessage="No alerts found"
+        />
+        <Text size="xs" c="dimmed" mt="md">
+          Showing up to 100 users, sorted by alert count.
+        </Text>
       </Paper>
     </Container>
   );
