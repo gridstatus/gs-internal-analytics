@@ -98,7 +98,6 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     const series = showMoM
       ? [
           { name: dataKey, type: 'line' as const, color },
-          // @ts-expect-error - Mantine charts doesn't fully type yAxisId, but it supports it
           { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right' },
         ]
       : [{ name: dataKey, type: 'line' as const, color }];
