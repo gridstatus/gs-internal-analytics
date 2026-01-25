@@ -1,0 +1,58 @@
+WITH user_data AS (
+  SELECT
+    created_at,
+    CASE
+      WHEN SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+        'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+        'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+        'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+      )
+      AND NOT (
+        SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+        OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+      ) THEN TRUE
+      ELSE FALSE
+    END AS is_corporate_domain
+  FROM api_server.users
+  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+    {{INTERNAL_EMAIL_FILTER}}
+    AND created_at IS NOT NULL
+),
+daily_registrations AS (
+  SELECT
+    DATE_TRUNC('day', created_at) AS period,
+    'day' AS period_type,
+    COUNT(*) AS registration_count
+  FROM user_data
+  GROUP BY DATE_TRUNC('day', created_at)
+),
+weekly_registrations AS (
+  SELECT
+    DATE_TRUNC('week', created_at) AS period,
+    'week' AS period_type,
+    COUNT(*) AS registration_count
+  FROM user_data
+  GROUP BY DATE_TRUNC('week', created_at)
+),
+monthly_registrations AS (
+  SELECT
+    DATE_TRUNC('month', created_at) AS period,
+    'month' AS period_type,
+    COUNT(*) AS registration_count
+  FROM user_data
+  GROUP BY DATE_TRUNC('month', created_at)
+),
+all_periods AS (
+  SELECT period, period_type, registration_count FROM daily_registrations
+  UNION ALL
+  SELECT period, period_type, registration_count FROM weekly_registrations
+  UNION ALL
+  SELECT period, period_type, registration_count FROM monthly_registrations
+)
+SELECT
+  period,
+  period_type,
+  registration_count
+FROM all_periods
+ORDER BY period_type, registration_count DESC, period DESC;
+

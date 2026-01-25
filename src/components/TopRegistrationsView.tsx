@@ -1,0 +1,234 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import {
+  Container,
+  Title,
+  Skeleton,
+  Alert,
+  Stack,
+  Table,
+  Paper,
+  Text,
+  Group,
+  Tabs,
+  Anchor,
+} from '@mantine/core';
+import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { useFilter } from '@/contexts/FilterContext';
+import Link from 'next/link';
+
+interface TopRegistration {
+  period: string;
+  periodType: 'day' | 'week' | 'month';
+  registrationCount: number;
+}
+
+interface TopRegistrationsResponse {
+  data: TopRegistration[];
+}
+
+export function TopRegistrationsView() {
+  const [data, setData] = useState<TopRegistrationsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>('day');
+
+  const { filterGridstatus } = useFilter();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`/api/top-registrations?filterGridstatus=${filterGridstatus}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch top registrations data');
+        }
+        const result = await response.json();
+        setData(result);
+        // Set initial tab to first available period type if not set
+        if (result.data && result.data.length > 0 && activeTab === null) {
+          setActiveTab(result.data[0].periodType);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterGridstatus]);
+
+  if (loading) {
+    return (
+      <Container size="xl" py="xl">
+        <Stack gap="md">
+          <Skeleton height={50} width={300} />
+          <Skeleton height={400} />
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="xl" py="xl">
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Error loading data"
+          color="red"
+        >
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!data || data.data.length === 0) {
+    return (
+      <Container size="xl" py="xl">
+        <Alert title="No data" color="yellow">
+          No registration data available.
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Group data by period type
+  const byPeriodType = {
+    day: data.data.filter((d) => d.periodType === 'day').slice(0, 100),
+    week: data.data.filter((d) => d.periodType === 'week').slice(0, 100),
+    month: data.data.filter((d) => d.periodType === 'month').slice(0, 100),
+  };
+
+  const formatPeriod = (period: string, type: string) => {
+    const date = new Date(period);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    if (type === 'day') {
+      const year = date.getUTCFullYear();
+      const month = monthNames[date.getUTCMonth()];
+      const day = date.getUTCDate();
+      return `${month} ${day}, ${year}`;
+    } else if (type === 'week') {
+      // Calculate week start (Sunday) in UTC
+      const weekStart = new Date(date);
+      const dayOfWeek = date.getUTCDay();
+      weekStart.setUTCDate(date.getUTCDate() - dayOfWeek);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+      
+      const startMonth = monthNamesShort[weekStart.getUTCMonth()];
+      const startDay = weekStart.getUTCDate();
+      const endMonth = monthNamesShort[weekEnd.getUTCMonth()];
+      const endDay = weekEnd.getUTCDate();
+      const endYear = weekEnd.getUTCFullYear();
+      
+      return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
+    } else {
+      const year = date.getUTCFullYear();
+      const month = monthNames[date.getUTCMonth()];
+      return `${month} ${year}`;
+    }
+  };
+
+  const renderTable = (periodData: TopRegistration[], type: string) => (
+    <Table striped highlightOnHover>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Rank</Table.Th>
+          <Table.Th>
+            {type === 'day' ? 'Day' : type === 'week' ? 'Week' : 'Month'}
+          </Table.Th>
+          <Table.Th ta="right">Registrations</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {periodData.map((row, index) => (
+          <Table.Tr key={`${row.period}-${row.periodType}`}>
+            <Table.Td>{index + 1}</Table.Td>
+            <Table.Td>{formatPeriod(row.period, row.periodType)}</Table.Td>
+            <Table.Td ta="right">{row.registrationCount.toLocaleString()}</Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+
+  return (
+    <Container size="xl" py="xl">
+      <Anchor
+        component={Link}
+        href="/users"
+        size="sm"
+        c="dimmed"
+        style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '16px' }}
+      >
+        <IconArrowLeft size={16} />
+        Back to User Registrations
+      </Anchor>
+      <Title order={1} mb="xl">
+        Top Registrations
+      </Title>
+
+      <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs.List>
+          <Tabs.Tab value="day">Days</Tabs.Tab>
+          <Tabs.Tab value="week">Weeks</Tabs.Tab>
+          <Tabs.Tab value="month">Months</Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="day" pt="md">
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                Top Registration Days
+              </Text>
+              {byPeriodType.day.length >= 100 && (
+                <Text size="sm" c="dimmed">
+                  Showing top 100 days
+                </Text>
+              )}
+            </Group>
+            {renderTable(byPeriodType.day, 'day')}
+          </Paper>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="week" pt="md">
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                Top Registration Weeks
+              </Text>
+              {byPeriodType.week.length >= 100 && (
+                <Text size="sm" c="dimmed">
+                  Showing top 100 weeks
+                </Text>
+              )}
+            </Group>
+            {renderTable(byPeriodType.week, 'week')}
+          </Paper>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="month" pt="md">
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                Top Registration Months
+              </Text>
+              {byPeriodType.month.length >= 100 && (
+                <Text size="sm" c="dimmed">
+                  Showing top 100 months
+                </Text>
+              )}
+            </Group>
+            {renderTable(byPeriodType.month, 'month')}
+          </Paper>
+        </Tabs.Panel>
+      </Tabs>
+    </Container>
+  );
+}
+
