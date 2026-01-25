@@ -355,24 +355,188 @@ export async function getTopRegistrations(filterGridstatus: boolean = true): Pro
 
 export interface UsersToday {
   users_today: number;
+  users_yesterday_all: number;
+  users_yesterday_same_time: number;
+  users_last_week_all: number;
+  users_last_week_same_time: number;
+}
+
+export interface MonthlyNewUsers {
+  current_month_all: number;
+  previous_month_all: number;
+  previous_month_same_time: number;
+}
+
+export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = true): Promise<MonthlyNewUsers[]> {
+  let sql = `
+    WITH current_month_start AS (
+      SELECT DATE_TRUNC('month', NOW()) AS start_time
+    ),
+    previous_month_start AS (
+      SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 month') AS start_time
+    ),
+    current_month_all AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM current_month_start)
+        AND created_at < (SELECT start_time FROM current_month_start) + INTERVAL '1 month'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    previous_month_all AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM previous_month_start)
+        AND created_at < (SELECT start_time FROM previous_month_start) + INTERVAL '1 month'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    previous_month_same_time AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM previous_month_start)
+        AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    )
+    SELECT 
+      (SELECT count FROM current_month_all) as current_month_all,
+      (SELECT count FROM previous_month_all) as previous_month_all,
+      (SELECT count FROM previous_month_same_time) as previous_month_same_time
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus });
+  return query<MonthlyNewUsers>(sql);
 }
 
 export async function getUsersToday(filterGridstatus: boolean = true): Promise<UsersToday[]> {
   let sql = `
-    SELECT COUNT(*) as users_today
-    FROM api_server.users
-    WHERE DATE_TRUNC('day', created_at) = DATE_TRUNC('day', NOW())
-      AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-        'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
-        'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
-        'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
-      )
-      AND NOT (
-        SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
-        OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
-      )
-      AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
+    WITH today_start AS (
+      SELECT DATE_TRUNC('day', NOW()) AS start_time
+    ),
+    yesterday_start AS (
+      SELECT DATE_TRUNC('day', NOW() - INTERVAL '1 day') AS start_time
+    ),
+    last_week_start AS (
+      SELECT DATE_TRUNC('day', NOW() - INTERVAL '7 days') AS start_time
+    ),
+    users_today AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM today_start)
+        AND created_at < (SELECT start_time FROM today_start) + INTERVAL '1 day'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    users_yesterday_all AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM yesterday_start)
+        AND created_at < (SELECT start_time FROM yesterday_start) + INTERVAL '1 day'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    users_yesterday_same_time AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM yesterday_start)
+        AND created_at < (SELECT start_time FROM yesterday_start) + (NOW() - (SELECT start_time FROM today_start))
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    users_last_week_all AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM last_week_start)
+        AND created_at < (SELECT start_time FROM last_week_start) + INTERVAL '1 day'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    ),
+    users_last_week_same_time AS (
+      SELECT COUNT(*) as count
+      FROM api_server.users
+      WHERE created_at >= (SELECT start_time FROM last_week_start)
+        AND created_at < (SELECT start_time FROM last_week_start) + (NOW() - (SELECT start_time FROM today_start))
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
+          'gmail.com', 'comcast.net', 'yahoo.com', 'hotmail.com', 'qq.com',
+          'outlook.com', 'icloud.com', 'aol.com', 'me.com', 'protonmail.com',
+          'live.com', 'msn.com', 'zoho.com', 'gmx.com', 'yandex.com'
+        )
+        AND NOT (
+          SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.edu'
+          OR SUBSTRING(username FROM POSITION('@' IN username) + 1) LIKE '%.gov'
+        )
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
+    )
+    SELECT 
+      (SELECT count FROM users_today) as users_today,
+      (SELECT count FROM users_yesterday_all) as users_yesterday_all,
+      (SELECT count FROM users_yesterday_same_time) as users_yesterday_same_time,
+      (SELECT count FROM users_last_week_all) as users_last_week_all,
+      (SELECT count FROM users_last_week_same_time) as users_last_week_same_time
   `;
   sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<UsersToday>(sql);

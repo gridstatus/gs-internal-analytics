@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday } from '@/lib/queries';
-import { getErrorMessage } from '@/lib/db';
+import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison } from '@/lib/queries';
+import { getErrorMessage, query } from '@/lib/db';
+import { loadSql, renderSqlTemplate } from '@/lib/queries';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -13,10 +14,31 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
     
-    const [userCounts, corpMetrics, usersToday] = await Promise.all([
+    // Get top domains for different time periods
+    const domainSearch = searchParams.get('domainSearch') || '';
+    const getTopDomains = async (days: number) => {
+      let sql = loadSql('top-domains.sql');
+      sql = sql.replace('{{DAYS}}', days.toString());
+      
+      // Add domain filter if provided
+      let domainFilter = '';
+      if (domainSearch) {
+        domainFilter = `AND SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
+      }
+      sql = sql.replace('{{DOMAIN_FILTER}}', domainFilter);
+      
+      sql = renderSqlTemplate(sql, { filterGridstatus });
+      return query<{ domain: string; user_count: string }>(sql);
+    };
+
+    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, topDomains1d, topDomains7d, topDomains30d] = await Promise.all([
       getMonthlyUserCounts(filterGridstatus),
       getMonthlyCorpMetrics(filterGridstatus),
       getUsersToday(filterGridstatus),
+      getMonthlyNewUsersComparison(filterGridstatus),
+      getTopDomains(1),
+      getTopDomains(7),
+      getTopDomains(30),
     ]);
 
     const corpMetricsMap = new Map(
@@ -66,7 +88,32 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       monthlyData,
-      usersToday: Number(usersToday[0]?.users_today || 0),
+      usersToday: {
+        today: Number(usersToday[0]?.users_today || 0),
+        yesterdayAll: Number(usersToday[0]?.users_yesterday_all || 0),
+        yesterdaySameTime: Number(usersToday[0]?.users_yesterday_same_time || 0),
+        lastWeekAll: Number(usersToday[0]?.users_last_week_all || 0),
+        lastWeekSameTime: Number(usersToday[0]?.users_last_week_same_time || 0),
+      },
+      monthlyNewUsers: {
+        currentMonth: Number(monthlyNewUsers[0]?.current_month_all || 0),
+        previousMonthAll: Number(monthlyNewUsers[0]?.previous_month_all || 0),
+        previousMonthSameTime: Number(monthlyNewUsers[0]?.previous_month_same_time || 0),
+      },
+      topDomains: {
+        '1d': topDomains1d.map(d => ({
+          domain: d.domain,
+          userCount: Number(d.user_count),
+        })),
+        '7d': topDomains7d.map(d => ({
+          domain: d.domain,
+          userCount: Number(d.user_count),
+        })),
+        '30d': topDomains30d.map(d => ({
+          domain: d.domain,
+          userCount: Number(d.user_count),
+        })),
+      },
     });
   } catch (error) {
     console.error('Error fetching user data:', error);

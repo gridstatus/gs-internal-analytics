@@ -13,12 +13,15 @@ import {
   Table,
   TextInput,
   Group,
+  Anchor,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
+import Link from 'next/link';
 
 interface UserChartsDashboards {
+  userId: number;
   username: string;
   domain: string;
   chartCount: number;
@@ -157,7 +160,11 @@ export function ChartsDashboardsView() {
           <Table.Tbody>
             {filteredUsers.slice(0, 100).map((user) => (
               <Table.Tr key={user.username}>
-                <Table.Td>{user.username}</Table.Td>
+                <Table.Td>
+                  <Anchor component={Link} href={`/users-list/${user.userId}`}>
+                    {user.username}
+                  </Anchor>
+                </Table.Td>
                 <Table.Td>{user.domain}</Table.Td>
                 <Table.Td ta="right">{user.chartCount}</Table.Td>
                 <Table.Td ta="right">{user.dashboardCount}</Table.Td>

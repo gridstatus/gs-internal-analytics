@@ -17,8 +17,9 @@ import {
   Badge,
   SegmentedControl,
   ScrollArea,
+  Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import Link from 'next/link';
@@ -31,6 +32,7 @@ interface User {
   createdAt: string;
   lastActiveAt: string | null;
   isAdmin: boolean;
+  clerkId: string | null;
 }
 
 interface Organization {
@@ -70,15 +72,36 @@ interface InsightView extends InsightPost {
   viewSources: string;
 }
 
+interface Chart {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
+interface Dashboard {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
+interface Alert {
+  id: number;
+  createdAt: string;
+}
+
 interface UserDetails {
   user: User;
   organizations: Organization[];
   stats: {
     chartCount: number;
     dashboardCount: number;
+    alertCount: number;
     apiRequests30d: number;
     apiRows30d: number;
   };
+  charts: Chart[];
+  dashboards: Dashboard[];
+  alerts: Alert[];
   apiKeys: ApiKey[];
   insights?: {
     reactions: InsightReaction[];
@@ -214,16 +237,37 @@ export default function UserDetailPage() {
       </Group>
 
       <Group justify="space-between" mb="xl">
-        <Title order={1}>
-          {data.user.username}
-        </Title>
-        {data.user.isAdmin && (
-          <Badge color="red" size="lg">Admin</Badge>
-        )}
+        <Stack gap={4}>
+          <Title order={1}>
+            {data.user.username}
+          </Title>
+          <Text size="sm" c="dimmed">
+            Last active: {data.user.lastActiveAt
+              ? new Date(data.user.lastActiveAt).toLocaleDateString()
+              : 'Never'}
+          </Text>
+        </Stack>
+        <Group gap="md">
+          {data.user.clerkId && (
+            <Button
+              component="a"
+              href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/users/${data.user.clerkId}?user_back_page=users`}
+              target="_blank"
+              rel="noopener noreferrer"
+              leftSection={<IconExternalLink size={16} />}
+              variant="light"
+            >
+              Open in Clerk
+            </Button>
+          )}
+          {data.user.isAdmin && (
+            <Badge color="red" size="lg">Admin</Badge>
+          )}
+        </Group>
       </Group>
 
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} spacing="md" mb="xl">
         <MetricCard
           title="Charts"
           value={data.stats.chartCount}
@@ -231,6 +275,10 @@ export default function UserDetailPage() {
         <MetricCard
           title="Dashboards"
           value={data.stats.dashboardCount}
+        />
+        <MetricCard
+          title="Alerts"
+          value={data.stats.alertCount}
         />
         <MetricCard
           title="API Requests (30d)"
@@ -242,174 +290,239 @@ export default function UserDetailPage() {
         />
       </SimpleGrid>
 
-      {/* User Details */}
-      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Text fw={600} size="lg" mb="md">
-          User Details
-        </Text>
-        <Table>
-          <Table.Tbody>
-            <Table.Tr>
-              <Table.Td fw={600}>ID</Table.Td>
-              <Table.Td>{data.user.id}</Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={600}>Username</Table.Td>
-              <Table.Td>{data.user.username}</Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={600}>Name</Table.Td>
-              <Table.Td>
-                {data.user.firstName} {data.user.lastName}
-              </Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={600}>Created</Table.Td>
-              <Table.Td>{new Date(data.user.createdAt).toLocaleString()}</Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={600}>Last Active</Table.Td>
-              <Table.Td>
-                {data.user.lastActiveAt
-                  ? new Date(data.user.lastActiveAt).toLocaleString()
-                  : 'Never'}
-              </Table.Td>
-            </Table.Tr>
-          </Table.Tbody>
-        </Table>
-      </Paper>
+      {/* Two-column layout: Sidebar (left) + Main content (right) */}
+      <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md" mb="xl">
+        {/* Left Sidebar - User Info */}
+        <Stack gap="md">
+          {/* User Details */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              User Details
+            </Text>
+            <Stack gap="xs">
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">ID</Text>
+                <Text size="sm" fw={500}>{data.user.id}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Username</Text>
+                <Text size="sm" fw={500}>{data.user.username}</Text>
+              </Group>
+              {data.user.username.includes('@') && (
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Domain</Text>
+                  <Anchor
+                    component={Link}
+                    href={`/domains/${encodeURIComponent(data.user.username.split('@')[1])}`}
+                    size="sm"
+                  >
+                    {data.user.username.split('@')[1]}
+                  </Anchor>
+                </Group>
+              )}
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Name</Text>
+                <Text size="sm" fw={500}>
+                  {data.user.firstName} {data.user.lastName}
+                </Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Created</Text>
+                <Text size="sm">{new Date(data.user.createdAt).toLocaleDateString()}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Last Active</Text>
+                <Text size="sm">
+                  {data.user.lastActiveAt
+                    ? new Date(data.user.lastActiveAt).toLocaleDateString()
+                    : 'Never'}
+                </Text>
+              </Group>
+            </Stack>
+          </Paper>
 
-      {/* Organizations */}
-      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Text fw={600} size="lg" mb="md">
-          Organizations ({data.organizations.length})
-        </Text>
-        {data.organizations.length === 0 ? (
-          <Text c="dimmed">User is not a member of any organizations</Text>
-        ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Role</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.organizations.map((org) => (
-                <Table.Tr key={org.id}>
-                  <Table.Td>
-                    <Anchor component={Link} href={`/organizations/${org.id}`}>
+          {/* Organizations */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Organizations ({data.organizations.length})
+            </Text>
+            {data.organizations.length === 0 ? (
+              <Text c="dimmed" size="sm">Not a member of any organizations</Text>
+            ) : (
+              <Stack gap="xs">
+                {data.organizations.map((org) => (
+                  <Group key={org.id} justify="space-between">
+                    <Anchor component={Link} href={`/organizations/${org.id}`} size="sm">
                       {org.name}
                     </Anchor>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge variant="light">{org.role}</Badge>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
-      </Paper>
+                    <Badge variant="light" size="sm">{org.role}</Badge>
+                  </Group>
+                ))}
+              </Stack>
+            )}
+          </Paper>
 
-      {/* API Usage */}
-      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Group justify="space-between" mb="md">
-          <Text fw={600} size="lg">
-            API Usage
-          </Text>
-          <SegmentedControl
-            value={apiUsageDays.toString()}
-            onChange={(value) => setApiUsageDays(parseInt(value, 10))}
-            data={[
-              { label: '1 Day', value: '1' },
-              { label: '7 Days', value: '7' },
-              { label: '30 Days', value: '30' },
-              { label: '90 Days', value: '90' },
-            ]}
-          />
-        </Group>
-        
-        {apiUsageError ? (
-          <Alert color="red" title="Error">
-            {apiUsageError}
-          </Alert>
-        ) : apiUsageLoading ? (
-          <Loader />
-        ) : apiUsageData.length === 0 ? (
-          <Text c="dimmed">No API usage data for the selected period</Text>
-        ) : (
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-            <TimeSeriesChart
-              title="API Requests"
-              subtitle={`Requests over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
-              data={apiUsageData.map(d => ({
-                month: d.period,
-                requests: d.requestCount,
-              }))}
-              dataKey="requests"
-              color="blue.6"
-              chartType="bar"
-              showMoM={false}
-            />
-            <TimeSeriesChart
-              title="Rows Returned"
-              subtitle={`Total rows returned over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
-              data={apiUsageData.map(d => ({
-                month: d.period,
-                rows: d.rowsReturned,
-              }))}
-              dataKey="rows"
-              color="green.6"
-              chartType="bar"
-              showMoM={false}
-            />
-          </SimpleGrid>
-        )}
-      </Paper>
+          {/* Charts */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Charts ({data.charts.length})
+            </Text>
+            {data.charts.length === 0 ? (
+              <Text c="dimmed" size="sm">User has not created any charts</Text>
+            ) : (
+              <ScrollArea style={{ maxHeight: '200px' }}>
+                <Stack gap="xs">
+                  {data.charts.map((chart) => (
+                    <Group key={chart.id} justify="space-between">
+                      <Text size="sm">{chart.name || `Chart ${chart.id}`}</Text>
+                      <Text size="xs" c="dimmed">
+                        {new Date(chart.createdAt).toLocaleDateString()}
+                      </Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
 
-      {/* API Keys */}
-      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Text fw={600} size="lg" mb="md">
-          API Keys ({data.apiKeys.length})
-        </Text>
-        {data.apiKeys.length === 0 ? (
-          <Text c="dimmed">User has not created any API keys</Text>
-        ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>API Key</Table.Th>
-                <Table.Th>First Used</Table.Th>
-                <Table.Th>Last Used</Table.Th>
-                <Table.Th ta="right">Requests</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.apiKeys.map((key, index) => (
-                <Table.Tr key={index}>
-                  <Table.Td>
-                    <Text ff="monospace" size="sm" style={{ wordBreak: 'break-all' }}>
-                      {key.apiKey}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {new Date(key.firstUsed).toLocaleString()}
-                  </Table.Td>
-                  <Table.Td>
-                    {new Date(key.lastUsed).toLocaleString()}
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    {key.requestCount.toLocaleString()}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
-      </Paper>
+          {/* Dashboards */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Dashboards ({data.dashboards.length})
+            </Text>
+            {data.dashboards.length === 0 ? (
+              <Text c="dimmed" size="sm">User has not created any dashboards</Text>
+            ) : (
+              <ScrollArea style={{ maxHeight: '200px' }}>
+                <Stack gap="xs">
+                  {data.dashboards.map((dashboard) => (
+                    <Group key={dashboard.id} justify="space-between">
+                      <Text size="sm">{dashboard.name || `Dashboard ${dashboard.id}`}</Text>
+                      <Text size="xs" c="dimmed">
+                        {new Date(dashboard.createdAt).toLocaleDateString()}
+                      </Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
 
-      {/* Insights Activity */}
+          {/* Alerts */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Alerts ({data.alerts.length})
+            </Text>
+            {data.alerts.length === 0 ? (
+              <Text c="dimmed" size="sm">User has not created any alerts</Text>
+            ) : (
+              <ScrollArea style={{ maxHeight: '200px' }}>
+                <Stack gap="xs">
+                  {data.alerts.map((alert) => (
+                    <Group key={alert.id} justify="space-between">
+                      <Text size="sm">Alert {alert.id}</Text>
+                      <Text size="xs" c="dimmed">
+                        {new Date(alert.createdAt).toLocaleDateString()}
+                      </Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
+        </Stack>
+
+        {/* Right Main Content - 2 columns */}
+        <SimpleGrid cols={1} spacing="md" style={{ gridColumn: 'span 2' }}>
+          {/* API Keys */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              API Keys ({data.apiKeys.length})
+            </Text>
+            {data.apiKeys.length === 0 ? (
+              <Text c="dimmed" size="sm">User has not created any API keys</Text>
+            ) : (
+              <ScrollArea style={{ maxHeight: '300px' }}>
+                <Stack gap="xs">
+                  {data.apiKeys.map((key, index) => (
+                    <Stack key={index} gap={4}>
+                      <Text ff="monospace" size="xs" style={{ wordBreak: 'break-all' }}>
+                        {key.apiKey}
+                      </Text>
+                      <Group justify="space-between">
+                        <Text size="xs" c="dimmed">
+                          {new Date(key.lastUsed).toLocaleDateString()}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          {key.requestCount.toLocaleString()} req
+                        </Text>
+                      </Group>
+                    </Stack>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
+
+          {/* API Usage */}
+          <Stack gap="md">
+            <Group justify="space-between">
+              <Text fw={600} size="lg">
+                API Usage
+              </Text>
+              <SegmentedControl
+                value={apiUsageDays.toString()}
+                onChange={(value) => setApiUsageDays(parseInt(value, 10))}
+                data={[
+                  { label: '1 Day', value: '1' },
+                  { label: '7 Days', value: '7' },
+                  { label: '30 Days', value: '30' },
+                  { label: '90 Days', value: '90' },
+                ]}
+              />
+            </Group>
+            
+            {apiUsageError ? (
+              <Alert color="red" title="Error">
+                {apiUsageError}
+              </Alert>
+            ) : apiUsageLoading ? (
+              <Loader />
+            ) : apiUsageData.length === 0 ? (
+              <Text c="dimmed">No API usage data for the selected period</Text>
+            ) : (
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <TimeSeriesChart
+                  title="API Requests"
+                  subtitle={`Requests over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
+                  data={apiUsageData.map(d => ({
+                    month: d.period,
+                    requests: d.requestCount,
+                  }))}
+                  dataKey="requests"
+                  color="blue.6"
+                  chartType="bar"
+                  showMoM={false}
+                />
+                <TimeSeriesChart
+                  title="Rows Returned"
+                  subtitle={`Total rows returned over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
+                  data={apiUsageData.map(d => ({
+                    month: d.period,
+                    rows: d.rowsReturned,
+                  }))}
+                  dataKey="rows"
+                  color="green.6"
+                  chartType="bar"
+                  showMoM={false}
+                />
+              </SimpleGrid>
+            )}
+          </Stack>
+        </SimpleGrid>
+      </SimpleGrid>
+
+      {/* Insights Activity - Full width */}
       {data.insights && (
         <Paper shadow="sm" p="md" radius="md" withBorder>
           <Text fw={600} size="lg" mb="md">
@@ -417,7 +530,7 @@ export default function UserDetailPage() {
           </Text>
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
             {/* Likes */}
-            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+            <Paper withBorder p="sm" style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
               <Text fw={600} mb="sm">
                 Likes ({data.insights.reactions.filter(r => r.reactionType === 'LIKE').length})
               </Text>
@@ -450,7 +563,7 @@ export default function UserDetailPage() {
             </Paper>
 
             {/* Saved */}
-            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+            <Paper withBorder p="sm" style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
               <Text fw={600} mb="sm">
                 Saved ({data.insights.saved.length})
               </Text>
@@ -481,7 +594,7 @@ export default function UserDetailPage() {
             </Paper>
 
             {/* Engagements (Views) */}
-            <Paper withBorder p="sm" style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+            <Paper withBorder p="sm" style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
               <Text fw={600} mb="sm">
                 Engagements ({data.insights.views.length})
               </Text>

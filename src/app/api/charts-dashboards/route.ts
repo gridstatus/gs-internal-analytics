@@ -39,6 +39,7 @@ export async function GET(request: Request) {
     let chartsDashboardsSql = readFileSync(chartsDashboardsSqlPath, 'utf-8');
     chartsDashboardsSql = renderSqlTemplate(chartsDashboardsSql, { filterGridstatus });
     const userBreakdown = await query<{
+      user_id: number;
       username: string;
       domain: string;
       chart_count: string;
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
         dashboardUsers: Number(dashboardStats[0].users),
       },
       users: userBreakdown.map((row) => ({
+        userId: row.user_id,
         username: row.username,
         domain: row.domain,
         chartCount: Number(row.chart_count),

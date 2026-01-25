@@ -18,7 +18,8 @@ export async function GET(request: Request) {
         created_at: Date;
         last_active_at: Date;
         is_admin: boolean;
-      }>(`SELECT id, username, first_name, last_name, created_at, last_active_at, is_admin
+        clerk_id: string | null;
+      }>(`SELECT id, username, first_name, last_name, created_at, last_active_at, is_admin, clerk_id
           FROM api_server.users WHERE id = $1`, [id]);
 
       if (users.length === 0) {
@@ -39,14 +40,51 @@ export async function GET(request: Request) {
         WHERE uo.user_id = $1
       `, [id]);
 
-      // Get charts and dashboards count
+      // Get charts, dashboards, and alerts count
       const stats = await query<{
         chart_count: string;
         dashboard_count: string;
+        alert_count: string;
       }>(`
         SELECT
           (SELECT COUNT(*) FROM api_server.charts WHERE user_id = $1) as chart_count,
-          (SELECT COUNT(*) FROM api_server.dashboards WHERE user_id = $1) as dashboard_count
+          (SELECT COUNT(*) FROM api_server.dashboards WHERE user_id = $1) as dashboard_count,
+          (SELECT COUNT(*) FROM api_server.alerts WHERE user_id = $1) as alert_count
+      `, [id]);
+
+      // Get actual charts with names
+      const charts = await query<{
+        id: number;
+        name: string;
+        created_at: Date;
+      }>(`
+        SELECT id, name, created_at
+        FROM api_server.charts
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+      `, [id]);
+
+      // Get actual dashboards with names
+      const dashboards = await query<{
+        id: number;
+        name: string;
+        created_at: Date;
+      }>(`
+        SELECT id, name, created_at
+        FROM api_server.dashboards
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+      `, [id]);
+
+      // Get actual alerts with details
+      const alerts = await query<{
+        id: number;
+        created_at: Date;
+      }>(`
+        SELECT id, created_at
+        FROM api_server.alerts
+        WHERE user_id = $1
+        ORDER BY created_at DESC
       `, [id]);
 
       // Get API usage (last 30 days)
@@ -124,6 +162,7 @@ export async function GET(request: Request) {
           createdAt: user.created_at,
           lastActiveAt: user.last_active_at,
           isAdmin: user.is_admin,
+          clerkId: user.clerk_id,
         },
         organizations: orgs.map(o => ({
           id: o.id,
@@ -133,9 +172,24 @@ export async function GET(request: Request) {
         stats: {
           chartCount: Number(stats[0]?.chart_count || 0),
           dashboardCount: Number(stats[0]?.dashboard_count || 0),
+          alertCount: Number(stats[0]?.alert_count || 0),
           apiRequests30d: Number(apiUsage[0]?.request_count || 0),
           apiRows30d: Number(apiUsage[0]?.rows_returned || 0),
         },
+        charts: charts.map(c => ({
+          id: c.id,
+          name: c.name,
+          createdAt: c.created_at,
+        })),
+        dashboards: dashboards.map(d => ({
+          id: d.id,
+          name: d.name,
+          createdAt: d.created_at,
+        })),
+        alerts: alerts.map(a => ({
+          id: a.id,
+          createdAt: a.created_at,
+        })),
         apiKeys: apiKeys.map(k => ({
           apiKey: k.api_key,
           firstUsed: k.first_used,
