@@ -21,6 +21,7 @@ import { ExportButton } from './ExportButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PosthogActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
 
@@ -53,8 +54,8 @@ export function PosthogMausView() {
   }, [period, pathname, router, searchParams]);
 
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/posthog-maus?period=${period}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/posthog-maus', { period, filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [period, filterGridstatus, timezone]);
 
   if (loading) {
     return (

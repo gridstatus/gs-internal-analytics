@@ -1,11 +1,29 @@
 import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
+import { query } from '@/lib/db';
 
 interface RateLimitUser {
   email: string;
   hits: number;
   percentage: number;
+  userId?: number | null;
+}
+
+// Look up user IDs from emails
+async function getUserIdsFromEmails(emails: string[]): Promise<Map<string, number>> {
+  if (emails.length === 0) return new Map();
+  
+  const users = await query<{ username: string; id: number }>(
+    `SELECT username, id FROM api_server.users WHERE username = ANY($1)`,
+    [emails]
+  );
+  
+  const emailToId = new Map<string, number>();
+  for (const user of users) {
+    emailToId.set(user.username, user.id);
+  }
+  return emailToId;
 }
 
 interface RateLimitTimeSeries {
@@ -89,10 +107,19 @@ async function fetchRateLimitAbusers(days: number = 30): Promise<{
 
     const totalHits = usersResults.reduce((sum, [, hits]) => sum + hits, 0);
 
+    // Get all unique emails
+    const allEmails = usersResults
+      .map(([email]) => email)
+      .filter((email): email is string => !!email && email !== 'unknown');
+
+    // Look up user IDs
+    const emailToUserId = await getUserIdsFromEmails(allEmails);
+
     const users: RateLimitUser[] = usersResults.map(([email, hits]) => ({
       email: email || 'unknown',
       hits: Number(hits),
       percentage: totalHits > 0 ? (Number(hits) / totalHits) * 100 : 0,
+      userId: email && email !== 'unknown' ? emailToUserId.get(email) || null : null,
     }));
 
     const timeSeries: RateLimitTimeSeries[] = timeSeriesResults.map(([date, hits, uniqueUsers]) => ({

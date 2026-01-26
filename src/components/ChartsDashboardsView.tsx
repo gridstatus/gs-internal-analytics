@@ -19,13 +19,14 @@ import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
 import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/charts-dashboards?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/charts-dashboards', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [filterGridstatus, timezone]);
 
   if (loading) {
     return (

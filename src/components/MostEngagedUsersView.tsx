@@ -20,6 +20,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 interface MostEngagedUser {
@@ -68,7 +69,7 @@ export function MostEngagedUsersView() {
   }, [timeFilter, pathname, router, searchParams]);
 
   const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
-  const apiUrl = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}&timezone=${timezone}${days !== null ? `&days=${days}` : ''}`;
+  const apiUrl = useApiUrl('/api/insights/most-engaged-users', { filterGridstatus, timezone, days });
   const { data: response, loading, error } = useApiData<MostEngagedUsersResponse>(apiUrl, [filterGridstatus, timezone, timeFilter]);
   const data = response?.users || [];
 

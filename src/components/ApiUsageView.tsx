@@ -19,6 +19,7 @@ import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
 import { ApiUsageResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function ApiUsageView() {
@@ -34,8 +35,8 @@ export function ApiUsageView() {
   ];
 
   const { filterGridstatus } = useFilter();
-  const url = `/api/api-usage?filterGridstatus=${filterGridstatus}`;
-  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [url]);
+  const url = useApiUrl('/api/api-usage', { filterGridstatus });
+  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [filterGridstatus]);
 
   if (loading) {
     return (

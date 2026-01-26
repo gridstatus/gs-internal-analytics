@@ -18,14 +18,15 @@ import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { AlertsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
 import { DataTable, Column } from './DataTable';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/alerts?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<AlertsResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/alerts', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<AlertsResponse>(url, [filterGridstatus, timezone]);
 
   if (loading) {
     return (

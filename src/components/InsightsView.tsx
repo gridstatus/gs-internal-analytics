@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { InsightsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 
 export function InsightsView() {
@@ -148,20 +149,14 @@ export function InsightsView() {
   }, [timeFilter, chartPeriod, summaryPeriod, showAnonymous, pathname, router, searchParams]);
 
   const { filterGridstatus, timezone } = useFilter();
-  const params = new URLSearchParams();
-  params.set('filterGridstatus', filterGridstatus.toString());
-  params.set('timezone', timezone);
-  if (timeFilter) {
-    params.set('timeFilter', timeFilter);
-  }
-  if (chartPeriod !== 'month') {
-    params.set('chartPeriod', chartPeriod);
-  }
-  if (summaryPeriod !== 'all') {
-    params.set('summaryPeriod', summaryPeriod);
-  }
-  const url = `/api/insights?${params.toString()}`;
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, filterGridstatus, timezone, summaryPeriod]);
+  const url = useApiUrl('/api/insights', {
+    filterGridstatus,
+    timezone,
+    timeFilter: timeFilter || undefined,
+    chartPeriod: chartPeriod !== 'month' ? chartPeriod : undefined,
+    summaryPeriod: summaryPeriod !== 'all' ? summaryPeriod : undefined,
+  });
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [filterGridstatus, timezone, timeFilter, chartPeriod, summaryPeriod]);
 
   if (loading) {
     return (

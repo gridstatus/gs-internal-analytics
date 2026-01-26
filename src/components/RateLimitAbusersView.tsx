@@ -15,17 +15,20 @@ import {
   Select,
   Anchor,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch, IconMail } from '@tabler/icons-react';
+import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { DataTable, Column } from './DataTable';
+import { UserHoverCard } from './UserHoverCard';
 
 interface RateLimitUser {
   email: string;
   hits: number;
   percentage: number;
+  userId?: number | null;
 }
 
 interface RateLimitTimeSeries {
@@ -45,8 +48,8 @@ export function RateLimitAbusersView() {
   const [search, setSearch] = useState('');
   const [days, setDays] = useState('1');
   const { timezone } = useFilter();
-  const url = `/api/rate-limit-abusers?days=${days}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [url, days, timezone]);
+  const url = useApiUrl('/api/rate-limit-abusers', { days, timezone });
+  const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [days, timezone]);
 
   if (loading) {
     return (
@@ -91,11 +94,16 @@ export function RateLimitAbusersView() {
     {
       id: 'email',
       header: 'Email',
-      render: (user) => (
-        <Anchor href={`mailto:${user.email}`} size="sm">
-          {user.email}
-        </Anchor>
-      ),
+      render: (user) => {
+        if (user.userId) {
+          return <UserHoverCard userId={user.userId} userName={user.email} />;
+        }
+        return (
+          <Anchor href={`mailto:${user.email}`} size="sm">
+            {user.email}
+          </Anchor>
+        );
+      },
       sortValue: (user) => user.email.toLowerCase(),
     },
     {

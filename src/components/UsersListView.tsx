@@ -16,6 +16,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { DateTime } from 'luxon';
 import { UsersListItem, UsersListResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
@@ -25,8 +26,8 @@ export function UsersListView() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const { filterGridstatus, timezone } = useFilter();
 
-  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading } = useApiData<UsersListResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/users-list', { search: debouncedSearch || undefined, filterGridstatus, timezone });
+  const { data, loading } = useApiData<UsersListResponse>(url, [debouncedSearch, filterGridstatus, timezone]);
   const users = data?.users ?? [];
 
   const columns: Column<UsersListItem>[] = [

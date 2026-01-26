@@ -19,13 +19,14 @@ import Link from 'next/link';
 import { useFilter } from '@/contexts/FilterContext';
 import { ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/domains?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/domains', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [filterGridstatus, timezone]);
 
   if (loading) {
     return (

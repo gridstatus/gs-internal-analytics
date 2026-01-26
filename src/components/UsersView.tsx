@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function UsersView() {
@@ -65,18 +66,13 @@ export function UsersView() {
   };
 
   const { filterGridstatus, timezone } = useFilter();
-  const params = new URLSearchParams({
-    filterGridstatus: filterGridstatus.toString(),
+  const url = useApiUrl('/api/users', {
+    filterGridstatus,
     timezone,
+    domainSearch: debouncedDomainFilter || undefined,
+    timestampType: timestampType !== 'created_at' ? timestampType : undefined,
   });
-  if (debouncedDomainFilter) {
-    params.set('domainSearch', debouncedDomainFilter);
-  }
-  if (timestampType !== 'created_at') {
-    params.set('timestampType', timestampType);
-  }
-  const url = `/api/users?${params.toString()}`;
-  const { data, loading, error } = useApiData<UsersResponse>(url, [url, filterGridstatus, timezone, debouncedDomainFilter, timestampType]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [filterGridstatus, timezone, debouncedDomainFilter, timestampType]);
 
   if (loading) {
     return (

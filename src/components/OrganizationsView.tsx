@@ -17,6 +17,7 @@ import { DateTime } from 'luxon';
 import Link from 'next/link';
 import { OrganizationListItem, OrganizationsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
 
@@ -25,8 +26,8 @@ export function OrganizationsView() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const { filterGridstatus, timezone } = useFilter();
 
-  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading } = useApiData<OrganizationsResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/organizations', { search: debouncedSearch || undefined, filterGridstatus, timezone });
+  const { data, loading } = useApiData<OrganizationsResponse>(url, [debouncedSearch, filterGridstatus, timezone]);
   const organizations = data?.organizations ?? [];
 
   const columns: Column<OrganizationListItem>[] = [

@@ -25,6 +25,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { CorporateTeamsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function CorporateTeamsView() {
@@ -41,8 +42,8 @@ export function CorporateTeamsView() {
   ];
 
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/users/corporate-teams?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/users/corporate-teams', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [filterGridstatus, timezone]);
 
   if (loading) {
     return (

@@ -17,6 +17,7 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconAlertCircle } from '@tabler/icons-react';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
 
@@ -42,8 +43,8 @@ interface PricingPageResponse {
 export function PricingPageView() {
   const [search, setSearch] = useState('');
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/pricing-page?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<PricingPageResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/pricing-page', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<PricingPageResponse>(url, [filterGridstatus, timezone]);
 
   if (loading) {
     return (

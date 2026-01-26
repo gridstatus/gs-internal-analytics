@@ -19,14 +19,15 @@ import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function TopRegistrationsView() {
   const [activeTab, setActiveTab] = useState<string | null>('day');
 
   const { filterGridstatus, timezone } = useFilter();
-  const url = `/api/top-registrations?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/top-registrations', { filterGridstatus, timezone });
+  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [filterGridstatus, timezone]);
 
   // Initialize active tab from data on first load
   useEffect(() => {
