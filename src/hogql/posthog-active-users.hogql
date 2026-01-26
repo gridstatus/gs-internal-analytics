@@ -1,0 +1,10 @@
+SELECT
+  {{DATE_FUNCTION}} AS period,
+  COUNT(DISTINCT person_id) AS active_users
+FROM events
+WHERE person.properties.email IS NOT NULL
+  {{DATE_FILTER}}
+  {{GRIDSTATUS_FILTER}}
+GROUP BY period
+ORDER BY period {{ORDER_DIRECTION}}
+

@@ -3,10 +3,21 @@ import { join } from 'path';
 import { query } from './db';
 
 const sqlDir = join(process.cwd(), 'src/sql');
+const hogqlDir = join(process.cwd(), 'src/hogql');
 
 interface TemplateContext {
   filterGridstatus: boolean;
   usernamePrefix?: string; // 'u.' or '' - determined from SQL context
+}
+
+interface HogqlTemplateContext {
+  filterGridstatus?: boolean;
+  limit?: number;
+  days?: number;
+  dateFunction?: string;
+  dateFilter?: string;
+  orderDirection?: string;
+  email?: string;
 }
 
 export function loadSql(filename: string): string {
@@ -15,6 +26,62 @@ export function loadSql(filename: string): string {
 
 export function loadRenderedSql(filename: string, context: TemplateContext): string {
   return renderSqlTemplate(loadSql(filename), context);
+}
+
+export function loadHogql(filename: string): string {
+  return readFileSync(join(hogqlDir, filename), 'utf-8');
+}
+
+export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext): string {
+  let rendered = hogql;
+  
+  // Handle GRIDSTATUS_FILTER
+  if (context.filterGridstatus) {
+    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, "AND NOT person.properties.email LIKE '%@gridstatus.io'");
+  } else {
+    rendered = rendered.replace(/\s+\{\{GRIDSTATUS_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, '');
+  }
+  
+  // Handle LIMIT placeholder
+  if (context.limit !== undefined) {
+    rendered = rendered.replace(/\{\{LIMIT\}\}/g, context.limit.toString());
+  }
+  
+  // Handle DAYS placeholder
+  if (context.days !== undefined) {
+    rendered = rendered.replace(/\{\{DAYS\}\}/g, context.days.toString());
+  }
+  
+  // Handle DATE_FUNCTION placeholder
+  if (context.dateFunction !== undefined) {
+    rendered = rendered.replace(/\{\{DATE_FUNCTION\}\}/g, context.dateFunction);
+  }
+  
+  // Handle DATE_FILTER placeholder
+  if (context.dateFilter !== undefined) {
+    rendered = rendered.replace(/\{\{DATE_FILTER\}\}/g, context.dateFilter);
+  } else {
+    rendered = rendered.replace(/\s+\{\{DATE_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{DATE_FILTER\}\}/g, '');
+  }
+  
+  // Handle ORDER_DIRECTION placeholder
+  if (context.orderDirection !== undefined) {
+    rendered = rendered.replace(/\{\{ORDER_DIRECTION\}\}/g, context.orderDirection);
+  }
+  
+  // Handle EMAIL placeholder (escape single quotes for SQL safety)
+  if (context.email !== undefined) {
+    const escapedEmail = context.email.replace(/'/g, "''");
+    rendered = rendered.replace(/\{\{EMAIL\}\}/g, escapedEmail);
+  }
+  
+  return rendered;
+}
+
+export function loadRenderedHogql(filename: string, context: HogqlTemplateContext): string {
+  return renderHogqlTemplate(loadHogql(filename), context);
 }
 
 /**
@@ -505,21 +572,17 @@ export async function fetchPosthogAnonymousUsers(period: 'day' | 'week' | 'month
     dateFilter = '';
   }
 
+  const hogql = loadRenderedHogql('anonymous-users.hogql', {
+    dateFunction,
+    dateFilter,
+    orderDirection,
+  });
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          ${dateFunction} AS period,
-          COUNT(DISTINCT person_id) AS anonymous_users
-        FROM events
-        WHERE (person.properties.email IS NULL OR person.properties.email = '')
-          AND properties.$pathname LIKE '/insights%'
-          ${dateFilter}
-        GROUP BY period
-        ORDER BY period ${orderDirection}
-      `,
+      query: hogql,
     },
   };
 
@@ -587,17 +650,15 @@ export async function getSummaryAnonymousVisitors(period: '1d' | '7d' | '30d' | 
     dateFilter = "AND timestamp >= '2025-10-01'";
   }
 
+  const hogql = loadRenderedHogql('anonymous-visitors-summary.hogql', {
+    dateFilter,
+  });
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT COUNT(DISTINCT person_id) AS anonymous_users
-        FROM events
-        WHERE (person.properties.email IS NULL OR person.properties.email = '')
-          AND properties.$pathname LIKE '/insights%'
-          ${dateFilter}
-      `,
+      query: hogql,
     },
   };
 
@@ -644,17 +705,15 @@ export async function getSummaryAnonymousHomefeedVisitors(period: '1d' | '7d' | 
     dateFilter = "AND timestamp >= '2025-10-01'";
   }
 
+  const hogql = loadRenderedHogql('anonymous-homefeed-visitors-summary.hogql', {
+    dateFilter,
+  });
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT COUNT(DISTINCT person_id) AS anonymous_users
-        FROM events
-        WHERE (person.properties.email IS NULL OR person.properties.email = '')
-          AND properties.$pathname = '/insights'
-          ${dateFilter}
-      `,
+      query: hogql,
     },
   };
 
@@ -708,21 +767,17 @@ export async function fetchPosthogAnonymousHomefeedVisitors(period: 'day' | 'wee
     dateFilter = '';
   }
 
+  const hogql = loadRenderedHogql('anonymous-homefeed-visitors.hogql', {
+    dateFunction,
+    dateFilter,
+    orderDirection,
+  });
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          ${dateFunction} AS period,
-          COUNT(DISTINCT person_id) AS anonymous_users
-        FROM events
-        WHERE (person.properties.email IS NULL OR person.properties.email = '')
-          AND properties.$pathname = '/insights'
-          ${dateFilter}
-        GROUP BY period
-        ORDER BY period ${orderDirection}
-      `,
+      query: hogql,
     },
   };
 
@@ -1086,4 +1141,115 @@ export async function getUsersToday(filterGridstatus: boolean = true): Promise<U
   `;
   sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<UsersToday>(sql);
+}
+
+// Pricing Page Visitors from PostHog
+export interface PricingPageVisitCount {
+  email: string;
+  visitCount: number;
+}
+
+// Get visit counts for pricing page by period (1d, 7d, 30d)
+export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', filterGridstatus: boolean = true): Promise<number> {
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.warn('PostHog credentials not configured');
+    return 0;
+  }
+
+  const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+
+  const hogql = loadRenderedHogql('pricing-page-visit-counts.hogql', {
+    filterGridstatus,
+    days,
+  });
+
+  const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
+  const payload = {
+    query: {
+      kind: 'HogQLQuery',
+      query: hogql,
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('PostHog pricing page visit counts API error:', response.status, errorText);
+    return 0;
+  }
+
+  const data = await response.json();
+  
+  if (data.warnings) {
+    console.warn('PostHog pricing page visit counts query warnings:', data.warnings);
+  }
+  
+  const results: [number][] = data.results || [];
+  return results[0]?.[0] || 0;
+}
+
+// Get users with most visits to pricing page for a period
+export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limit: number = 50, filterGridstatus: boolean = true): Promise<PricingPageVisitCount[]> {
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.warn('PostHog credentials not configured');
+    return [];
+  }
+
+  const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+
+  const hogql = loadRenderedHogql('pricing-page-most-visits.hogql', {
+    filterGridstatus,
+    days,
+    limit,
+  });
+
+  const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
+  const payload = {
+    query: {
+      kind: 'HogQLQuery',
+      query: hogql,
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('PostHog pricing page most visits API error:', response.status, errorText);
+    return [];
+  }
+
+  const data = await response.json();
+  
+  if (data.warnings) {
+    console.warn('PostHog pricing page most visits query warnings:', data.warnings);
+  }
+  
+  const results: [string, number][] = data.results || [];
+  
+  return results.map(([email, visitCount]) => ({
+    email,
+    visitCount,
+  }));
 }

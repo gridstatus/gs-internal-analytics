@@ -1,0 +1,11 @@
+SELECT
+  person.properties.email as email,
+  COUNT(*) as hits
+FROM events
+WHERE event = 'Rate Limit Hit - API'
+  AND timestamp >= now() - INTERVAL {{DAYS}} DAY
+  AND person.properties.email IS NOT NULL
+GROUP BY email
+ORDER BY hits DESC
+LIMIT {{LIMIT}}
+

@@ -1,0 +1,12 @@
+SELECT
+  event,
+  COUNT(*) as count
+FROM events
+WHERE person.properties.email = '{{EMAIL}}'
+  {{DATE_FILTER}}
+  AND event != '$identify'
+  AND event != '$set'
+GROUP BY event
+ORDER BY count DESC
+LIMIT {{LIMIT}}
+

@@ -28,11 +28,12 @@ export function TopRegistrationsView() {
   const url = `/api/top-registrations?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
   const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url, filterGridstatus, timezone]);
 
+  // Initialize active tab from data on first load
   useEffect(() => {
     if (data?.data && data.data.length > 0 && activeTab === null) {
       setActiveTab(data.data[0].periodType);
     }
-  }, [data, activeTab]);
+  }, [data]);
 
   if (loading) {
     return (

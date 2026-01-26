@@ -19,6 +19,7 @@ import { Anchor } from '@mantine/core';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useApiData } from '@/hooks/useApiData';
 import { DataTable, Column } from './DataTable';
 
 interface MostEngagedUser {
@@ -36,16 +37,16 @@ interface MostEngagedUser {
 
 type TimeFilter = '1' | '7' | '30' | '90' | 'all';
 
+interface MostEngagedUsersResponse {
+  users: MostEngagedUser[];
+}
+
 export function MostEngagedUsersView() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  
-  const [data, setData] = useState<MostEngagedUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { filterGridstatus, timezone } = useFilter();
-  
+
   // Initialize timeFilter from URL params
   const timeFilterParam = searchParams.get('timeFilter');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(
@@ -54,7 +55,7 @@ export function MostEngagedUsersView() {
       : '7'
   );
 
-  // Update URL when timeFilter changes
+  // Sync state → URL for shareable links
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     if (timeFilter !== '7') {
@@ -66,27 +67,10 @@ export function MostEngagedUsersView() {
     router.replace(newUrl, { scroll: false });
   }, [timeFilter, pathname, router, searchParams]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
-        const url = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}&timezone=${timezone}${days !== null ? `&days=${days}` : ''}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Failed to fetch most engaged users');
-        }
-        const result = await response.json();
-        setData(result.users);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [filterGridstatus, timezone, timeFilter]);
+  const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
+  const apiUrl = `/api/insights/most-engaged-users?filterGridstatus=${filterGridstatus}&timezone=${timezone}${days !== null ? `&days=${days}` : ''}`;
+  const { data: response, loading, error } = useApiData<MostEngagedUsersResponse>(apiUrl, [filterGridstatus, timezone, timeFilter]);
+  const data = response?.users || [];
 
   const getUserName = (user: MostEngagedUser) => {
     return user.username ||

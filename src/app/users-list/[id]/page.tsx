@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useApiData } from '@/hooks/useApiData';
 import {
   Container,
   Title,
@@ -141,22 +142,28 @@ interface PostHogData {
   totalEvents: number;
 }
 
+interface ApiUsageResponse {
+  data: ApiUsageData[];
+}
+
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [data, setData] = useState<UserDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [apiUsageDays, setApiUsageDays] = useState<number>(1);
-  const [apiUsageData, setApiUsageData] = useState<ApiUsageData[]>([]);
-  const [apiUsageLoading, setApiUsageLoading] = useState(false);
-  const [apiUsageError, setApiUsageError] = useState<string | null>(null);
-  
-  // PostHog events state
   const [posthogDays, setPosthogDays] = useState<number | 'all'>(30);
-  const [posthogData, setPosthogData] = useState<PostHogData | null>(null);
-  const [posthogLoading, setPosthogLoading] = useState(false);
-  const [posthogError, setPosthogError] = useState<string | null>(null);
+
+  // Fetch main user data
+  const userUrl = id ? `/api/users-list?id=${id}` : null;
+  const { data, loading, error } = useApiData<UserDetails>(userUrl, [id]);
+
+  // Fetch API usage data
+  const apiUsageUrl = id ? `/api/users-list/${id}/api-usage?days=${apiUsageDays}` : null;
+  const { data: apiUsageResponse, loading: apiUsageLoading, error: apiUsageError } = useApiData<ApiUsageResponse>(apiUsageUrl, [id, apiUsageDays]);
+  const apiUsageData = apiUsageResponse?.data || [];
+
+  // Fetch PostHog events data
+  const posthogUrl = id ? `/api/users-list/${id}/posthog-events?days=${posthogDays === 'all' ? 'all' : posthogDays}` : null;
+  const { data: posthogData, loading: posthogLoading, error: posthogError } = useApiData<PostHogData>(posthogUrl, [id, posthogDays]);
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -167,7 +174,7 @@ export default function UserDetailPage() {
     const diffDays = Math.floor(diffMs / 86400000);
     const diffWeeks = Math.floor(diffDays / 7);
     const diffMonths = Math.floor(diffDays / 30);
-    
+
     if (diffMins < 1) return 'just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
@@ -176,83 +183,6 @@ export default function UserDetailPage() {
     if (diffMonths < 12) return `${diffMonths}mo ago`;
     return `${Math.floor(diffDays / 365)}y ago`;
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/users-list?id=${id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('User not found');
-          } else {
-            throw new Error('Failed to fetch user data');
-          }
-          return;
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
-
-  // Fetch API usage data
-  useEffect(() => {
-    const fetchApiUsage = async () => {
-      if (!id) return;
-      
-      setApiUsageLoading(true);
-      setApiUsageError(null);
-      
-      try {
-        const response = await fetch(`/api/users-list/${id}/api-usage?days=${apiUsageDays}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch API usage data');
-        }
-        const result = await response.json();
-        setApiUsageData(result.data || []);
-      } catch (err) {
-        setApiUsageError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setApiUsageLoading(false);
-      }
-    };
-
-    fetchApiUsage();
-  }, [id, apiUsageDays]);
-
-  // Fetch PostHog events data
-  useEffect(() => {
-    const fetchPosthogEvents = async () => {
-      if (!id) return;
-      
-      setPosthogLoading(true);
-      setPosthogError(null);
-      
-      try {
-        const daysParam = posthogDays === 'all' ? 'all' : posthogDays.toString();
-        const response = await fetch(`/api/users-list/${id}/posthog-events?days=${daysParam}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch PostHog events');
-        }
-        const result = await response.json();
-        setPosthogData(result);
-      } catch (err) {
-        setPosthogError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setPosthogLoading(false);
-      }
-    };
-
-    fetchPosthogEvents();
-  }, [id, posthogDays]);
 
   if (loading) {
     return (

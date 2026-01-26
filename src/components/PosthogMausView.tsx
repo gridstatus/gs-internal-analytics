@@ -33,6 +33,7 @@ export function PosthogMausView() {
   const [period, setPeriod] = useState<'day' | 'week' | 'month'>(
     (searchParams.get('period') as 'day' | 'week' | 'month') || 'month'
   );
+  // DOM ref for chart export - ExportButton uses html-to-image to capture this element as PNG
   const activeUsersChartRef = useRef<HTMLDivElement>(null);
 
   const chartRefs = [

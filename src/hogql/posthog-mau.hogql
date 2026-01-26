@@ -1,0 +1,9 @@
+SELECT
+  toStartOfMonth(timestamp) AS month,
+  COUNT(DISTINCT person_id) AS mau
+FROM events
+WHERE person.properties.email IS NOT NULL
+  {{GRIDSTATUS_FILTER}}
+GROUP BY month
+ORDER BY month ASC
+

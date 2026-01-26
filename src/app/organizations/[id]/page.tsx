@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useApiData } from '@/hooks/useApiData';
 import {
   Container,
   Title,
@@ -67,35 +67,9 @@ export default function OrganizationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const [data, setData] = useState<OrganizationDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/organizations?id=${id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Organization not found');
-          } else {
-            throw new Error('Failed to fetch organization data');
-          }
-          return;
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
+  const url = id ? `/api/organizations?id=${id}` : null;
+  const { data, loading, error } = useApiData<OrganizationDetails>(url, [id]);
 
   if (loading) {
     return (

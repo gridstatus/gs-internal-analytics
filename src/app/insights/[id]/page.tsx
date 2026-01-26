@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useApiData } from '@/hooks/useApiData';
 import {
   Container,
   Paper,
@@ -113,37 +114,11 @@ export default function InsightDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const [data, setData] = useState<InsightDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<'hour' | 'day' | 'month'>('day');
   const [activeTab, setActiveTab] = useState<string | null>('viewers');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/insights/${id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Insight not found');
-          } else {
-            throw new Error('Failed to fetch insight data');
-          }
-          return;
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
+  const url = id ? `/api/insights/${id}` : null;
+  const { data, loading, error } = useApiData<InsightDetail>(url, [id]);
 
   if (loading) {
     return (
@@ -224,7 +199,7 @@ export default function InsightDetailPage() {
               )}
             </Group>
             <Anchor
-              href={`https://gridstatus.io/insights/${data.post.id}`}
+              href={`https://www.gridstatus.io/insights/${data.post.id}`}
               target="_blank"
               rel="noopener noreferrer"
               size="sm"

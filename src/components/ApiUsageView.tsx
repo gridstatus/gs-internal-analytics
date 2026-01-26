@@ -22,6 +22,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { DataTable, Column } from './DataTable';
 
 export function ApiUsageView() {
+  // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
   const requestsChartRef = useRef<HTMLDivElement>(null);
   const rowsChartRef = useRef<HTMLDivElement>(null);
   const usersChartRef = useRef<HTMLDivElement>(null);

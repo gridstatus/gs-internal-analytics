@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { loadRenderedHogql } from '@/lib/queries';
 
 interface RateLimitUser {
   email: string;
@@ -30,39 +31,27 @@ async function fetchRateLimitAbusers(days: number = 30): Promise<{
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
 
   // Query for top users by rate limit hits
+  const usersHogql = loadRenderedHogql('rate-limit-users.hogql', {
+    days,
+    limit: 50,
+  });
+
   const usersPayload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          person.properties.email as email,
-          COUNT(*) as hits
-        FROM events
-        WHERE event = 'Rate Limit Hit - API'
-          AND timestamp >= now() - INTERVAL ${days} DAY
-          AND person.properties.email IS NOT NULL
-        GROUP BY email
-        ORDER BY hits DESC
-        LIMIT 50
-      `,
+      query: usersHogql,
     },
   };
 
   // Query for time series
+  const timeSeriesHogql = loadRenderedHogql('rate-limit-timeseries.hogql', {
+    days,
+  });
+
   const timeSeriesPayload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          toDate(timestamp) as date,
-          COUNT(*) as hits,
-          COUNT(DISTINCT person.id) as unique_users
-        FROM events
-        WHERE event = 'Rate Limit Hit - API'
-          AND timestamp >= now() - INTERVAL ${days} DAY
-        GROUP BY date
-        ORDER BY date ASC
-      `,
+      query: timeSeriesHogql,
     },
   };
 

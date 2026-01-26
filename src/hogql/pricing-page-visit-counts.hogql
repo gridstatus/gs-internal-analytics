@@ -1,0 +1,16 @@
+SELECT COUNT(*) as visit_count
+FROM (
+  SELECT
+    person.properties.email as email,
+    toStartOfMinute(timestamp) as minute
+  FROM events
+  WHERE person.properties.email IS NOT NULL
+    AND person.properties.email != ''
+    AND (properties.$pathname = '/pricing' OR properties.$pathname LIKE '/pricing%')
+    AND timestamp >= now() - INTERVAL {{DAYS}} DAY
+    AND event != '$identify'
+    AND event != '$set'
+    {{GRIDSTATUS_FILTER}}
+  GROUP BY email, minute
+)
+

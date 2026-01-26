@@ -5,16 +5,17 @@ import {
   getMonthlyCorpMetrics,
   getDomainDistribution,
   getDomainSummary,
+  loadRenderedHogql,
 } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
-import { withRequestContext } from '@/lib/api-helpers';
+import { withRequestContext, getFilterGridstatus } from '@/lib/api-helpers';
 
 interface PosthogMau {
   month: string;
   mau: number;
 }
 
-async function fetchPosthogMaus(): Promise<Map<string, number>> {
+async function fetchPosthogMaus(filterGridstatus: boolean = true): Promise<Map<string, number>> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -23,19 +24,15 @@ async function fetchPosthogMaus(): Promise<Map<string, number>> {
     return new Map();
   }
 
+  const hogql = loadRenderedHogql('posthog-mau.hogql', {
+    filterGridstatus,
+  });
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          toStartOfMonth(timestamp) AS month,
-          COUNT(DISTINCT person_id) AS mau
-        FROM events
-        WHERE person.properties.email IS NOT NULL
-        GROUP BY month
-        ORDER BY month ASC
-      `,
+      query: hogql,
     },
   };
 
@@ -76,7 +73,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = searchParams.get('filterGridstatus') !== 'false';
+      const filterGridstatus = getFilterGridstatus(searchParams);
     
     // Run all queries in parallel
     const [userCounts, apiUsage, corpMetrics, domainDistribution, domainSummaryResult, posthogMaus] =
@@ -86,7 +83,7 @@ export async function GET(request: Request) {
         getMonthlyCorpMetrics(filterGridstatus),
         getDomainDistribution(filterGridstatus),
         getDomainSummary(filterGridstatus),
-        fetchPosthogMaus(),
+        fetchPosthogMaus(filterGridstatus),
       ]);
 
     // Create lookup maps for efficient merging

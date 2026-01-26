@@ -66,6 +66,7 @@ export function InsightsView() {
     showAnonymousParam !== null ? showAnonymousParam === 'true' : true
   );
 
+  // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
   const postsChartRef = useRef<HTMLDivElement>(null);
   const impressionsChartRef = useRef<HTMLDivElement>(null);
   const viewsChartRef = useRef<HTMLDivElement>(null);

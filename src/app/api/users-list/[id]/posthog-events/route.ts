@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
+import { loadRenderedHogql } from '@/lib/queries';
 
 interface PostHogEvent {
   event: string;
@@ -33,46 +34,30 @@ async function fetchPosthogEventsForEmail(
     : `AND timestamp >= now() - INTERVAL ${days} DAY`;
 
   // Query for event counts by type
+  const countsHogql = loadRenderedHogql('user-events-counts.hogql', {
+    email,
+    dateFilter,
+    limit: 50,
+  });
+
   const countsPayload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          event,
-          COUNT(*) as count
-        FROM events
-        WHERE person.properties.email = '${email.replace(/'/g, "''")}'
-          ${dateFilter}
-          AND event != '$identify'
-          AND event != '$set'
-        GROUP BY event
-        ORDER BY count DESC
-        LIMIT 50
-      `,
+      query: countsHogql,
     },
   };
 
   // Query for recent events
+  const eventsHogql = loadRenderedHogql('user-events-recent.hogql', {
+    email,
+    dateFilter,
+    limit: 100,
+  });
+
   const eventsPayload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          event,
-          timestamp,
-          properties.$current_url as current_url,
-          properties.$pathname as pathname,
-          properties.$referrer as referrer,
-          properties.$device_type as device_type,
-          properties.$browser as browser
-        FROM events
-        WHERE person.properties.email = '${email.replace(/'/g, "''")}'
-          ${dateFilter}
-          AND event != '$identify'
-          AND event != '$set'
-        ORDER BY timestamp DESC
-        LIMIT 100
-      `,
+      query: eventsHogql,
     },
   };
 

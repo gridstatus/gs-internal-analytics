@@ -29,12 +29,14 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     return 'UTC';
   });
 
+  // Persist to localStorage for user preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('filterGridstatus', String(filterGridstatus));
     }
   }, [filterGridstatus]);
 
+  // Persist to localStorage for user preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('timezone', timezone);

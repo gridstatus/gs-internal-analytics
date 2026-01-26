@@ -43,7 +43,7 @@ interface RateLimitAbusersResponse {
 
 export function RateLimitAbusersView() {
   const [search, setSearch] = useState('');
-  const [days, setDays] = useState('30');
+  const [days, setDays] = useState('1');
   const { timezone } = useFilter();
   const url = `/api/rate-limit-abusers?days=${days}&timezone=${timezone}`;
   const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [url, days, timezone]);
@@ -125,7 +125,7 @@ export function RateLimitAbusersView() {
       <Stack gap="md">
         <Group justify="space-between" align="flex-end">
           <div>
-            <Title order={2} mb="xs">Rate Limit Abusers</Title>
+            <Title order={2} mb="xs">Rate Limit Activity</Title>
             <Text c="dimmed" size="sm">
               Users hitting API rate limits - prime candidates for enterprise plans
             </Text>
@@ -133,8 +133,9 @@ export function RateLimitAbusersView() {
           <Select
             label="Time Period"
             value={days}
-            onChange={(value) => setDays(value || '30')}
+            onChange={(value) => setDays(value || '1')}
             data={[
+              { value: '1', label: 'Last 1 day' },
               { value: '7', label: 'Last 7 days' },
               { value: '30', label: 'Last 30 days' },
               { value: '90', label: 'Last 90 days' },

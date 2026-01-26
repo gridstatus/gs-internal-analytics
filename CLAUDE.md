@@ -166,6 +166,19 @@ Use the `useApiData` hook for fetching data in view components. It handles loadi
 ### URL State Management
 **CRITICAL**: Store filter state in the URL to enable deep linking and sharing. This includes filter selections, search queries, sort orders, tab selections, and pagination.
 
+**For new components**, use `nuqs` for URL state instead of manual useEffect sync:
+
+```tsx
+import { useQueryState, parseAsStringEnum } from 'nuqs';
+
+// Single hook replaces bidirectional useEffect sync
+const [period, setPeriod] = useQueryState('period',
+  parseAsStringEnum(['day', 'week', 'month']).withDefault('month')
+);
+```
+
+Existing components use manual sync with useEffect (legacy pattern).
+
 **Example files:**
 - URL state with SegmentedControl: `src/components/PosthogMausView.tsx`
 - URL state with multiple filters: `src/components/InsightsView.tsx`

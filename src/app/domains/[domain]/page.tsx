@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useApiData } from '@/hooks/useApiData';
 import {
   Container,
   Title,
@@ -55,36 +55,9 @@ interface DomainData {
 export default function DomainDetailPage() {
   const params = useParams();
   const domain = params.domain as string;
-  const [data, setData] = useState<DomainData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const encodedDomain = encodeURIComponent(domain);
-        const response = await fetch(`/api/domains/${encodedDomain}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Domain not found');
-          } else {
-            throw new Error('Failed to fetch domain data');
-          }
-          return;
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (domain) {
-      fetchData();
-    }
-  }, [domain]);
+  const url = domain ? `/api/domains/${encodeURIComponent(domain)}` : null;
+  const { data, loading, error } = useApiData<DomainData>(url, [domain]);
 
   if (loading) {
     return (

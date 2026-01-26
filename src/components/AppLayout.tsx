@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -94,14 +94,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                   />
                   <NavLink
                     component={Link}
-                    href="/domains"
-                    label="Domains"
-                    leftSection={<IconWorld size={16} />}
-                    active={pathname?.startsWith('/domains')}
-                    onClick={close}
-                  />
-                  <NavLink
-                    component={Link}
                     href="/organizations"
                     label="Organizations"
                     leftSection={<IconBuilding size={16} />}
@@ -134,6 +126,34 @@ export function AppLayout({ children }: AppLayoutProps) {
                     label="Alerts"
                     leftSection={<IconBell size={16} />}
                     active={pathname === '/alerts'}
+                    onClick={close}
+                  />
+                  
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
+                    Go-to-market
+                  </Text>
+                  <NavLink
+                    component={Link}
+                    href="/domains"
+                    label="Domains"
+                    leftSection={<IconWorld size={16} />}
+                    active={pathname?.startsWith('/domains')}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/pricing-page"
+                    label="Pricing Page"
+                    leftSection={<IconCurrencyDollar size={16} />}
+                    active={pathname === '/pricing-page'}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/rate-limit-abusers"
+                    label="Rate Limit Activity"
+                    leftSection={<IconAlertTriangle size={16} />}
+                    active={pathname === '/rate-limit-abusers'}
                     onClick={close}
                   />
                 </Stack>

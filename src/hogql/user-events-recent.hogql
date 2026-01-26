@@ -1,0 +1,16 @@
+SELECT
+  event,
+  timestamp,
+  properties.$current_url as current_url,
+  properties.$pathname as pathname,
+  properties.$referrer as referrer,
+  properties.$device_type as device_type,
+  properties.$browser as browser
+FROM events
+WHERE person.properties.email = '{{EMAIL}}'
+  {{DATE_FILTER}}
+  AND event != '$identify'
+  AND event != '$set'
+ORDER BY timestamp DESC
+LIMIT {{LIMIT}}
+

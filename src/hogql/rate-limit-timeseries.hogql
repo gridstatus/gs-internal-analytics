@@ -1,0 +1,10 @@
+SELECT
+  toDate(timestamp) as date,
+  COUNT(*) as hits,
+  COUNT(DISTINCT person.id) as unique_users
+FROM events
+WHERE event = 'Rate Limit Hit - API'
+  AND timestamp >= now() - INTERVAL {{DAYS}} DAY
+GROUP BY date
+ORDER BY date ASC
+

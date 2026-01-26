@@ -29,6 +29,7 @@ import { DataTable, Column } from './DataTable';
 
 export function CorporateTeamsView() {
   const [showHelp, setShowHelp] = useState(false);
+  // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
   const corpUsersChartRef = useRef<HTMLDivElement>(null);
   const teamsChartRef = useRef<HTMLDivElement>(null);
   const corpDomainsChartRef = useRef<HTMLDivElement>(null);

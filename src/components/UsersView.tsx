@@ -38,6 +38,7 @@ export function UsersView() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
   const totalUsersChartRef = useRef<HTMLDivElement>(null);
   const newUsersChartRef = useRef<HTMLDivElement>(null);
   const hourlyUsersChartRef = useRef<HTMLDivElement>(null);

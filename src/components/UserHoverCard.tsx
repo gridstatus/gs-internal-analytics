@@ -67,9 +67,11 @@ export function UserHoverCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shouldFetch, setShouldFetch] = useState(false);
+  // Tracks if data has been fetched to prevent duplicate requests (ref avoids re-render)
   const hasFetchedRef = useRef(false);
   const { timezone } = useFilter();
 
+  // Reset cached data when timezone/userId changes to fetch fresh data
   useEffect(() => {
     hasFetchedRef.current = false;
     setData(null);
@@ -77,6 +79,7 @@ export function UserHoverCard({
     setShouldFetch(false);
   }, [timezone, userId]);
 
+  // Fetch user data when hover card opens (triggered by shouldFetch)
   useEffect(() => {
     if (!shouldFetch || hasFetchedRef.current) return;
     

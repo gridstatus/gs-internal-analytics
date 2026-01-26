@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { loadRenderedHogql } from '@/lib/queries';
 
 async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterGridstatus: boolean): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
@@ -36,26 +37,18 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterG
     dateFilter = '';
   }
 
-  // Filter out internal users when filterGridstatus is true
-  const gridstatusFilter = filterGridstatus 
-    ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" 
-    : '';
+  const hogql = loadRenderedHogql('posthog-active-users.hogql', {
+    filterGridstatus,
+    dateFunction,
+    dateFilter,
+    orderDirection,
+  });
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
       kind: 'HogQLQuery',
-      query: `
-        SELECT
-          ${dateFunction} AS period,
-          COUNT(DISTINCT person_id) AS active_users
-        FROM events
-        WHERE person.properties.email IS NOT NULL
-          ${dateFilter}
-          ${gridstatusFilter}
-        GROUP BY period
-        ORDER BY period ${orderDirection}
-      `,
+      query: hogql,
     },
   };
 

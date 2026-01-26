@@ -1,0 +1,6 @@
+SELECT COUNT(DISTINCT person_id) AS anonymous_users
+FROM events
+WHERE (person.properties.email IS NULL OR person.properties.email = '')
+  AND properties.$pathname = '/insights'
+  {{DATE_FILTER}}
+
