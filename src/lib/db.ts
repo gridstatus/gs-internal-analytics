@@ -10,6 +10,8 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
+  // Set 30 second statement timeout for all queries
+  statement_timeout: 30000,
 });
 
 /**
@@ -30,8 +32,8 @@ export async function query<T>(sql: string, params?: unknown[]): Promise<T[]> {
     const store = requestContext.getStore();
     const timezone = store?.timezone || 'UTC';
     
-    // Set the session timezone before executing the query
-    await client.query(`SET timezone TO '${timezone}'`);
+    // Set session settings: timezone and 30-second statement timeout
+    await client.query(`SET timezone TO '${timezone}'; SET statement_timeout = '30s'`);
     
     const result = await client.query(sql, params);
     return result.rows as T[];

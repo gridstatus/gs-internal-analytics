@@ -64,6 +64,17 @@ src/
 - **Database**: User data, API usage from PostgreSQL
 - **CSV**: Monthly active user counts (manually updated)
 
+## Safety in Operations
+
+The application includes safety mechanisms to prevent long-running queries from hanging the system:
+
+- **Statement Timeout**: All database queries have a 30-second timeout configured at both the connection pool level and session level. This ensures that:
+  - Queries that take longer than 30 seconds are automatically cancelled
+  - Database connections are not held indefinitely by slow or stuck queries
+  - The application remains responsive even when dealing with large datasets or complex queries
+
+The timeout is configured in `src/lib/db.ts` and applies to all queries executed through the `query()` helper function.
+
 ## Deployment to Render
 
 ### Option 1: Using render.yaml (Recommended)
