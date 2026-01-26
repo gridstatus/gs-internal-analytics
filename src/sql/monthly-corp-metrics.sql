@@ -6,7 +6,6 @@ WITH corp_domains AS (
   WHERE 1=1
     AND created_at IS NOT NULL
     AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{EDU_GOV_FILTER}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
 monthly_domain_counts AS (

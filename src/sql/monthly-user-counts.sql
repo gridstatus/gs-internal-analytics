@@ -11,7 +11,6 @@ WITH user_data AS (
     END AS is_corporate_domain
   FROM api_server.users
   WHERE 1=1
-    {{EDU_GOV_FILTER}}
     AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 )

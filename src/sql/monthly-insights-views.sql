@@ -12,9 +12,9 @@ SELECT
   COUNT(DISTINCT pv.user_id) AS unique_visitors_logged_in
 FROM insights.post_views pv
 JOIN api_server.users u ON pv.user_id = u.id
-WHERE pv.viewed_at >= '2025-10-01'
+WHERE 1=1
+  AND pv.viewed_at >= '2025-10-01'
   AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{EDU_GOV_FILTER}}
   {{INTERNAL_EMAIL_FILTER}}
 GROUP BY DATE_TRUNC('month', pv.viewed_at)
 ORDER BY month DESC;

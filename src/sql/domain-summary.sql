@@ -3,7 +3,6 @@ WITH corp_users AS (
   FROM api_server.users
   WHERE 1=1
     AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{EDU_GOV_FILTER}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
 domain_counts AS (

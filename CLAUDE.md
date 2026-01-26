@@ -110,6 +110,30 @@ WHERE 1=1
 
 The `renderSqlTemplate()` function attempts to clean up invalid SQL, but it's safer to structure queries correctly from the start.
 
+**CRITICAL - Template Rendering**: If a SQL file contains template placeholders (e.g., `{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{INTERNAL_EMAIL_FILTER}}`), the query function MUST use `renderSqlTemplate()` to process them before executing the query. Failing to do so will cause SQL syntax errors because raw template placeholders will be sent to PostgreSQL.
+
+**Bug Example** (causes "syntax error at or near '{'"):
+```typescript
+export async function getActiveUsers(): Promise<ActiveUsers[]> {
+  const sql = loadSql('active-users.sql'); // Contains {{GRIDSTATUS_FILTER_STANDALONE}}
+  return query<ActiveUsers>(sql); // ❌ Template not rendered!
+}
+```
+
+**Correct Example**:
+```typescript
+export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
+  let sql = loadSql('active-users.sql');
+  sql = renderSqlTemplate(sql, { filterGridstatus }); // ✅ Template rendered
+  return query<ActiveUsers>(sql);
+}
+```
+
+**Checklist when creating query functions:**
+1. Does the SQL file contain `{{...}}` placeholders? → Must use `renderSqlTemplate()`
+2. Does the query need domain filtering? → Accept `filterGridstatus` parameter
+3. Always test the query function to ensure templates are properly rendered
+
 ### Tables
 - Use `DataTable` component with column definitions
 - Make tables searchable with `TextInput` + filter

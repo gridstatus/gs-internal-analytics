@@ -156,8 +156,11 @@ export function InsightsView() {
   if (chartPeriod !== 'month') {
     params.set('chartPeriod', chartPeriod);
   }
+  if (summaryPeriod !== 'all') {
+    params.set('summaryPeriod', summaryPeriod);
+  }
   const url = `/api/insights?${params.toString()}`;
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, filterGridstatus, timezone]);
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, filterGridstatus, timezone, summaryPeriod]);
 
   if (loading) {
     return (
@@ -199,40 +202,8 @@ export function InsightsView() {
     );
   }
 
-  // Calculate period summary values
-  const getPeriodValue = (field: keyof typeof data.monthlyData[0]): number => {
-    if (summaryPeriod === 'all') {
-      // Sum all values
-      return data.monthlyData.reduce((sum, item) => sum + (Number(item[field]) || 0), 0);
-    }
-    
-    // Calculate cutoff date
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    const days = summaryPeriod === '1d' ? 1 : summaryPeriod === '7d' ? 7 : 30;
-    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - days);
-    
-    // Filter and sum data within the period
-    return data.monthlyData.reduce((sum, item) => {
-      // Parse the month string based on chartPeriod
-      let itemDate: Date;
-      if (chartPeriod === 'day') {
-        // Format: YYYY-MM-DD
-        itemDate = new Date(item.month + 'T00:00:00Z');
-      } else if (chartPeriod === 'week') {
-        // Format: YYYY-MM-DD (start of week)
-        itemDate = new Date(item.month + 'T00:00:00Z');
-      } else {
-        // Format: YYYY-MM
-        itemDate = new Date(item.month + '-01T00:00:00Z');
-      }
-      
-      if (itemDate >= cutoffDate) {
-        return sum + (Number(item[field]) || 0);
-      }
-      return sum;
-    }, 0);
-  };
+  // Summary KPIs are now fetched directly from the API using dedicated queries
+  // No need to calculate from monthlyData anymore
 
   const filteredPosts = data.topPosts
     .filter(
@@ -370,11 +341,11 @@ export function InsightsView() {
       <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
         <MetricCard
           title="Unique Visitors (Any /insights/*)"
-          value={showAnonymous ? getPeriodValue('uniqueVisitors').toLocaleString() : getPeriodValue('uniqueVisitorsLoggedIn').toLocaleString()}
+          value={showAnonymous ? data.summary.totalUniqueVisitors.toLocaleString() : data.summary.totalUniqueVisitorsLoggedIn.toLocaleString()}
           subtitle={
             showAnonymous ? (
               <Text size="xs" c="dimmed">
-                Logged-in: {getPeriodValue('uniqueVisitorsLoggedIn').toLocaleString()} • Anonymous: {getPeriodValue('uniqueVisitorsAnon').toLocaleString()}
+                Logged-in: {data.summary.totalUniqueVisitorsLoggedIn.toLocaleString()} • Anonymous: {data.summary.totalUniqueVisitorsAnon.toLocaleString()}
               </Text>
             ) : (
               <Text size="xs" c="dimmed">
@@ -385,11 +356,11 @@ export function InsightsView() {
         />
         <MetricCard
           title="Homefeed Visitors (/insights)"
-          value={showAnonymous ? getPeriodValue('uniqueHomefeedVisitors').toLocaleString() : getPeriodValue('uniqueHomefeedVisitorsLoggedIn').toLocaleString()}
+          value={showAnonymous ? data.summary.totalUniqueHomefeedVisitors.toLocaleString() : data.summary.totalUniqueHomefeedVisitorsLoggedIn.toLocaleString()}
           subtitle={
             showAnonymous ? (
               <Text size="xs" c="dimmed">
-                Logged-in: {getPeriodValue('uniqueHomefeedVisitorsLoggedIn').toLocaleString()} • Anonymous: {getPeriodValue('uniqueHomefeedVisitorsAnon').toLocaleString()}
+                Logged-in: {data.summary.totalUniqueHomefeedVisitorsLoggedIn.toLocaleString()} • Anonymous: {data.summary.totalUniqueHomefeedVisitorsAnon.toLocaleString()}
               </Text>
             ) : (
               <Text size="xs" c="dimmed">
@@ -400,22 +371,22 @@ export function InsightsView() {
         />
         <MetricCard
           title="Engagements"
-          value={getPeriodValue('engagements').toLocaleString()}
+          value={data.summary.totalEngagements.toLocaleString()}
           subtitle="Logged-in users, clicked to read"
         />
         <MetricCard
           title="Impressions"
-          value={getPeriodValue('impressions').toLocaleString()}
+          value={data.summary.totalImpressions.toLocaleString()}
           subtitle="Logged-in users, seen in feed"
         />
         <MetricCard
           title="Reactions"
-          value={getPeriodValue('reactions')}
+          value={data.summary.totalReactions.toLocaleString()}
           subtitle="Logged-in users only"
         />
         <MetricCard
           title="Total Posts"
-          value={getPeriodValue('posts')}
+          value={data.summary.totalPosts.toLocaleString()}
         />
       </SimpleGrid>
 

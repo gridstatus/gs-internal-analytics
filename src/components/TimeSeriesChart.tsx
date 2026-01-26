@@ -103,14 +103,16 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             </Text>
           )}
           <Box>
-            {/* @ts-expect-error - stackId prop is passed through to Recharts but not in Mantine types */}
             <BarChart
               h={height}
               data={chartDataWithLabel}
               dataKey="label"
               series={series}
               xAxisProps={xAxisProps}
-              yAxisProps={{ domain: [0, 'auto'] }}
+              yAxisProps={{ 
+                domain: [0, 'auto'],
+                tickFormatter: (value: number) => value.toLocaleString()
+              }}
               withLegend={stacked && stackedSeries.length > 0}
               legendProps={stacked && stackedSeries.length > 0 ? { verticalAlign: 'bottom', height: 40 } : undefined}
             />
@@ -146,7 +148,10 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             withLegend
             legendProps={{ verticalAlign: 'bottom', height: 40 }}
             xAxisProps={xAxisProps}
-            yAxisProps={{ domain: [0, 'auto'] }}
+            yAxisProps={{ 
+              domain: [0, 'auto'],
+              tickFormatter: (value: number) => value.toLocaleString()
+            }}
             withRightYAxis={showMoM}
             rightYAxisLabel={showMoM ? 'MoM %' : undefined}
             rightYAxisProps={showMoM ? {

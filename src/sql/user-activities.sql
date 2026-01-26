@@ -8,7 +8,8 @@ WITH user_registrations AS (
     'user_registered' as activity_type,
     NULL::text as activity_detail
   FROM api_server.users u
-  WHERE u.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND u.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
@@ -22,7 +23,8 @@ org_joins AS (
   FROM api_server.user_organizations uo
   JOIN api_server.users u ON u.id = uo.user_id
   JOIN api_server.organizations o ON o.id = uo.organization_id
-  WHERE u.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND u.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
@@ -35,7 +37,8 @@ chart_creations AS (
     c.name as activity_detail
   FROM api_server.charts c
   JOIN api_server.users u ON u.id = c.user_id
-  WHERE c.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND c.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
@@ -48,7 +51,8 @@ dashboard_creations AS (
     d.name as activity_detail
   FROM api_server.dashboards d
   JOIN api_server.users u ON u.id = d.user_id
-  WHERE d.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND d.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
@@ -61,7 +65,8 @@ api_key_creations AS (
     'API Key'::text as activity_detail
   FROM api_server.api_keys ak
   JOIN api_server.users u ON u.id = ak.user_id
-  WHERE ak.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND ak.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),
@@ -74,7 +79,8 @@ alert_creations AS (
     NULL::text as activity_detail
   FROM api_server.alerts a
   JOIN api_server.users u ON u.id = a.user_id
-  WHERE a.created_at >= NOW() - INTERVAL '90 days'
+  WHERE 1=1
+    AND a.created_at >= NOW() - INTERVAL '90 days'
     AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 )

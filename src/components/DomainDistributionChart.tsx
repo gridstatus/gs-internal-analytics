@@ -41,6 +41,9 @@ export const DomainDistributionChart = forwardRef<HTMLDivElement, DomainDistribu
             series={[{ name: 'Domain Count', color: 'blue.6' }]}
             xAxisLabel="Users per Domain"
             yAxisLabel="Number of Domains"
+            yAxisProps={{
+              tickFormatter: (value: number) => value.toLocaleString()
+            }}
             withBarValueLabel
           />
         </Box>

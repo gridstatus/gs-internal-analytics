@@ -19,9 +19,9 @@ LEFT JOIN insights.post_views pv ON u.id = pv.user_id
   {{TIME_FILTER_VIEWS}}
 LEFT JOIN insights.saved_posts sp ON u.id = sp.user_id
   {{TIME_FILTER_SAVES}}
-WHERE u.username IS NOT NULL
+WHERE 1=1
+  AND u.username IS NOT NULL
   AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{EDU_GOV_FILTER}}
 GROUP BY u.id, u.username, u.first_name, u.last_name
 HAVING 
   COUNT(DISTINCT r.id) > 0 OR 

@@ -350,19 +350,19 @@ export function UsersView() {
                 'Cumulative (Last Week)': row.cumulativeLastWeek ?? undefined,
               }));
               
-              const series = [
-                { name: 'New Users', type: 'bar', color: 'teal.6' },
-                { name: 'Cumulative (Today)', type: 'line', color: 'blue.6', yAxisId: 'right' },
+              const series: Array<{ name: string; type: 'bar' | 'line'; color: string; yAxisId?: string; strokeDasharray?: string }> = [
+                { name: 'New Users', type: 'bar' as const, color: 'teal.6' },
+                { name: 'Cumulative (Today)', type: 'line' as const, color: 'blue.6', yAxisId: 'right' },
               ];
               
               // Add yesterday cumulative line if data exists
               if (hourlyChartData.some(row => row['Cumulative (Yesterday)'] !== undefined)) {
-                series.push({ name: 'Cumulative (Yesterday)', type: 'line', color: 'gray.6', yAxisId: 'right', strokeDasharray: '5 5' });
+                series.push({ name: 'Cumulative (Yesterday)', type: 'line' as const, color: 'gray.6', yAxisId: 'right', strokeDasharray: '5 5' });
               }
               
               // Add last week cumulative line if data exists
               if (hourlyChartData.some(row => row['Cumulative (Last Week)'] !== undefined)) {
-                series.push({ name: 'Cumulative (Last Week)', type: 'line', color: 'orange.6', yAxisId: 'right', strokeDasharray: '3 3' });
+                series.push({ name: 'Cumulative (Last Week)', type: 'line' as const, color: 'orange.6', yAxisId: 'right', strokeDasharray: '3 3' });
               }
               
               return (
@@ -374,10 +374,16 @@ export function UsersView() {
                   curveType="linear"
                   withLegend
                   legendProps={{ verticalAlign: 'bottom', height: 40 }}
-                  yAxisProps={{ domain: [0, 'auto'] }}
+                  yAxisProps={{ 
+                    domain: [0, 'auto'],
+                    tickFormatter: (value: number) => value.toLocaleString()
+                  }}
                   withRightYAxis
                   rightYAxisLabel="Cumulative"
-                  rightYAxisProps={{ domain: [0, 'auto'] }}
+                  rightYAxisProps={{ 
+                    domain: [0, 'auto'],
+                    tickFormatter: (value: number) => value.toLocaleString()
+                  }}
                 />
               );
             })()}

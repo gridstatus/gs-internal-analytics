@@ -17,14 +17,6 @@ export function loadRenderedSql(filename: string, context: TemplateContext): str
   return renderSqlTemplate(loadSql(filename), context);
 }
 
-function buildEduGovFilter(usernamePrefix: string): string {
-  const usernameRef = `${usernamePrefix}username`;
-  return `AND NOT (
-    SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) LIKE '%.edu'
-    OR SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) LIKE '%.gov'
-  )`;
-}
-
 /**
  * Renders SQL template with placeholders.
  * 
@@ -32,7 +24,6 @@ function buildEduGovFilter(usernamePrefix: string): string {
  * - {{GRIDSTATUS_FILTER_STANDALONE}} - Replaced with "NOT IN ('gridstatus.io')" or removed
  * - {{GRIDSTATUS_FILTER_IN_LIST}} - Replaced with ", 'gridstatus.io'" or empty string
  * - {{INTERNAL_EMAIL_FILTER}} - Replaced with "AND {usernamePrefix}username != 'kmax12+dev@gmail.com'" or empty string
- * - {{EDU_GOV_FILTER}} - Replaced with "AND NOT (...)" for .edu/.gov exclusions
  * 
  * BEST PRACTICES to prevent SQL syntax errors:
  * - Always use "WHERE 1=1" or another base condition before using {{GRIDSTATUS_FILTER_STANDALONE}} with AND
@@ -49,9 +40,6 @@ export function renderSqlTemplate(sql: string, context: TemplateContext): string
       ? 'u.' 
       : '';
   }
-  
-  // Handle EDU_GOV_FILTER (shared domain exclusion)
-  rendered = rendered.replace(/\{\{EDU_GOV_FILTER\}\}/g, buildEduGovFilter(context.usernamePrefix));
 
   // Handle GRIDSTATUS_FILTER_STANDALONE (for standalone NOT IN ('gridstatus.io'))
   if (context.filterGridstatus) {
@@ -113,8 +101,7 @@ export function applyGridstatusFilter(sql: string, filterGridstatus: boolean): s
   // Try to detect if this is a template-based SQL file
   if (
     sql.includes('{{GRIDSTATUS_FILTER') ||
-    sql.includes('{{INTERNAL_EMAIL_FILTER}}') ||
-    sql.includes('{{EDU_GOV_FILTER}}')
+    sql.includes('{{INTERNAL_EMAIL_FILTER}}')
   ) {
     return renderSqlTemplate(sql, { filterGridstatus });
   }
@@ -229,8 +216,9 @@ export interface ActiveUsers {
   total_users: number;
 }
 
-export async function getActiveUsers(): Promise<ActiveUsers[]> {
-  const sql = loadSql('active-users.sql');
+export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
+  let sql = loadSql('active-users.sql');
+  sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<ActiveUsers>(sql);
 }
 
@@ -325,7 +313,6 @@ export async function getTotalUniqueVisitors(filterGridstatus: boolean = true): 
     JOIN api_server.users u ON pv.user_id = u.id
     WHERE pv.viewed_at >= '2025-10-01'
       AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{EDU_GOV_FILTER}}
       {{INTERNAL_EMAIL_FILTER}}
   `;
   sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
@@ -343,10 +330,150 @@ export async function getTotalUniqueHomefeedVisitors(filterGridstatus: boolean =
     WHERE pv.view_source = 'feed'
       AND pv.viewed_at >= '2025-10-01'
       AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{EDU_GOV_FILTER}}
       {{INTERNAL_EMAIL_FILTER}}
   `;
   sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+// Summary KPI queries with period support (1d, 7d, 30d, all)
+// These are independent queries for summary metrics, not derived from chart data
+
+export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(DISTINCT pv.user_id) AS total
+    FROM insights.post_views pv
+    JOIN api_server.users u ON pv.user_id = u.id
+    WHERE 1=1
+      ${dateFilter}
+      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      {{INTERNAL_EMAIL_FILTER}}
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(DISTINCT pv.user_id) AS total
+    FROM insights.post_views pv
+    JOIN api_server.users u ON pv.user_id = u.id
+    WHERE 1=1
+      AND pv.view_source = 'feed'
+      ${dateFilter}
+      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      {{INTERNAL_EMAIL_FILTER}}
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(*) AS total
+    FROM insights.post_views pv
+    JOIN api_server.users u ON pv.user_id = u.id
+    WHERE 1=1
+      AND pv.view_source IN ('feed_expanded', 'detail')
+      ${dateFilter}
+      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      {{INTERNAL_EMAIL_FILTER}}
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(*) AS total
+    FROM insights.post_views pv
+    JOIN api_server.users u ON pv.user_id = u.id
+    WHERE 1=1
+      AND pv.view_source = 'feed'
+      ${dateFilter}
+      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      {{INTERNAL_EMAIL_FILTER}}
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND r.created_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND r.created_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(*) AS total
+    FROM insights.reactions r
+    JOIN api_server.users u ON r.user_id = u.id
+    WHERE 1=1
+      ${dateFilter}
+      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      {{INTERNAL_EMAIL_FILTER}}
+  `;
+  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const result = await query<{ total: string }>(sql);
+  return Number(result[0]?.total || 0);
+}
+
+export async function getSummaryPosts(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND p.created_at >= NOW() - INTERVAL '${days} days'`;
+  } else {
+    dateFilter = `AND p.created_at >= '2025-10-01'`;
+  }
+  
+  let sql = `
+    SELECT COUNT(*) AS total
+    FROM insights.posts p
+    WHERE 1=1
+      AND p.status = 'PUBLISHED'
+      ${dateFilter}
+  `;
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -440,6 +567,120 @@ export async function fetchPosthogAnonymousUsers(period: 'day' | 'week' | 'month
       anonymousUsers,
     };
   });
+}
+
+// Get summary anonymous user counts for a specific period (1d, 7d, 30d, all)
+export async function getSummaryAnonymousVisitors(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.warn('PostHog credentials not configured');
+    return 0;
+  }
+
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND timestamp >= now() - INTERVAL ${days} DAY`;
+  } else {
+    dateFilter = "AND timestamp >= '2025-10-01'";
+  }
+
+  const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
+  const payload = {
+    query: {
+      kind: 'HogQLQuery',
+      query: `
+        SELECT COUNT(DISTINCT person_id) AS anonymous_users
+        FROM events
+        WHERE (person.properties.email IS NULL OR person.properties.email = '')
+          AND properties.$pathname LIKE '/insights%'
+          ${dateFilter}
+      `,
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('PostHog anonymous visitors summary API error:', response.status, errorText);
+    return 0;
+  }
+
+  const data = await response.json();
+  
+  if (data.warnings) {
+    console.warn('PostHog anonymous visitors summary query warnings:', data.warnings);
+  }
+  
+  const results: [number][] = data.results || [];
+  return results[0]?.[0] || 0;
+}
+
+// Get summary anonymous homefeed visitor counts for a specific period (1d, 7d, 30d, all)
+export async function getSummaryAnonymousHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.warn('PostHog credentials not configured');
+    return 0;
+  }
+
+  let dateFilter = '';
+  if (period !== 'all') {
+    const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
+    dateFilter = `AND timestamp >= now() - INTERVAL ${days} DAY`;
+  } else {
+    dateFilter = "AND timestamp >= '2025-10-01'";
+  }
+
+  const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
+  const payload = {
+    query: {
+      kind: 'HogQLQuery',
+      query: `
+        SELECT COUNT(DISTINCT person_id) AS anonymous_users
+        FROM events
+        WHERE (person.properties.email IS NULL OR person.properties.email = '')
+          AND properties.$pathname = '/insights'
+          ${dateFilter}
+      `,
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('PostHog anonymous homefeed visitors summary API error:', response.status, errorText);
+    return 0;
+  }
+
+  const data = await response.json();
+  
+  if (data.warnings) {
+    console.warn('PostHog anonymous homefeed visitors summary query warnings:', data.warnings);
+  }
+  
+  const results: [number][] = data.results || [];
+  return results[0]?.[0] || 0;
 }
 
 // Fetch anonymous homefeed visitors from PostHog (users without email who visited /insights)
@@ -743,7 +984,6 @@ export async function getTotalUsersCount(filterGridstatus: boolean = true): Prom
     SELECT COUNT(*)::text AS total_users
     FROM api_server.users
     WHERE created_at IS NOT NULL
-      {{EDU_GOV_FILTER}}
       AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
       {{INTERNAL_EMAIL_FILTER}}
   `;

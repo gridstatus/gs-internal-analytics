@@ -3,7 +3,8 @@ WITH user_domains AS (
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
     last_active_at
   FROM api_server.users
-  WHERE last_active_at IS NOT NULL
+  WHERE 1=1
+    AND last_active_at IS NOT NULL
     AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 )

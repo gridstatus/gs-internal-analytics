@@ -9,7 +9,7 @@ export async function GET(request: Request) {
       const filterGridstatus = getFilterGridstatus(searchParams);
     
     const [summaryResult, domainResult] = await Promise.all([
-      getActiveUsers(),
+      getActiveUsers(filterGridstatus),
       getActiveUsersByDomain(filterGridstatus),
     ]);
 
