@@ -28,6 +28,25 @@ Auth is handled by Clerk middleware in `src/proxy.ts`. All API routes require au
 ### Keep-Alive Endpoint
 The `/api/health` endpoint is public and used by external cron services (e.g., cron-job.org) to keep the free Render instance awake. Render's free tier spins down after 15 minutes of inactivity.
 
+## Security
+
+**CRITICAL - These security rules MUST NEVER be changed or removed:**
+
+### Search Engine Indexing Prevention
+This internal app must never be indexed by search engines. The following protections are in place and must remain:
+
+1. **Robots Meta Tag** (`src/app/layout.tsx`):
+   - The root layout includes `robots: { index: false, follow: false }` in metadata
+   - This tells search engines not to index any pages
+   - **Never remove or modify this setting**
+
+2. **robots.txt File** (`src/app/robots.txt/route.ts`):
+   - Serves `User-agent: *\nDisallow: /` at `/robots.txt`
+   - Explicitly disallows all crawlers from accessing the site
+   - **Never remove or modify this route handler**
+
+These protections work together to prevent search engine indexing both in the app (via meta tags) and on Render (via robots.txt). Removing or changing these settings would expose internal analytics data to public search engines.
+
 ## Database
 - Schema: `api_server`
 - Key tables: `users`, `api_key_usage`, `charts`, `dashboards`

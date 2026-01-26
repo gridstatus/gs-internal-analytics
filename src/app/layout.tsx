@@ -9,6 +9,10 @@ import { FilterProvider } from '@/contexts/FilterContext';
 
 export const metadata = {
   title: 'Grid Status',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
