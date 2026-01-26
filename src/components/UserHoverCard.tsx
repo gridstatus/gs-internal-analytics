@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, startTransition } from 'react';
 import {
   HoverCard,
   Anchor,
@@ -107,7 +107,9 @@ export function UserHoverCard({
   }, [shouldFetch, userId, timezone]);
 
   const handleOpen = useCallback(() => {
-    setShouldFetch(true);
+    startTransition(() => {
+      setShouldFetch(true);
+    });
   }, []);
 
   const formatTimeAgo = (dateString: string): string => {
