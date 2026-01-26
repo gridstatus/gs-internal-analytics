@@ -251,6 +251,13 @@ export async function getMonthlyUserCounts(filterGridstatus: boolean = true): Pr
   return query<MonthlyUserCount>(sql);
 }
 
+export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year', filterGridstatus: boolean = true): Promise<MonthlyUserCount[]> {
+  let sql = loadSql('user-counts-by-period.sql');
+  sql = sql.replace(/\{\{PERIOD\}\}/g, period);
+  sql = renderSqlTemplate(sql, { filterGridstatus });
+  return query<MonthlyUserCount>(sql);
+}
+
 export async function getMonthlyApiUsage(filterGridstatus: boolean = true): Promise<MonthlyApiUsage[]> {
   let sql = loadSql('monthly-api-usage.sql');
   sql = renderSqlTemplate(sql, { filterGridstatus });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
   Container,
@@ -17,6 +17,7 @@ import {
   TextInput,
   SegmentedControl,
   Box,
+  Select,
 } from '@mantine/core';
 import { IconSearch, IconAlertCircle, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
@@ -26,7 +27,7 @@ import { ExportButton } from './ExportButton';
 import { CompositeChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -35,9 +36,6 @@ import { DataTable, Column } from './DataTable';
 export function UsersView() {
   const [domainFilter, setDomainFilter] = useState<string>('');
   const [debouncedDomainFilter] = useDebouncedValue(domainFilter, 300);
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
 
   // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
   const totalUsersChartRef = useRef<HTMLDivElement>(null);
@@ -50,20 +48,16 @@ export function UsersView() {
     { name: 'hourly_users', ref: hourlyUsersChartRef },
   ];
 
-  // Get timestamp type from URL, default to 'created_at'
-  const timestampType = searchParams.get('timestampType') || 'created_at';
-
-  // Handler for segment control changes
-  const handleTimestampTypeChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === 'created_at') {
-      params.delete('timestampType');
-    } else {
-      params.set('timestampType', value);
-    }
-    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    router.replace(newUrl, { scroll: false });
-  };
+  // URL state management with nuqs
+  const [timestampType, setTimestampType] = useQueryState(
+    'timestampType',
+    parseAsStringEnum(['created_at', 'last_active_at']).withDefault('created_at')
+  );
+  
+  const [newUsersPeriod, setNewUsersPeriod] = useQueryState(
+    'newUsersPeriod',
+    parseAsStringEnum(['week', 'month', 'year']).withDefault('month')
+  );
 
   const { filterGridstatus, timezone } = useFilter();
   const url = useApiUrl('/api/users', {
@@ -71,8 +65,9 @@ export function UsersView() {
     timezone,
     domainSearch: debouncedDomainFilter || undefined,
     timestampType: timestampType !== 'created_at' ? timestampType : undefined,
+    newUsersPeriod: newUsersPeriod !== 'month' ? newUsersPeriod : undefined,
   });
-  const { data, loading, error } = useApiData<UsersResponse>(url, [filterGridstatus, timezone, debouncedDomainFilter, timestampType]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [filterGridstatus, timezone, debouncedDomainFilter, timestampType, newUsersPeriod]);
 
   if (loading) {
     return (
@@ -302,22 +297,40 @@ export function UsersView() {
         />
       </SimpleGrid>
 
+      {/* Period Selector */}
+      <Group justify="flex-end" mb="md">
+        <Select
+          value={newUsersPeriod}
+          onChange={(value) => setNewUsersPeriod((value as 'week' | 'month' | 'year') || 'month')}
+          data={[
+            { value: 'week', label: 'Week' },
+            { value: 'month', label: 'Month' },
+            { value: 'year', label: 'Year' },
+          ]}
+          style={{ width: 120 }}
+          size="sm"
+        />
+      </Group>
+
       {/* Charts */}
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" mb="xl">
         <TimeSeriesChart
           ref={totalUsersChartRef}
           title="Total Registered Users"
           subtitle={data.totalUsers ? `Current total: ${data.totalUsers.toLocaleString()} users` : "Cumulative user signups over time"}
-          data={data.monthlyData}
+          data={data.combinedDataByPeriod || data.monthlyData}
           dataKey="totalUsers"
           color="blue.6"
-          showMoM={false}
         />
         <TimeSeriesChart
           ref={newUsersChartRef}
           title="New Users"
-          subtitle="New registrations per month"
-          data={data.monthlyData}
+          subtitle={
+            newUsersPeriod === 'week' ? 'New registrations per week' :
+            newUsersPeriod === 'month' ? 'New registrations per month' :
+            'New registrations per year'
+          }
+          data={data.combinedDataByPeriod || data.monthlyData}
           dataKey="newUsers"
           color="green.6"
           chartType="bar"
@@ -330,7 +343,7 @@ export function UsersView() {
           New Users by Hour (Today)
         </Text>
         <Text size="sm" c="dimmed" mb="md">
-          Bar shows new users per hour. Lines show cumulative users: today (solid), yesterday (dashed), last week (dotted)
+          Bars: new users per hour. Lines: cumulative totals (today solid, yesterday dashed, last week dotted)
         </Text>
         {data.hourlyRegistrations && data.hourlyRegistrations.length > 0 ? (
           <Box>
@@ -403,7 +416,7 @@ export function UsersView() {
             <Group gap="md">
               <SegmentedControl
                 value={timestampType}
-                onChange={handleTimestampTypeChange}
+                onChange={(value) => setTimestampType(value as 'created_at' | 'last_active_at')}
                 data={[
                   { label: 'Registration Date', value: 'created_at' },
                   { label: 'Last Active', value: 'last_active_at' },

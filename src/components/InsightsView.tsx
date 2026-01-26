@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Container,
   Title,
@@ -24,47 +24,35 @@ import { ExportButton } from './ExportButton';
 import { UserHoverCard } from './UserHoverCard';
 import { DataTable, Column } from './DataTable';
 import Link from 'next/link';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useQueryState, parseAsStringEnum, parseAsBoolean } from 'nuqs';
 import { InsightsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 
 export function InsightsView() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  
   const [search, setSearch] = useState('');
   
-  // Initialize timeFilter from URL params
-  const timeFilterParam = searchParams.get('timeFilter');
-  const [timeFilter, setTimeFilter] = useState<'24h' | '7d' | '1m' | null>(
-    timeFilterParam && ['24h', '7d', '1m'].includes(timeFilterParam) 
-      ? (timeFilterParam as '24h' | '7d' | '1m')
-      : null
+  // URL state management with nuqs
+  // Default to '24h' when not in URL (null means 'all time')
+  const [timeFilter, setTimeFilter] = useQueryState(
+    'timeFilter',
+    parseAsStringEnum(['24h', '7d', '1m'])
   );
   
-  // Initialize chartPeriod from URL params
-  const chartPeriodParam = searchParams.get('chartPeriod');
-  const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>(
-    chartPeriodParam && ['day', 'week', 'month'].includes(chartPeriodParam)
-      ? (chartPeriodParam as 'day' | 'week' | 'month')
-      : 'month'
+  const [chartPeriod, setChartPeriod] = useQueryState(
+    'chartPeriod',
+    parseAsStringEnum(['day', 'week', 'month']).withDefault('month')
   );
   
-  // Initialize summaryPeriod from URL params
-  const summaryPeriodParam = searchParams.get('summaryPeriod');
-  const [summaryPeriod, setSummaryPeriod] = useState<'1d' | '7d' | '30d' | 'all'>(
-    (summaryPeriodParam && ['1d', '7d', '30d', 'all'].includes(summaryPeriodParam)) 
-      ? (summaryPeriodParam as '1d' | '7d' | '30d' | 'all')
-      : 'all'
+  const [summaryPeriod, setSummaryPeriod] = useQueryState(
+    'summaryPeriod',
+    parseAsStringEnum(['1d', '7d', '30d', 'all']).withDefault('all')
   );
 
-  // Initialize showAnonymous from URL params
-  const showAnonymousParam = searchParams.get('showAnonymous');
-  const [showAnonymous, setShowAnonymous] = useState<boolean>(
-    showAnonymousParam !== null ? showAnonymousParam === 'true' : true
+  const [showAnonymous, setShowAnonymous] = useQueryState(
+    'showAnonymous',
+    parseAsBoolean.withDefault(false)
   );
 
   // DOM refs for chart export - ExportButton uses html-to-image to capture these elements as PNGs
@@ -84,75 +72,11 @@ export function InsightsView() {
     { name: 'posts', ref: postsChartRef },
   ];
 
-  // Sync state when URL params change (e.g., browser back/forward)
-  useEffect(() => {
-    const urlFilter = searchParams.get('timeFilter');
-    const newFilter = urlFilter && ['24h', '7d', '1m'].includes(urlFilter) 
-      ? (urlFilter as '24h' | '7d' | '1m')
-      : null;
-    if (newFilter !== timeFilter) {
-      setTimeFilter(newFilter);
-    }
-    
-    const urlPeriod = searchParams.get('chartPeriod');
-    const newPeriod = urlPeriod && ['day', 'week', 'month'].includes(urlPeriod)
-      ? (urlPeriod as 'day' | 'week' | 'month')
-      : 'month';
-    if (newPeriod !== chartPeriod) {
-      setChartPeriod(newPeriod);
-    }
-    
-    const urlSummaryPeriod = searchParams.get('summaryPeriod');
-    const newSummaryPeriod = (urlSummaryPeriod && ['1d', '7d', '30d', 'all'].includes(urlSummaryPeriod))
-      ? (urlSummaryPeriod as '1d' | '7d' | '30d' | 'all')
-      : 'all';
-    if (newSummaryPeriod !== summaryPeriod) {
-      setSummaryPeriod(newSummaryPeriod);
-    }
-    
-    const urlShowAnonymous = searchParams.get('showAnonymous');
-    const newShowAnonymous = urlShowAnonymous !== null ? urlShowAnonymous === 'true' : true;
-    if (newShowAnonymous !== showAnonymous) {
-      setShowAnonymous(newShowAnonymous);
-    }
-  }, [searchParams]);
-
-  // Update URL when timeFilter, chartPeriod, or summaryPeriod changes
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (timeFilter) {
-      params.set('timeFilter', timeFilter);
-    } else {
-      params.delete('timeFilter');
-    }
-    if (chartPeriod !== 'month') {
-      params.set('chartPeriod', chartPeriod);
-    } else {
-      params.delete('chartPeriod');
-    }
-    if (summaryPeriod !== 'all') {
-      params.set('summaryPeriod', summaryPeriod);
-    } else {
-      params.delete('summaryPeriod');
-    }
-    if (!showAnonymous) {
-      params.set('showAnonymous', 'false');
-    } else {
-      params.delete('showAnonymous');
-    }
-    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
-    // Only update if URL would actually change
-    if (newUrl !== currentUrl) {
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [timeFilter, chartPeriod, summaryPeriod, showAnonymous, pathname, router, searchParams]);
-
   const { filterGridstatus, timezone } = useFilter();
   const url = useApiUrl('/api/insights', {
     filterGridstatus,
     timezone,
-    timeFilter: timeFilter || undefined,
+    timeFilter: timeFilter ?? '24h',
     chartPeriod: chartPeriod !== 'month' ? chartPeriod : undefined,
     summaryPeriod: summaryPeriod !== 'all' ? summaryPeriod : undefined,
   });
@@ -474,13 +398,19 @@ export function InsightsView() {
           </Text>
           <Group gap="md">
             <SegmentedControl
-              value={timeFilter || 'all'}
-              onChange={(value) => setTimeFilter(value === 'all' ? null : (value as '24h' | '7d' | '1m'))}
+              value={timeFilter ?? '24h'}
+              onChange={(value) => {
+                if (value === 'all') {
+                  setTimeFilter(null);
+                } else {
+                  setTimeFilter(value as '24h' | '7d' | '1m');
+                }
+              }}
               data={[
-                { label: 'All Time', value: 'all' },
                 { label: 'Last 24h', value: '24h' },
                 { label: 'Last 7d', value: '7d' },
                 { label: 'Last 1m', value: '1m' },
+                { label: 'All Time', value: 'all' },
               ]}
             />
             <TextInput

@@ -145,7 +145,6 @@ export default function DomainDetailPage() {
           dataKey="users"
           color="blue.6"
           chartType="bar"
-          showMoM={false}
         />
       )}
 

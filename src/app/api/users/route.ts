@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
+import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
 import { query } from '@/lib/db';
 import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { DateTime } from 'luxon';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     const domainSearch = searchParams.get('domainSearch') || '';
     const timestampType = searchParams.get('timestampType') || 'created_at'; // 'created_at' or 'last_active_at'
     const timestampField = timestampType === 'last_active_at' ? 'last_active_at' : 'created_at';
+    const newUsersPeriod = (searchParams.get('newUsersPeriod') as 'day' | 'week' | 'month' | 'year') || 'month';
     
     const getTopDomains = async (days: number) => {
       let sql = loadSql('top-domains.sql');
@@ -108,8 +110,20 @@ export async function GET(request: Request) {
       ORDER BY h.hour ASC
     `;
 
-    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
-      getMonthlyUserCounts(filterGridstatus),
+    // Use period-specific query for combined chart (single query with cumulative calc in DB)
+    // When period is 'month', reuse this data for monthlyData too
+    const periodUserCountsPromise = newUsersPeriod === 'month' 
+      ? getMonthlyUserCounts(filterGridstatus)
+      : getUserCountsByPeriod(newUsersPeriod, filterGridstatus);
+
+    // Still need monthly data for metrics and table (reuse when period is 'month')
+    const monthlyUserCountsPromise = newUsersPeriod === 'month'
+      ? periodUserCountsPromise
+      : getMonthlyUserCounts(filterGridstatus);
+
+    const [periodUserCounts, userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
+      periodUserCountsPromise,
+      monthlyUserCountsPromise,
       getMonthlyCorpMetrics(filterGridstatus),
       getUsersToday(filterGridstatus),
       getMonthlyNewUsersComparison(filterGridstatus),
@@ -172,6 +186,7 @@ export async function GET(request: Request) {
       corpMetrics.map((row) => [formatMonthUtc(new Date(row.month)), row])
     );
 
+    // Always use monthly data for monthlyData (for Total Registered Users chart)
     const monthlyData = userCounts.map((row, index) => {
       const monthKey = formatMonthUtc(new Date(row.month));
       const corp = corpMetricsMap.get(monthKey);
@@ -213,8 +228,47 @@ export async function GET(request: Request) {
       };
     });
 
+    // Format period-specific data for combined chart (cumulative total_users already calculated in DB)
+    const formatPeriodKey = (date: Date): string => {
+      const d = new Date(date);
+      if (newUsersPeriod === 'week') {
+        const weekStart = DateTime.fromJSDate(d).startOf('week');
+        return weekStart.toFormat('yyyy-MM-dd');
+      } else if (newUsersPeriod === 'year') {
+        return DateTime.fromJSDate(d).toFormat('yyyy');
+      } else {
+        return formatMonthUtc(d);
+      }
+    };
+
+    const combinedDataByPeriod = periodUserCounts.map((row, index) => {
+      const periodKey = formatPeriodKey(new Date(row.month));
+      const prevRow = index > 0 ? periodUserCounts[index - 1] : null;
+
+      const totalUsers = Number(row.total_users); // Already cumulative from DB
+      const prevTotalUsers = prevRow ? Number(prevRow.total_users) : 0;
+      const totalUsersMomChange = prevTotalUsers > 0
+        ? Math.round(((totalUsers - prevTotalUsers) / prevTotalUsers) * 100)
+        : 0;
+
+      const newUsers = Number(row.new_users);
+      const prevNewUsers = prevRow ? Number(prevRow.new_users) : 0;
+      const newUsersMomChange = prevNewUsers > 0
+        ? Math.round(((newUsers - prevNewUsers) / prevNewUsers) * 100)
+        : 0;
+
+      return {
+        month: periodKey,
+        totalUsers,
+        newUsers,
+        totalUsersMomChange,
+        newUsersMomChange,
+      };
+    });
+
     return NextResponse.json({ 
       monthlyData,
+      combinedDataByPeriod,
       hourlyRegistrations: hourlyRegistrationsWithComparisons,
       usersToday: {
         today: Number(usersToday[0]?.users_today || 0),

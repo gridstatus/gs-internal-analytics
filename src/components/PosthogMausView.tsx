@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Container,
   Title,
@@ -18,7 +18,7 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { PosthogActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -27,31 +27,18 @@ import { DataTable, Column } from './DataTable';
 
 
 export function PosthogMausView() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  
-  const [period, setPeriod] = useState<'day' | 'week' | 'month'>(
-    (searchParams.get('period') as 'day' | 'week' | 'month') || 'month'
+  // URL state management with nuqs
+  const [period, setPeriod] = useQueryState(
+    'period',
+    parseAsStringEnum(['day', 'week', 'month']).withDefault('month')
   );
+  
   // DOM ref for chart export - ExportButton uses html-to-image to capture this element as PNG
   const activeUsersChartRef = useRef<HTMLDivElement>(null);
 
   const chartRefs = [
     { name: 'posthog_active_users', ref: activeUsersChartRef },
   ];
-
-  // Update URL when period changes
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (period !== 'month') {
-      params.set('period', period);
-    } else {
-      params.delete('period');
-    }
-    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    router.replace(newUrl, { scroll: false });
-  }, [period, pathname, router, searchParams]);
 
   const { filterGridstatus, timezone } = useFilter();
   const url = useApiUrl('/api/posthog-maus', { period, filterGridstatus, timezone });

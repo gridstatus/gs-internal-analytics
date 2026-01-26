@@ -600,7 +600,6 @@ export default function UserDetailPage() {
                   dataKey="requests"
                   color="blue.6"
                   chartType="bar"
-                  showMoM={false}
                 />
                 <TimeSeriesChart
                   title="Rows Returned"
@@ -612,7 +611,6 @@ export default function UserDetailPage() {
                   dataKey="rows"
                   color="green.6"
                   chartType="bar"
-                  showMoM={false}
                 />
               </SimpleGrid>
             )}

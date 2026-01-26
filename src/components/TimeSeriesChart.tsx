@@ -13,7 +13,6 @@ type ChartDataPoint = { month: string } & Record<string, any>;
 function toHumanReadableLabel(key: string): string {
   // Handle special cases
   const specialCases: Record<string, string> = {
-    'momChange': 'MoM Change',
     'totalUsers': 'Total Users',
     'newUsers': 'New Users',
     'totalApiRequests': 'Total API Requests',
@@ -51,7 +50,6 @@ interface TimeSeriesChartProps {
   subtitle?: string;
   data: ChartDataPoint[];
   dataKey: string;
-  showMoM?: boolean;
   color?: string;
   height?: number;
   chartType?: 'line' | 'bar';
@@ -62,27 +60,16 @@ interface TimeSeriesChartProps {
 
 export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
   function TimeSeriesChart(
-    { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [], showTrendline = false },
+    { title, subtitle, data, dataKey, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [], showTrendline = false },
     ref
   ) {
     const { timezone } = useFilter();
-    // Calculate MoM change for each data point
-    const chartData = data.map((point, index) => {
+    // Map data points
+    const chartData = data.map((point) => {
       const currentValue = Number(point[dataKey]) || 0;
-      const previousValue = index > 0 ? Number(data[index - 1][dataKey]) || 0 : 0;
-      let momChange =
-        index > 0 && previousValue !== 0
-          ? ((currentValue - previousValue) / previousValue) * 100
-          : 0;
-      
-      // Round to 1 decimal place and cap at ±100%
-      momChange = Math.round(momChange * 10) / 10;
-      momChange = Math.max(-100, Math.min(100, momChange));
-
       return {
         ...point,
         [dataKey]: currentValue,
-        momChange,
       };
     });
 
@@ -170,6 +157,17 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     };
 
     if (chartType === 'bar') {
+      // Calculate max value from data only (not trendline) to ensure y-axis starts at 0
+      const maxDataValue = Math.max(
+        ...chartData.map(point => Number(point[dataKey]) || 0),
+        ...(stacked && stackedSeries.length > 0
+          ? stackedSeries.flatMap(s => chartData.map(point => Number(point[s.name]) || 0))
+          : []
+        ),
+        0
+      );
+      const yAxisMax = maxDataValue > 0 ? maxDataValue * 1.1 : 'auto'; // Add 10% padding, fallback to auto if no data
+      
       // Use CompositeChart if trendline is enabled, otherwise use BarChart
       if (showTrendline) {
         const series = stacked && stackedSeries.length > 0
@@ -202,7 +200,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
                 legendProps={{ verticalAlign: 'bottom', height: 40 }}
                 xAxisProps={xAxisProps}
                 yAxisProps={{ 
-                  domain: [0, 'auto'],
+                  domain: [0, yAxisMax],
                   tickFormatter: (value: number) => value.toLocaleString()
                 }}
               />
@@ -245,18 +243,12 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       );
     }
 
-    const series = showMoM
+    const series = showTrendline
       ? [
           { name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) },
-          { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right', label: toHumanReadableLabel('momChange') },
-          ...(showTrendline ? [{ name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' }] : []),
+          { name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' },
         ]
-      : showTrendline
-        ? [
-            { name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) },
-            { name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' },
-          ]
-        : [{ name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) }];
+      : [{ name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) }];
 
     return (
       <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
@@ -282,16 +274,6 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
               domain: [0, 'auto'],
               tickFormatter: (value: number) => value.toLocaleString()
             }}
-            withRightYAxis={showMoM}
-            rightYAxisLabel={showMoM ? 'MoM %' : undefined}
-            rightYAxisProps={showMoM ? {
-              domain: [-100, 100],
-              tickFormatter: (value: number) => {
-                // Format with 1 decimal place
-                return `${value.toFixed(1)}%`;
-              },
-              width: 70, // Constrain width to prevent large numbers from taking too much space
-            } : undefined}
           />
         </Box>
       </Paper>

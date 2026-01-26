@@ -3,6 +3,7 @@ import '@mantine/charts/styles.css';
 
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
 import { ClerkProvider } from '@clerk/nextjs';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { AppLayout } from '@/components/AppLayout';
 import { FilterProvider } from '@/contexts/FilterContext';
 
@@ -23,9 +24,11 @@ export default function RootLayout({
         </head>
         <body>
           <MantineProvider>
-            <FilterProvider>
-              <AppLayout>{children}</AppLayout>
-            </FilterProvider>
+            <NuqsAdapter>
+              <FilterProvider>
+                <AppLayout>{children}</AppLayout>
+              </FilterProvider>
+            </NuqsAdapter>
           </MantineProvider>
         </body>
       </html>

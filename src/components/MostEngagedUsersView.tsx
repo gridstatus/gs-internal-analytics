@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -18,7 +18,7 @@ import { UserHoverCard } from './UserHoverCard';
 import { Anchor } from '@mantine/core';
 import { useFilter } from '@/contexts/FilterContext';
 import Link from 'next/link';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
@@ -43,30 +43,13 @@ interface MostEngagedUsersResponse {
 }
 
 export function MostEngagedUsersView() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
   const { filterGridstatus, timezone } = useFilter();
 
-  // Initialize timeFilter from URL params
-  const timeFilterParam = searchParams.get('timeFilter');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>(
-    (timeFilterParam && ['1', '7', '30', '90', 'all'].includes(timeFilterParam))
-      ? (timeFilterParam as TimeFilter)
-      : '7'
+  // URL state management with nuqs
+  const [timeFilter, setTimeFilter] = useQueryState(
+    'timeFilter',
+    parseAsStringEnum(['1', '7', '30', '90', 'all']).withDefault('7')
   );
-
-  // Sync state → URL for shareable links
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (timeFilter !== '7') {
-      params.set('timeFilter', timeFilter);
-    } else {
-      params.delete('timeFilter');
-    }
-    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    router.replace(newUrl, { scroll: false });
-  }, [timeFilter, pathname, router, searchParams]);
 
   const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
   const apiUrl = useApiUrl('/api/insights/most-engaged-users', { filterGridstatus, timezone, days });

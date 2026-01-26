@@ -8,6 +8,7 @@ Internal analytics dashboard for Grid Status employees to understand user behavi
 - **Security first** — All data endpoints require authentication. Never add public routes without explicit approval.
 - **Easy to maintain** — Keep code simple, use consistent patterns, and avoid over-engineering.
 - **Reuse components** — Use existing components (MetricCard, DataTable, TimeSeriesChart, etc.) and consider creating new shared components when patterns repeat.
+- **Document patterns** — If you detect a project-specific pattern that the user corrects, suggest adding it to this file to prevent future mistakes.
 
 **Important**: Never add meta tags (description, Open Graph, Twitter cards, etc.) - only set the title to "Grid Status" in the root layout.
 
@@ -93,6 +94,8 @@ Each analytics page follows this pattern:
 - API route: `src/app/api/alerts/route.ts`
 - View component: `src/components/AlertsView.tsx`
 
+**CRITICAL - Clean Up Dead Code**: When refactoring code, queries, or components, always delete unused functions, SQL files, and imports. Search the codebase to verify nothing references the code before deleting. Dead code increases maintenance burden and causes confusion.
+
 ### SQL Queries
 **CRITICAL - AND Clause Safety**: When writing SQL queries with template placeholders (especially `{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{EDU_GOV_FILTER}}`, `{{INTERNAL_EMAIL_FILTER}}`), always use `WHERE 1=1` as a base condition. This prevents invalid SQL syntax when filters are removed.
 
@@ -166,22 +169,12 @@ Use the `useApiData` hook for fetching data in view components. It handles loadi
 ### URL State Management
 **CRITICAL**: Store filter state in the URL to enable deep linking and sharing. This includes filter selections, search queries, sort orders, tab selections, and pagination.
 
-**For new components**, use `nuqs` for URL state instead of manual useEffect sync:
-
-```tsx
-import { useQueryState, parseAsStringEnum } from 'nuqs';
-
-// Single hook replaces bidirectional useEffect sync
-const [period, setPeriod] = useQueryState('period',
-  parseAsStringEnum(['day', 'week', 'month']).withDefault('month')
-);
-```
-
-Existing components use manual sync with useEffect (legacy pattern).
+**Always use `nuqs` for URL state management**. It handles URL synchronization automatically and prevents infinite loops.
 
 **Example files:**
 - URL state with SegmentedControl: `src/components/PosthogMausView.tsx`
 - URL state with multiple filters: `src/components/InsightsView.tsx`
+- URL state with nullable enum: `src/components/UsersView.tsx`
 
 ## Guidelines for Building New Apps
 

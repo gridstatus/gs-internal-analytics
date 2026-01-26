@@ -113,6 +113,7 @@ export interface MonthlyNewUsersData {
 
 export interface UsersResponse {
   monthlyData: MonthlyUserData[];
+  combinedDataByPeriod?: MonthlyUserData[];
   usersToday: UsersTodayData;
   hourlyRegistrations?: HourlyUserRegistrations[];
   monthlyNewUsers?: MonthlyNewUsersData;
