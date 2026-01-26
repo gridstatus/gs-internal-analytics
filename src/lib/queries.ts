@@ -54,6 +54,12 @@ function buildEduGovFilter(usernamePrefix: string): string {
  * - {{INTERNAL_EMAIL_FILTER}} - Replaced with "AND {usernamePrefix}username != 'kmax12+dev@gmail.com'" or empty string
  * - {{FREE_EMAIL_DOMAINS}} - Replaced with the standard free-domain exclusion list
  * - {{EDU_GOV_FILTER}} - Replaced with "AND NOT (...)" for .edu/.gov exclusions
+ * 
+ * BEST PRACTICES to prevent SQL syntax errors:
+ * - Always use "WHERE 1=1" or another base condition before using {{GRIDSTATUS_FILTER_STANDALONE}} with AND
+ * - Example: "WHERE 1=1 AND SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}"
+ * - Avoid: "WHERE SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" (can leave invalid SQL when filter is removed)
+ * - The template renderer will attempt to fix this, but it's safer to structure SQL correctly from the start
  */
 export function renderSqlTemplate(sql: string, context: TemplateContext): string {
   let rendered = sql;
@@ -82,11 +88,14 @@ export function renderSqlTemplate(sql: string, context: TemplateContext): string
     // Pattern 1: "AND SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove entire AND clause
     // Match: AND + SUBSTRING + (username or u.username) + FROM + POSITION + ... + ) + whitespace + placeholder
     rendered = rendered.replace(/\s+AND\s+SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s+\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, '');
-    // Pattern 2: "WHERE SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove the SUBSTRING condition
+    // Pattern 2: "WHERE SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove entire WHERE clause condition
+    // This handles cases where WHERE starts with the filter (which would leave invalid SQL)
+    rendered = rendered.replace(/WHERE\s+SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s+\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, 'WHERE 1=1');
+    // Pattern 3: "SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove the SUBSTRING condition (fallback)
     rendered = rendered.replace(/SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s+\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, '');
-    // Pattern 3: Lines that only contain the placeholder (with optional whitespace)
+    // Pattern 4: Lines that only contain the placeholder (with optional whitespace)
     rendered = rendered.replace(/^\s*\{\{GRIDSTATUS_FILTER_STANDALONE\}\}\s*$/gm, '');
-    // Pattern 4: Any remaining placeholder with leading whitespace
+    // Pattern 5: Any remaining placeholder with leading whitespace
     rendered = rendered.replace(/\s+\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, '');
     rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, '');
   }
@@ -112,6 +121,10 @@ export function renderSqlTemplate(sql: string, context: TemplateContext): string
   rendered = rendered.replace(/WHERE\s*$/gm, '');
   // Pattern: "WHERE\n  \n)" - empty WHERE before closing paren or other clause
   rendered = rendered.replace(/WHERE\s+(?=\)|GROUP BY|ORDER BY|HAVING|LIMIT)/gi, '');
+  // Pattern: "WHERE " followed by only whitespace and then another keyword - replace with nothing
+  rendered = rendered.replace(/WHERE\s+(?=\s*(?:GROUP BY|ORDER BY|HAVING|LIMIT|\)|,))/gi, '');
+  // Pattern: "WHERE " with only whitespace/newlines before next clause - ensure we have 1=1 as fallback
+  rendered = rendered.replace(/WHERE\s*$/gm, '');
   
   return rendered;
 }

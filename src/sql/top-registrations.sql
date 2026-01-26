@@ -9,9 +9,9 @@ WITH user_data AS (
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users
-  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+  WHERE created_at IS NOT NULL
+    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
-    AND created_at IS NOT NULL
 ),
 daily_registrations AS (
   SELECT

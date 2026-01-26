@@ -14,7 +14,8 @@ export async function GET(request: Request) {
       SELECT COUNT(*) as total, COUNT(DISTINCT a.user_id) as users 
       FROM api_server.alerts a
       JOIN api_server.users u ON u.id = a.user_id
-      WHERE SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+      WHERE 1=1
+        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
     `;
     const filteredSummarySql = renderSqlTemplate(summarySql, { filterGridstatus });
