@@ -525,6 +525,18 @@ export default function UserDetailPage() {
                             borderBottom: '1px solid var(--mantine-color-default-border)',
                           }}
                         >
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color={
+                              event.event === '$pageview' ? 'blue' :
+                              event.event === '$autocapture' ? 'gray' :
+                              event.event.startsWith('$') ? 'gray' : 'violet'
+                            }
+                            style={{ flexShrink: 0 }}
+                          >
+                            {event.event.replace('$', '')}
+                          </Badge>
                           <Text
                             size="sm"
                             ff="monospace"
@@ -538,18 +550,6 @@ export default function UserDetailPage() {
                           >
                             {event.properties.pathname || event.event}
                           </Text>
-                          <Badge
-                            size="xs"
-                            variant="light"
-                            color={
-                              event.event === '$pageview' ? 'blue' :
-                              event.event === '$autocapture' ? 'gray' :
-                              event.event.startsWith('$') ? 'gray' : 'violet'
-                            }
-                            style={{ flexShrink: 0 }}
-                          >
-                            {event.event.replace('$', '')}
-                          </Badge>
                           <Text size="xs" c="dimmed" style={{ flexShrink: 0, minWidth: 50, textAlign: 'right' }}>
                             {formatTimeAgo(event.timestamp)}
                           </Text>

@@ -232,8 +232,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Search users
-    // Optimized: Use EXISTS instead of LEFT JOIN to avoid scanning entire api_key_usage table
+    // Search users with fuzzy matching on username/email and first/last name
+    // Uses ILIKE for pattern matching - exact matches work, partial matches supported
     let searchSql = `
       SELECT 
         u.id, 
@@ -250,7 +250,14 @@ export async function GET(request: Request) {
           LIMIT 1
         ) as has_api_key
       FROM api_server.users u
-      WHERE (u.username ILIKE $1 OR u.first_name ILIKE $1 OR u.last_name ILIKE $1)
+      WHERE (
+        u.username ILIKE $1 
+        OR COALESCE(u.first_name, '') ILIKE $1 
+        OR COALESCE(u.last_name, '') ILIKE $1
+        OR COALESCE(u.first_name || ' ' || u.last_name, '') ILIKE $1
+        OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM 1 FOR POSITION('@' IN u.username) - 1) ILIKE $1)
+        OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) ILIKE $1)
+      )
         AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
         {{INTERNAL_EMAIL_FILTER}}
       ORDER BY u.last_active_at DESC NULLS LAST
