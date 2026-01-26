@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
@@ -9,6 +10,7 @@ import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
 import { VALID_TIMEZONES, ValidTimezone } from '@/lib/timezones';
+import { SpotlightSearch } from './SpotlightSearch';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,6 +21,20 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { filterGridstatus, setFilterGridstatus, timezone, setTimezone } = useFilter();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure();
+  const [spotlightOpened, { open: openSpotlight, close: closeSpotlight }] = useDisclosure(false);
+
+  // Keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSpotlight();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openSpotlight]);
 
   return (
     <>
@@ -196,6 +212,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {children}
           </AppShell.Main>
         </AppShell>
+        <SpotlightSearch opened={spotlightOpened} onClose={closeSpotlight} />
       </SignedIn>
     </>
   );
