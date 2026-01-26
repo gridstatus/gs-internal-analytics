@@ -68,6 +68,7 @@ PostHog is used to track user activity and provides data for anonymous users (no
 - Y-axis should start at 0 (`yAxisProps={{ domain: [0, 'auto'] }}`)
 - Use Mantine color tokens (e.g., `blue.6`, `teal.6`, `violet.6`)
 - **Always show periods with 0 values**: Generate all periods in the time range in SQL and fill missing data with 0
+- **Use human-readable legend labels**: Always provide a `label` property for chart series (e.g., `label: 'New Users'` for a series named `newUsers`, or `label: 'Trend'` for trendlines). This makes legends more user-friendly.
 
 **Example file:** `src/components/TimeSeriesChart.tsx`
 

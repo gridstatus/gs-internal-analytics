@@ -324,6 +324,7 @@ export function UsersView() {
           dataKey="newUsers"
           color="green.6"
           chartType="bar"
+          showTrendline={true}
         />
       </SimpleGrid>
 
@@ -350,19 +351,19 @@ export function UsersView() {
                 'Cumulative (Last Week)': row.cumulativeLastWeek ?? undefined,
               }));
               
-              const series: Array<{ name: string; type: 'bar' | 'line'; color: string; yAxisId?: string; strokeDasharray?: string }> = [
-                { name: 'New Users', type: 'bar' as const, color: 'teal.6' },
-                { name: 'Cumulative (Today)', type: 'line' as const, color: 'blue.6', yAxisId: 'right' },
+              const series: Array<{ name: string; type: 'bar' | 'line'; color: string; yAxisId?: string; strokeDasharray?: string; label?: string }> = [
+                { name: 'New Users', type: 'bar' as const, color: 'teal.6', label: 'New Users' },
+                { name: 'Cumulative (Today)', type: 'line' as const, color: 'blue.6', yAxisId: 'right', label: 'Cumulative (Today)' },
               ];
               
               // Add yesterday cumulative line if data exists
               if (hourlyChartData.some(row => row['Cumulative (Yesterday)'] !== undefined)) {
-                series.push({ name: 'Cumulative (Yesterday)', type: 'line' as const, color: 'gray.6', yAxisId: 'right', strokeDasharray: '5 5' });
+                series.push({ name: 'Cumulative (Yesterday)', type: 'line' as const, color: 'gray.6', yAxisId: 'right', strokeDasharray: '5 5', label: 'Cumulative (Yesterday)' });
               }
               
               // Add last week cumulative line if data exists
               if (hourlyChartData.some(row => row['Cumulative (Last Week)'] !== undefined)) {
-                series.push({ name: 'Cumulative (Last Week)', type: 'line' as const, color: 'orange.6', yAxisId: 'right', strokeDasharray: '3 3' });
+                series.push({ name: 'Cumulative (Last Week)', type: 'line' as const, color: 'orange.6', yAxisId: 'right', strokeDasharray: '3 3', label: 'Cumulative (Last Week)' });
               }
               
               return (

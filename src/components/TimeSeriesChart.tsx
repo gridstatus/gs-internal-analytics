@@ -9,6 +9,43 @@ import { DateTime } from 'luxon';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ChartDataPoint = { month: string } & Record<string, any>;
 
+// Helper function to convert camelCase to human-readable Title Case
+function toHumanReadableLabel(key: string): string {
+  // Handle special cases
+  const specialCases: Record<string, string> = {
+    'momChange': 'MoM Change',
+    'totalUsers': 'Total Users',
+    'newUsers': 'New Users',
+    'totalApiRequests': 'Total API Requests',
+    'totalApiRowsReturned': 'Total API Rows Returned',
+    'uniqueApiUsers': 'Unique API Users',
+    'activeUsers': 'Active Users',
+    'totalCorpUsers': 'Total Corporate Users',
+    'corpDomains': 'Corporate Domains',
+    'uniqueVisitors': 'Unique Visitors',
+    'uniqueVisitorsLoggedIn': 'Logged-in Visitors',
+    'uniqueHomefeedVisitors': 'Homefeed Visitors',
+    'uniqueHomefeedVisitorsLoggedIn': 'Logged-in Homefeed Visitors',
+    'uniqueHomefeedVisitorsAnon': 'Anonymous Homefeed Visitors',
+    'engagements': 'Engagements',
+    'impressions': 'Impressions',
+    'reactions': 'Reactions',
+    'posts': 'Posts',
+    'hits': 'Hits',
+    'teams': 'Teams',
+  };
+  
+  if (specialCases[key]) {
+    return specialCases[key];
+  }
+  
+  // Convert camelCase to Title Case
+  return key
+    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+    .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+    .trim();
+}
+
 interface TimeSeriesChartProps {
   title: string;
   subtitle?: string;
@@ -20,11 +57,12 @@ interface TimeSeriesChartProps {
   chartType?: 'line' | 'bar';
   stacked?: boolean;
   stackedSeries?: Array<{ name: string; color: string; label: string }>;
+  showTrendline?: boolean;
 }
 
 export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
   function TimeSeriesChart(
-    { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [] },
+    { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [], showTrendline = false },
     ref
   ) {
     const { timezone } = useFilter();
@@ -47,6 +85,50 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
         momChange,
       };
     });
+
+    // Calculate OLS trendline with floating intercept
+    // Uses standard OLS: y = mx + b where m is slope and b is intercept
+    // slope = Σ((x - mean_x) * (y - mean_y)) / Σ((x - mean_x)²)
+    // intercept = mean_y - slope * mean_x
+    let trendlineSlope = 0;
+    let trendlineIntercept = 0;
+    if (showTrendline && chartData.length > 0) {
+      const n = chartData.length;
+      let sumX = 0;
+      let sumY = 0;
+      const values: Array<{ x: number; y: number }> = [];
+      
+      chartData.forEach((point, index) => {
+        const x = index;
+        const y = Number(point[dataKey]) || 0;
+        sumX += x;
+        sumY += y;
+        values.push({ x, y });
+      });
+      
+      const meanX = sumX / n;
+      const meanY = sumY / n;
+      
+      let sumXYDiff = 0;
+      let sumXDiffSquared = 0;
+      values.forEach(({ x, y }) => {
+        const xDiff = x - meanX;
+        const yDiff = y - meanY;
+        sumXYDiff += xDiff * yDiff;
+        sumXDiffSquared += xDiff * xDiff;
+      });
+      
+      if (sumXDiffSquared > 0) {
+        trendlineSlope = sumXYDiff / sumXDiffSquared;
+        trendlineIntercept = meanY - trendlineSlope * meanX;
+      }
+    }
+
+    // Add trendline values to chart data using the specified dataKey
+    const chartDataWithTrendline = chartData.map((point, index) => ({
+      ...point,
+      trendline: showTrendline ? trendlineSlope * index + trendlineIntercept : undefined,
+    }));
 
     const formatXAxisLabel = (value: string) => {
       // Check if it's an ISO datetime string (hourly)
@@ -78,7 +160,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       });
     };
 
-    const chartDataWithLabel = chartData.map((point) => ({
+    const chartDataWithLabel = chartDataWithTrendline.map((point) => ({
       ...point,
       label: formatXAxisLabel(String(point.month)),
     }));
@@ -88,9 +170,51 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     };
 
     if (chartType === 'bar') {
-      const series = stacked && stackedSeries.length > 0
+      // Use CompositeChart if trendline is enabled, otherwise use BarChart
+      if (showTrendline) {
+        const series = stacked && stackedSeries.length > 0
+          ? [
+              ...stackedSeries.map(s => ({ name: s.name, type: 'bar' as const, color: s.color, label: s.label || s.name, stackId: 'stack' })),
+              { name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' },
+            ]
+          : [
+              { name: dataKey, type: 'bar' as const, color, label: toHumanReadableLabel(dataKey) },
+              { name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' },
+            ];
+        return (
+          <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
+            <Text fw={600} size="lg" mb="xs">
+              {title}
+            </Text>
+            {subtitle && (
+              <Text size="sm" c="dimmed" mb="md">
+                {subtitle}
+              </Text>
+            )}
+            <Box>
+              <CompositeChart
+                h={height}
+                data={chartDataWithLabel}
+                dataKey="label"
+                series={series}
+                curveType="linear"
+                withLegend
+                legendProps={{ verticalAlign: 'bottom', height: 40 }}
+                xAxisProps={xAxisProps}
+                yAxisProps={{ 
+                  domain: [0, 'auto'],
+                  tickFormatter: (value: number) => value.toLocaleString()
+                }}
+              />
+            </Box>
+          </Paper>
+        );
+      }
+      
+      // BarChart without trendline
+      const barSeries = stacked && stackedSeries.length > 0
         ? stackedSeries.map(s => ({ name: s.name, color: s.color, label: s.label || s.name, stackId: 'stack' }))
-        : [{ name: dataKey, color }];
+        : [{ name: dataKey, color, label: toHumanReadableLabel(dataKey) }];
       
       return (
         <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
@@ -107,7 +231,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
               h={height}
               data={chartDataWithLabel}
               dataKey="label"
-              series={series}
+              series={barSeries}
               xAxisProps={xAxisProps}
               yAxisProps={{ 
                 domain: [0, 'auto'],
@@ -123,10 +247,16 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
 
     const series = showMoM
       ? [
-          { name: dataKey, type: 'line' as const, color },
-          { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right' },
+          { name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) },
+          { name: 'momChange', type: 'bar' as const, color: 'gray.4', yAxisId: 'right', label: toHumanReadableLabel('momChange') },
+          ...(showTrendline ? [{ name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' }] : []),
         ]
-      : [{ name: dataKey, type: 'line' as const, color }];
+      : showTrendline
+        ? [
+            { name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) },
+            { name: 'trendline', type: 'line' as const, color: 'gray.6', strokeDasharray: '5 5', dot: false, activeDot: false, label: 'Trend' },
+          ]
+        : [{ name: dataKey, type: 'line' as const, color, label: toHumanReadableLabel(dataKey) }];
 
     return (
       <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>

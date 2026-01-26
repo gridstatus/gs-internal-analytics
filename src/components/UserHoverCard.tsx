@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   HoverCard,
   Anchor,
@@ -66,35 +66,46 @@ export function UserHoverCard({
   const [data, setData] = useState<UserSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(false);
+  const hasFetchedRef = useRef(false);
   const { timezone } = useFilter();
 
   useEffect(() => {
-    setHasFetched(false);
+    hasFetchedRef.current = false;
     setData(null);
     setError(null);
-  }, [timezone]);
+    setShouldFetch(false);
+  }, [timezone, userId]);
 
-  const fetchUserSummary = useCallback(async () => {
-    if (hasFetched) return;
+  useEffect(() => {
+    if (!shouldFetch || hasFetchedRef.current) return;
     
+    hasFetchedRef.current = true;
     setLoading(true);
     setError(null);
-    setHasFetched(true);
     
-    try {
-      const response = await fetch(`/api/users-list?id=${userId}&timezone=${timezone}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch user');
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`/api/users-list?id=${userId}&timezone=${timezone}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch user');
+        }
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        hasFetchedRef.current = false; // Reset on error so we can retry
+      } finally {
+        setLoading(false);
       }
-      const result = await response.json();
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, hasFetched, timezone]);
+    };
+    
+    fetchData();
+  }, [shouldFetch, userId, timezone]);
+
+  const handleOpen = useCallback(() => {
+    setShouldFetch(true);
+  }, []);
 
   const formatTimeAgo = (dateString: string): string => {
     return DateTime.fromISO(dateString).toRelative() || 'Unknown';
@@ -114,7 +125,7 @@ export function UserHoverCard({
       withArrow
       openDelay={openDelay}
       closeDelay={closeDelay}
-      onOpen={fetchUserSummary}
+      onOpen={handleOpen}
     >
       <HoverCard.Target>
         <Anchor 
