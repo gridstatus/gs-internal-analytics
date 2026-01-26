@@ -153,7 +153,7 @@ export default function UserDetailPage() {
   const [apiUsageError, setApiUsageError] = useState<string | null>(null);
   
   // PostHog events state
-  const [posthogDays, setPosthogDays] = useState<number>(30);
+  const [posthogDays, setPosthogDays] = useState<number | 'all'>(30);
   const [posthogData, setPosthogData] = useState<PostHogData | null>(null);
   const [posthogLoading, setPosthogLoading] = useState(false);
   const [posthogError, setPosthogError] = useState<string | null>(null);
@@ -237,7 +237,8 @@ export default function UserDetailPage() {
       setPosthogError(null);
       
       try {
-        const response = await fetch(`/api/users-list/${id}/posthog-events?days=${posthogDays}`);
+        const daysParam = posthogDays === 'all' ? 'all' : posthogDays.toString();
+        const response = await fetch(`/api/users-list/${id}/posthog-events?days=${daysParam}`);
         if (!response.ok) {
           throw new Error('Failed to fetch PostHog events');
         }
@@ -527,12 +528,13 @@ export default function UserDetailPage() {
                 PostHog Events {posthogData && `(${posthogData.totalEvents.toLocaleString()} total)`}
               </Text>
               <SegmentedControl
-                value={posthogDays.toString()}
-                onChange={(value) => setPosthogDays(parseInt(value, 10))}
+                value={posthogDays === 'all' ? 'all' : posthogDays.toString()}
+                onChange={(value) => setPosthogDays(value === 'all' ? 'all' : parseInt(value, 10))}
                 data={[
                   { label: '7 Days', value: '7' },
                   { label: '30 Days', value: '30' },
                   { label: '90 Days', value: '90' },
+                  { label: 'All Time', value: 'all' },
                 ]}
               />
             </Group>

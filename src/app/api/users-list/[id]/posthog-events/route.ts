@@ -15,7 +15,7 @@ interface EventCount {
 
 async function fetchPosthogEventsForEmail(
   email: string,
-  days: number
+  days: number | 'all'
 ): Promise<{ events: PostHogEvent[]; eventCounts: EventCount[] }> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
@@ -27,6 +27,11 @@ async function fetchPosthogEventsForEmail(
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
 
+  // Build date filter condition
+  const dateFilter = days === 'all' 
+    ? '' 
+    : `AND timestamp >= now() - INTERVAL ${days} DAY`;
+
   // Query for event counts by type
   const countsPayload = {
     query: {
@@ -37,8 +42,9 @@ async function fetchPosthogEventsForEmail(
           COUNT(*) as count
         FROM events
         WHERE person.properties.email = '${email.replace(/'/g, "''")}'
-          AND timestamp >= now() - INTERVAL ${days} DAY
+          ${dateFilter}
           AND event != '$identify'
+          AND event != '$set'
         GROUP BY event
         ORDER BY count DESC
         LIMIT 50
@@ -61,8 +67,9 @@ async function fetchPosthogEventsForEmail(
           properties.$browser as browser
         FROM events
         WHERE person.properties.email = '${email.replace(/'/g, "''")}'
-          AND timestamp >= now() - INTERVAL ${days} DAY
+          ${dateFilter}
           AND event != '$identify'
+          AND event != '$set'
         ORDER BY timestamp DESC
         LIMIT 100
       `,
@@ -142,15 +149,22 @@ export async function GET(
   return withRequestContext(searchParams, async () => {
     try {
       const { id } = await params;
-      const days = parseInt(searchParams.get('days') || '30', 10);
+      const daysParam = searchParams.get('days') || '30';
 
-      // Validate days parameter
-      const validDays = [7, 30, 90];
-      if (!validDays.includes(days)) {
-        return NextResponse.json(
-          { error: 'Invalid days parameter. Must be 7, 30, or 90' },
-          { status: 400 }
-        );
+      // Parse days parameter - support 'all' or numeric values
+      let days: number | 'all';
+      if (daysParam === 'all') {
+        days = 'all';
+      } else {
+        const parsedDays = parseInt(daysParam, 10);
+        const validDays = [7, 30, 90];
+        if (!validDays.includes(parsedDays)) {
+          return NextResponse.json(
+            { error: 'Invalid days parameter. Must be 7, 30, 90, or "all"' },
+            { status: 400 }
+          );
+        }
+        days = parsedDays;
       }
 
       // Get user email from database
@@ -170,7 +184,7 @@ export async function GET(
 
       return NextResponse.json({
         email,
-        days,
+        days: days === 'all' ? 'all' : days,
         eventCounts,
         events,
         totalEvents: eventCounts.reduce((sum, ec) => sum + ec.count, 0),
