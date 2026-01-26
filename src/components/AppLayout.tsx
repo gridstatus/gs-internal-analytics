@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select } from '@mantine/core';
+import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell } from '@tabler/icons-react';
@@ -54,90 +54,93 @@ export function AppLayout({ children }: AppLayoutProps) {
           </AppShell.Header>
           <AppShell.Navbar p="md">
             <Stack style={{ height: '100%' }}>
-              <Group mb="md" justify="space-between">
+              <Group mb="md" justify="space-between" visibleFrom="sm">
                 <Title order={4}>Analytics</Title>
                 <UserButton />
               </Group>
               
-              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb="xs">
-                Overview
-              </Text>
-              <NavLink
-                component={Link}
-                href="/"
-                label="Home"
-                leftSection={<IconDashboard size={16} />}
-                active={pathname === '/'}
-                onClick={close}
-              />
-              <NavLink
-                component={Link}
-                href="/users"
-                label="User Registrations"
-                leftSection={<IconUserPlus size={16} />}
-                active={pathname === '/users'}
-                onClick={close}
-              />
+              <ScrollArea style={{ flex: 1 }}>
+                <Stack>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb="xs">
+                    Overview
+                  </Text>
+                  <NavLink
+                    component={Link}
+                    href="/"
+                    label="Home"
+                    leftSection={<IconDashboard size={16} />}
+                    active={pathname === '/'}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/users"
+                    label="User Registrations"
+                    leftSection={<IconUserPlus size={16} />}
+                    active={pathname === '/users'}
+                    onClick={close}
+                  />
+                  
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
+                    Users and Orgs
+                  </Text>
+                  <NavLink
+                    component={Link}
+                    href="/users-list"
+                    label="Users"
+                    leftSection={<IconUserSearch size={16} />}
+                    active={pathname?.startsWith('/users-list')}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/domains"
+                    label="Domains"
+                    leftSection={<IconWorld size={16} />}
+                    active={pathname?.startsWith('/domains')}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/organizations"
+                    label="Organizations"
+                    leftSection={<IconBuilding size={16} />}
+                    active={pathname?.startsWith('/organizations')}
+                    onClick={close}
+                  />
+                  
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
+                    Product Features
+                  </Text>
+                  <NavLink
+                    component={Link}
+                    href="/insights"
+                    label="Insights"
+                    leftSection={<IconBulb size={16} />}
+                    active={pathname?.startsWith('/insights')}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/charts-dashboards"
+                    label="Charts & Dashboards"
+                    leftSection={<IconChartBar size={16} />}
+                    active={pathname === '/charts-dashboards'}
+                    onClick={close}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/alerts"
+                    label="Alerts"
+                    leftSection={<IconBell size={16} />}
+                    active={pathname === '/alerts'}
+                    onClick={close}
+                  />
+                </Stack>
+              </ScrollArea>
               
-              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
-                Users and Orgs
-              </Text>
-              <NavLink
-                component={Link}
-                href="/users-list"
-                label="Users"
-                leftSection={<IconUserSearch size={16} />}
-                active={pathname?.startsWith('/users-list')}
-                onClick={close}
-              />
-              <NavLink
-                component={Link}
-                href="/domains"
-                label="Domains"
-                leftSection={<IconWorld size={16} />}
-                active={pathname?.startsWith('/domains')}
-                onClick={close}
-              />
-              <NavLink
-                component={Link}
-                href="/organizations"
-                label="Organizations"
-                leftSection={<IconBuilding size={16} />}
-                active={pathname?.startsWith('/organizations')}
-                onClick={close}
-              />
-              
-              <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="md" mb="xs">
-                Product Features
-              </Text>
-              <NavLink
-                component={Link}
-                href="/insights"
-                label="Insights"
-                leftSection={<IconBulb size={16} />}
-                active={pathname?.startsWith('/insights')}
-                onClick={close}
-              />
-              <NavLink
-                component={Link}
-                href="/charts-dashboards"
-                label="Charts & Dashboards"
-                leftSection={<IconChartBar size={16} />}
-                active={pathname === '/charts-dashboards'}
-                onClick={close}
-              />
-              <NavLink
-                component={Link}
-                href="/alerts"
-                label="Alerts"
-                leftSection={<IconBell size={16} />}
-                active={pathname === '/alerts'}
-                onClick={close}
-              />
-              
-              <div style={{ flex: 1 }} />
-              <Divider />
-              <Stack gap="xs" mt="md">
+              <Divider mt={{ base: 'xs', sm: 'md' }} />
+              <Stack gap="xs" mt={{ base: 'xs', sm: 'md' }}>
                 <Text size="sm" fw={500}>Settings</Text>
                 <Switch
                   label="Filter Internal"

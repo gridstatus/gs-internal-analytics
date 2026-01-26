@@ -5,13 +5,13 @@ import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ domain: string }> | { domain: string } }
+  { params }: { params: Promise<{ domain: string }> }
 ) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const resolvedParams = await Promise.resolve(params);
-    const domain = decodeURIComponent(resolvedParams.domain);
+      const resolvedParams = await params;
+      const domain = decodeURIComponent(resolvedParams.domain);
 
     // Get domain stats
     const statsSql = loadSql('domain-analytics.sql');
