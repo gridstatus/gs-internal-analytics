@@ -2,14 +2,14 @@ WITH user_data AS (
   SELECT
     created_at,
     CASE
-      WHEN SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-        {{FREE_EMAIL_DOMAINS}}
-      )
-      {{EDU_GOV_FILTER}} THEN TRUE
+      WHEN SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT LIKE '%.edu'
+        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT LIKE '%.gov'
+      THEN TRUE
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users
-  WHERE created_at IS NOT NULL
+  WHERE 1=1
+    AND created_at IS NOT NULL
     AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 ),

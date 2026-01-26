@@ -23,10 +23,10 @@ import { DataTable, Column } from './DataTable';
 export function UsersListView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const { timezone } = useFilter();
+  const { filterGridstatus, timezone } = useFilter();
 
-  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}&timezone=${timezone}`;
-  const { data, loading } = useApiData<UsersListResponse>(url, [url, timezone]);
+  const url = `/api/users-list?search=${encodeURIComponent(debouncedSearch)}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading } = useApiData<UsersListResponse>(url, [url, filterGridstatus, timezone]);
   const users = data?.users ?? [];
 
   const columns: Column<UsersListItem>[] = [
@@ -81,7 +81,7 @@ export function UsersListView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Title order={1} mb="xl">Users</Title>
 
       <TextInput

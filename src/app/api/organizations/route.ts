@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { renderSqlTemplate } from '@/lib/queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
+    const filterGridstatus = getFilterGridstatus(searchParams);
 
     try {
     // If ID provided, get single org with users
@@ -132,14 +134,7 @@ export async function GET(request: Request) {
     }
 
     // Search organizations
-    const orgs = await query<{
-      id: string;
-      name: string;
-      created_at: Date;
-      user_count: string;
-      new_users_7d: string;
-      active_users_7d: string;
-    }>(`
+    let searchSql = `
       SELECT 
         o.id, 
         o.name, 
@@ -150,11 +145,22 @@ export async function GET(request: Request) {
       FROM api_server.organizations o
       LEFT JOIN api_server.user_organizations uo ON uo.organization_id = o.id
       LEFT JOIN api_server.users u ON u.id = uo.user_id
+        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
       WHERE o.name ILIKE $1
       GROUP BY o.id, o.name, o.created_at
       ORDER BY COUNT(uo.user_id) DESC
       LIMIT 100
-    `, [`%${search}%`]);
+    `;
+    searchSql = renderSqlTemplate(searchSql, { filterGridstatus, usernamePrefix: 'u.' });
+    const orgs = await query<{
+      id: string;
+      name: string;
+      created_at: Date;
+      user_count: string;
+      new_users_7d: string;
+      active_users_7d: string;
+    }>(searchSql, [`%${search}%`]);
 
     return NextResponse.json({
       organizations: orgs.map(o => ({

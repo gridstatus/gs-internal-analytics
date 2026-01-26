@@ -20,9 +20,7 @@ LEFT JOIN insights.post_views pv ON u.id = pv.user_id
 LEFT JOIN insights.saved_posts sp ON u.id = sp.user_id
   {{TIME_FILTER_SAVES}}
 WHERE u.username IS NOT NULL
-  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) NOT IN (
-    {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
-  )
+  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
   {{EDU_GOV_FILTER}}
 GROUP BY u.id, u.username, u.first_name, u.last_name
 HAVING 

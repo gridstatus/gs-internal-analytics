@@ -38,7 +38,7 @@ export function ApiUsageView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -54,7 +54,7 @@ export function ApiUsageView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -68,7 +68,7 @@ export function ApiUsageView() {
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No API usage data available.
         </Alert>
@@ -149,7 +149,7 @@ export function ApiUsageView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group justify="space-between" mb="xl">
         <Title order={1}>API Usage</Title>
         <ExportButton charts={chartRefs} />

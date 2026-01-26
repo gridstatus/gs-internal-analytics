@@ -88,7 +88,7 @@ export default function DomainDetailPage() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
@@ -98,7 +98,7 @@ export default function DomainDetailPage() {
 
   if (error || !data) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading domain"
@@ -111,7 +111,7 @@ export default function DomainDetailPage() {
   }
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group mb="xl">
         <Anchor
           component={Link}

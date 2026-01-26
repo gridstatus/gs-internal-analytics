@@ -23,10 +23,10 @@ import { DataTable, Column } from './DataTable';
 export function OrganizationsView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const { timezone } = useFilter();
+  const { filterGridstatus, timezone } = useFilter();
 
-  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}&timezone=${timezone}`;
-  const { data, loading } = useApiData<OrganizationsResponse>(url, [url, timezone]);
+  const url = `/api/organizations?search=${encodeURIComponent(debouncedSearch)}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading } = useApiData<OrganizationsResponse>(url, [url, filterGridstatus, timezone]);
   const organizations = data?.organizations ?? [];
 
   const columns: Column<OrganizationListItem>[] = [
@@ -75,7 +75,7 @@ export function OrganizationsView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Title order={1} mb="xl">Organizations</Title>
 
       <TextInput

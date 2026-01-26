@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, loadSql, renderSqlTemplate } from '@/lib/queries';
+import { getMonthlyUserCounts, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
 import { query } from '@/lib/db';
 import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
@@ -58,16 +58,74 @@ export async function GET(request: Request) {
       ORDER BY h.hour ASC
     `;
 
-    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw] = await Promise.all([
+    const hourlyRegistrationsYesterdaySql = `
+      WITH hours AS (
+        SELECT generate_series(
+          DATE_TRUNC('day', NOW() - INTERVAL '1 day'),
+          DATE_TRUNC('day', NOW() - INTERVAL '1 day') + (NOW() - DATE_TRUNC('day', NOW())),
+          INTERVAL '1 hour'
+        ) AS hour
+      ),
+      counts AS (
+        SELECT
+          DATE_TRUNC('hour', created_at) AS hour,
+          COUNT(*) AS new_users
+        FROM api_server.users
+        WHERE created_at >= DATE_TRUNC('day', NOW() - INTERVAL '1 day')
+          AND created_at < DATE_TRUNC('day', NOW() - INTERVAL '1 day') + (NOW() - DATE_TRUNC('day', NOW()))
+          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+          {{INTERNAL_EMAIL_FILTER}}
+        GROUP BY 1
+      )
+      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
+      FROM hours h
+      LEFT JOIN counts c ON c.hour = h.hour
+      ORDER BY h.hour ASC
+    `;
+
+    const hourlyRegistrationsLastWeekSql = `
+      WITH hours AS (
+        SELECT generate_series(
+          DATE_TRUNC('day', NOW() - INTERVAL '7 days'),
+          DATE_TRUNC('day', NOW() - INTERVAL '7 days') + (NOW() - DATE_TRUNC('day', NOW())),
+          INTERVAL '1 hour'
+        ) AS hour
+      ),
+      counts AS (
+        SELECT
+          DATE_TRUNC('hour', created_at) AS hour,
+          COUNT(*) AS new_users
+        FROM api_server.users
+        WHERE created_at >= DATE_TRUNC('day', NOW() - INTERVAL '7 days')
+          AND created_at < DATE_TRUNC('day', NOW() - INTERVAL '7 days') + (NOW() - DATE_TRUNC('day', NOW()))
+          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+          {{INTERNAL_EMAIL_FILTER}}
+        GROUP BY 1
+      )
+      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
+      FROM hours h
+      LEFT JOIN counts c ON c.hour = h.hour
+      ORDER BY h.hour ASC
+    `;
+
+    const [userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
       getMonthlyUserCounts(filterGridstatus),
       getMonthlyCorpMetrics(filterGridstatus),
       getUsersToday(filterGridstatus),
       getMonthlyNewUsersComparison(filterGridstatus),
+      getLast30DaysUsers(filterGridstatus),
+      getTotalUsersCount(filterGridstatus),
       getTopDomains(1),
       getTopDomains(7),
       getTopDomains(30),
       query<{ hour: Date; new_users: string }>(
         renderSqlTemplate(hourlyRegistrationsSql, { filterGridstatus })
+      ),
+      query<{ hour: Date; new_users: string }>(
+        renderSqlTemplate(hourlyRegistrationsYesterdaySql, { filterGridstatus })
+      ),
+      query<{ hour: Date; new_users: string }>(
+        renderSqlTemplate(hourlyRegistrationsLastWeekSql, { filterGridstatus })
       ),
     ]);
 
@@ -79,6 +137,34 @@ export async function GET(request: Request) {
         hour: row.hour.toISOString(),
         newUsers,
         cumulativeUsers,
+      };
+    });
+
+    let cumulativeYesterday = 0;
+    const yesterdayMap = new Map<number, number>();
+    hourlyRegistrationsYesterdayRaw.forEach((row) => {
+      const newUsers = Number(row.new_users);
+      cumulativeYesterday += newUsers;
+      const hourOfDay = new Date(row.hour).getUTCHours();
+      yesterdayMap.set(hourOfDay, cumulativeYesterday);
+    });
+
+    let cumulativeLastWeek = 0;
+    const lastWeekMap = new Map<number, number>();
+    hourlyRegistrationsLastWeekRaw.forEach((row) => {
+      const newUsers = Number(row.new_users);
+      cumulativeLastWeek += newUsers;
+      const hourOfDay = new Date(row.hour).getUTCHours();
+      lastWeekMap.set(hourOfDay, cumulativeLastWeek);
+    });
+
+    // Merge cumulative values by hour of day
+    const hourlyRegistrationsWithComparisons = hourlyRegistrations.map((row) => {
+      const hourOfDay = new Date(row.hour).getUTCHours();
+      return {
+        ...row,
+        cumulativeYesterday: yesterdayMap.get(hourOfDay) ?? null,
+        cumulativeLastWeek: lastWeekMap.get(hourOfDay) ?? null,
       };
     });
 
@@ -129,7 +215,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       monthlyData,
-      hourlyRegistrations,
+      hourlyRegistrations: hourlyRegistrationsWithComparisons,
       usersToday: {
         today: Number(usersToday[0]?.users_today || 0),
         yesterdayAll: Number(usersToday[0]?.users_yesterday_all || 0),
@@ -144,6 +230,11 @@ export async function GET(request: Request) {
         lastYearMonthAll: Number(monthlyNewUsers[0]?.last_year_month_all || 0),
         lastYearMonthSameTime: Number(monthlyNewUsers[0]?.last_year_month_same_time || 0),
       },
+      last30DaysUsers: {
+        last30Days: Number(last30DaysUsers[0]?.last_30_days || 0),
+        previous30Days: Number(last30DaysUsers[0]?.previous_30_days || 0),
+      },
+      totalUsers: Number(totalUsersCount[0]?.total_users || 0),
       topDomains: {
         '1d': topDomains1d.map(d => ({
           domain: d.domain,

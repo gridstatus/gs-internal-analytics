@@ -3,12 +3,11 @@ WITH corp_domains AS (
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
     DATE_TRUNC('month', created_at) AS month
   FROM api_server.users
-  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-    {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
-  )
-  {{EDU_GOV_FILTER}}
-  {{INTERNAL_EMAIL_FILTER}}
-  AND created_at IS NOT NULL
+  WHERE 1=1
+    AND created_at IS NOT NULL
+    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+    {{EDU_GOV_FILTER}}
+    {{INTERNAL_EMAIL_FILTER}}
 ),
 monthly_domain_counts AS (
   SELECT

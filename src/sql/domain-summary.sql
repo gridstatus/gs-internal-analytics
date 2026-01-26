@@ -1,11 +1,10 @@
 WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users
-  WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-    {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
-  )
-  {{EDU_GOV_FILTER}}
-  {{INTERNAL_EMAIL_FILTER}}
+  WHERE 1=1
+    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+    {{EDU_GOV_FILTER}}
+    {{INTERNAL_EMAIL_FILTER}}
 ),
 domain_counts AS (
   SELECT domain, COUNT(*) AS user_count

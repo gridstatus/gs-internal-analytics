@@ -4,9 +4,7 @@ WITH user_domains AS (
     last_active_at
   FROM api_server.users
   WHERE last_active_at IS NOT NULL
-    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) NOT IN (
-      {{FREE_EMAIL_DOMAINS}}{{GRIDSTATUS_FILTER_IN_LIST}}
-    )
+    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
     {{INTERNAL_EMAIL_FILTER}}
 )
 SELECT

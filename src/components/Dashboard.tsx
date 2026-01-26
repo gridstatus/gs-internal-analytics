@@ -136,7 +136,7 @@ export function Dashboard() {
 
   if (loading || activeUsersLoading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={200} />
@@ -157,7 +157,7 @@ export function Dashboard() {
 
   if (error || activeUsersError) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -179,7 +179,7 @@ export function Dashboard() {
   const pct90d = Math.round((activeUsersData.active90d / activeUsersData.totalUsers) * 100);
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Title order={1} mb="xl">User Analytics Dashboard</Title>
 
       {/* Activity Breakdown */}

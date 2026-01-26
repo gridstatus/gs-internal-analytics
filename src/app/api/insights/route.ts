@@ -4,8 +4,12 @@ import {
   getMonthlyInsightsViews,
   getMonthlyInsightsReactions,
   getTopInsightsPosts,
+  getTotalUniqueVisitors,
+  getTotalUniqueHomefeedVisitors,
+  fetchPosthogAnonymousUsers,
+  fetchPosthogAnonymousHomefeedVisitors,
 } from '@/lib/queries';
-import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -39,38 +43,56 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
       const timeFilter = searchParams.get('timeFilter') as '24h' | '7d' | '1m' | null;
     const chartPeriod = (searchParams.get('chartPeriod') as 'day' | 'week' | 'month') || 'month';
     
-    const [posts, views, reactions, topPosts] = await Promise.all([
-      getMonthlyInsightsPosts(chartPeriod),
-      getMonthlyInsightsViews(chartPeriod),
-      getMonthlyInsightsReactions(chartPeriod),
-      getTopInsightsPosts(timeFilter || undefined),
+    const [posts, views, reactions, topPosts, totalUniqueVisitorsLoggedIn, totalUniqueHomefeedVisitorsLoggedIn, anonymousVisitors, anonymousHomefeedVisitors] = await Promise.all([
+      getMonthlyInsightsPosts(chartPeriod, filterGridstatus),
+      getMonthlyInsightsViews(chartPeriod, filterGridstatus),
+      getMonthlyInsightsReactions(chartPeriod, filterGridstatus),
+      getTopInsightsPosts(timeFilter || undefined, filterGridstatus),
+      getTotalUniqueVisitors(filterGridstatus),
+      getTotalUniqueHomefeedVisitors(filterGridstatus),
+      fetchPosthogAnonymousUsers(chartPeriod),
+      fetchPosthogAnonymousHomefeedVisitors(chartPeriod),
     ]);
 
     // Calculate summary stats
     const totalPosts = posts.reduce((sum, p) => sum + Number(p.total_posts), 0);
     const totalImpressions = views.reduce((sum, v) => sum + Number(v.impressions), 0);
-    const totalViews = views.reduce((sum, v) => sum + Number(v.views), 0);
+    const totalEngagements = views.reduce((sum, v) => sum + Number(v.views), 0);
     const totalReactions = reactions.reduce((sum, r) => sum + Number(r.total_reactions), 0);
     const uniqueAuthors = new Set(posts.flatMap((p) => [Number(p.unique_authors)])).size;
 
-    // Format period data (day/week/month)
+    // Format period data (day/week/month) and merge PostHog anonymous data
     const monthlyData = posts.map((p) => {
       const periodStr = formatPeriod(p.month, chartPeriod);
       const viewData = views.find((v) => formatPeriod(v.month, chartPeriod) === periodStr);
       const reactionData = reactions.find((r) => formatPeriod(r.month, chartPeriod) === periodStr);
+      
+      // Find matching PostHog anonymous data for this period
+      const anonData = anonymousVisitors.find((a) => a.period === periodStr);
+      const anonHomefeedData = anonymousHomefeedVisitors.find((a) => a.period === periodStr);
+      
+      const uniqueVisitorsLoggedIn = viewData ? Number(viewData.unique_visitors_logged_in) : 0;
+      const uniqueVisitorsAnon = anonData ? anonData.anonymousUsers : 0;
+      const uniqueHomefeedVisitorsLoggedIn = viewData ? Number(viewData.unique_homefeed_visitors_logged_in) : 0;
+      const uniqueHomefeedVisitorsAnon = anonHomefeedData ? anonHomefeedData.anonymousUsers : 0;
 
       return {
         month: periodStr,
         posts: Number(p.total_posts),
         authors: Number(p.unique_authors),
         impressions: viewData ? Number(viewData.impressions) : 0,
-        views: viewData ? Number(viewData.views) : 0,
+        engagements: viewData ? Number(viewData.views) : 0,
         postsViewed: viewData ? Number(viewData.posts_viewed) : 0,
-        uniqueViewers: viewData ? Number(viewData.unique_viewers) : 0,
-        uniqueImpressionUsers: viewData ? Number(viewData.unique_impression_users) : 0,
+        uniqueVisitorsLoggedIn,
+        uniqueVisitorsAnon,
+        uniqueVisitors: uniqueVisitorsLoggedIn + uniqueVisitorsAnon,
+        uniqueHomefeedVisitorsLoggedIn,
+        uniqueHomefeedVisitorsAnon,
+        uniqueHomefeedVisitors: uniqueHomefeedVisitorsLoggedIn + uniqueHomefeedVisitorsAnon,
         reactions: reactionData ? Number(reactionData.total_reactions) : 0,
         likes: reactionData ? Number(reactionData.likes) : 0,
         dislikes: reactionData ? Number(reactionData.dislikes) : 0,
@@ -90,8 +112,8 @@ export async function GET(request: Request) {
         impressionsMomChange: previous
           ? Math.round(((current.impressions - previous.impressions) / previous.impressions) * 100)
           : 0,
-        viewsMomChange: previous
-          ? Math.round(((current.views - previous.views) / previous.views) * 100)
+        engagementsMomChange: previous
+          ? Math.round(((current.engagements - previous.engagements) / previous.engagements) * 100)
           : 0,
         reactionsMomChange: previous
           ? Math.round(((current.reactions - previous.reactions) / previous.reactions) * 100)
@@ -99,13 +121,23 @@ export async function GET(request: Request) {
       };
     });
 
+    // Calculate total anonymous visitors (sum across all periods)
+    const totalAnonymousVisitors = anonymousVisitors.reduce((sum, a) => sum + a.anonymousUsers, 0);
+    const totalAnonymousHomefeedVisitors = anonymousHomefeedVisitors.reduce((sum, a) => sum + a.anonymousUsers, 0);
+
     return NextResponse.json({
       summary: {
         totalPosts,
         totalImpressions,
-        totalViews,
+        totalEngagements,
         totalReactions,
         uniqueAuthors,
+        totalUniqueVisitors: totalUniqueVisitorsLoggedIn + totalAnonymousVisitors,
+        totalUniqueVisitorsLoggedIn: totalUniqueVisitorsLoggedIn,
+        totalUniqueVisitorsAnon: totalAnonymousVisitors,
+        totalUniqueHomefeedVisitors: totalUniqueHomefeedVisitorsLoggedIn + totalAnonymousHomefeedVisitors,
+        totalUniqueHomefeedVisitorsLoggedIn: totalUniqueHomefeedVisitorsLoggedIn,
+        totalUniqueHomefeedVisitorsAnon: totalAnonymousHomefeedVisitors,
       },
       monthlyData: monthlyDataWithChanges.reverse(),
       topPosts: topPosts.map((post) => ({

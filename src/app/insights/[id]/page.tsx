@@ -147,7 +147,7 @@ export default function InsightDetailPage() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
@@ -157,7 +157,7 @@ export default function InsightDetailPage() {
 
   if (error || !data) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading insight"
@@ -181,7 +181,7 @@ export default function InsightDetailPage() {
   };
 
   return (
-    <Container size="xl" py="md">
+    <Container fluid py="md">
       {/* Compact Header */}
       <Group mb="md">
         <Anchor

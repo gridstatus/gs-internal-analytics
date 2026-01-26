@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
-async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promise<{ period: string; activeUsers: number }[]> {
+async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterGridstatus: boolean): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -36,6 +36,11 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
     dateFilter = '';
   }
 
+  // Filter out internal users when filterGridstatus is true
+  const gridstatusFilter = filterGridstatus 
+    ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" 
+    : '';
+
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
     query: {
@@ -47,6 +52,7 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
         FROM events
         WHERE person.properties.email IS NOT NULL
           ${dateFilter}
+          ${gridstatusFilter}
         GROUP BY period
         ORDER BY period ${orderDirection}
       `,
@@ -115,6 +121,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
+      const filterGridstatus = getFilterGridstatus(searchParams);
       const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month';
     
     if (!['day', 'week', 'month'].includes(period)) {
@@ -124,7 +131,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const activeUsers = await fetchPosthogActiveUsers(period);
+    const activeUsers = await fetchPosthogActiveUsers(period, filterGridstatus);
 
     // Calculate period-over-period change
     const periodData = activeUsers.map((row, index) => {

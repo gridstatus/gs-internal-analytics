@@ -29,7 +29,7 @@ export function DomainsView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={400} />
@@ -40,7 +40,7 @@ export function DomainsView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -110,7 +110,7 @@ export function DomainsView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Title order={1} mb="xl">Domains</Title>
 
       {/* Domain breakdown table */}
@@ -134,7 +134,7 @@ export function DomainsView() {
           defaultSort={{ column: 'totalUsers', direction: 'desc' }}
         />
         <Text size="xs" c="dimmed" mt="md">
-          Showing up to 100 domains. Excludes free email providers only.
+          Showing up to 100 domains.
         </Text>
       </Paper>
     </Container>

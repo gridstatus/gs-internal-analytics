@@ -18,11 +18,13 @@ interface TimeSeriesChartProps {
   color?: string;
   height?: number;
   chartType?: 'line' | 'bar';
+  stacked?: boolean;
+  stackedSeries?: Array<{ name: string; color: string; label: string }>;
 }
 
 export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
   function TimeSeriesChart(
-    { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line' },
+    { title, subtitle, data, dataKey, showMoM = true, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [] },
     ref
   ) {
     const { timezone } = useFilter();
@@ -86,6 +88,10 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
     };
 
     if (chartType === 'bar') {
+      const series = stacked && stackedSeries.length > 0
+        ? stackedSeries.map(s => ({ name: s.name, color: s.color, label: s.label || s.name, stackId: 'stack' }))
+        : [{ name: dataKey, color }];
+      
       return (
         <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
           <Text fw={600} size="lg" mb="xs">
@@ -97,13 +103,16 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             </Text>
           )}
           <Box>
+            {/* @ts-expect-error - stackId prop is passed through to Recharts but not in Mantine types */}
             <BarChart
               h={height}
               data={chartDataWithLabel}
               dataKey="label"
-              series={[{ name: dataKey, color }]}
+              series={series}
               xAxisProps={xAxisProps}
               yAxisProps={{ domain: [0, 'auto'] }}
+              withLegend={stacked && stackedSeries.length > 0}
+              legendProps={stacked && stackedSeries.length > 0 ? { verticalAlign: 'bottom', height: 40 } : undefined}
             />
           </Box>
         </Paper>

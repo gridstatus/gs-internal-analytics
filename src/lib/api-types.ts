@@ -99,6 +99,8 @@ export interface HourlyUserRegistrations {
   hour: string;
   newUsers: number;
   cumulativeUsers: number;
+  cumulativeYesterday: number | null;
+  cumulativeLastWeek: number | null;
 }
 
 export interface MonthlyNewUsersData {
@@ -114,6 +116,11 @@ export interface UsersResponse {
   usersToday: UsersTodayData;
   hourlyRegistrations?: HourlyUserRegistrations[];
   monthlyNewUsers?: MonthlyNewUsersData;
+  last30DaysUsers?: {
+    last30Days: number;
+    previous30Days: number;
+  };
+  totalUsers?: number;
   topDomains?: {
     '1d': TopDomain[];
     '7d': TopDomain[];
@@ -138,10 +145,14 @@ export interface MonthlyInsightData {
   posts: number;
   authors: number;
   impressions: number;
-  views: number;
+  engagements: number;
   postsViewed: number;
-  uniqueViewers: number;
-  uniqueImpressionUsers: number;
+  uniqueVisitors: number;
+  uniqueVisitorsLoggedIn: number;
+  uniqueVisitorsAnon: number;
+  uniqueHomefeedVisitors: number;
+  uniqueHomefeedVisitorsLoggedIn: number;
+  uniqueHomefeedVisitorsAnon: number;
   reactions: number;
   likes: number;
   dislikes: number;
@@ -149,7 +160,7 @@ export interface MonthlyInsightData {
   uniqueReactors: number;
   postsMomChange: number;
   impressionsMomChange: number;
-  viewsMomChange: number;
+  engagementsMomChange: number;
   reactionsMomChange: number;
 }
 
@@ -174,9 +185,15 @@ export interface InsightsResponse {
   summary: {
     totalPosts: number;
     totalImpressions: number;
-    totalViews: number;
+    totalEngagements: number;
     totalReactions: number;
     uniqueAuthors: number;
+    totalUniqueVisitors: number;
+    totalUniqueVisitorsLoggedIn: number;
+    totalUniqueVisitorsAnon: number;
+    totalUniqueHomefeedVisitors: number;
+    totalUniqueHomefeedVisitorsLoggedIn: number;
+    totalUniqueHomefeedVisitorsAnon: number;
   };
   monthlyData: MonthlyInsightData[];
   topPosts: TopPost[];

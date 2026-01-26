@@ -51,13 +51,13 @@ export function PosthogMausView() {
     router.replace(newUrl, { scroll: false });
   }, [period, pathname, router, searchParams]);
 
-  const { timezone } = useFilter();
-  const url = `/api/posthog-maus?period=${period}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url, timezone]);
+  const { filterGridstatus, timezone } = useFilter();
+  const url = `/api/posthog-maus?period=${period}&filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -73,7 +73,7 @@ export function PosthogMausView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -87,7 +87,7 @@ export function PosthogMausView() {
 
   if (!data || data.periodData.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No PostHog Active Users data available. Check your PostHog credentials.
         </Alert>
@@ -143,9 +143,14 @@ export function PosthogMausView() {
   const changeLabel = period === 'day' ? 'DoD' : period === 'week' ? 'WoW' : 'MoM';
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group justify="space-between" mb="xl" wrap="wrap">
-        <Title order={1}>PostHog Active Users</Title>
+        <div>
+          <Title order={1}>PostHog Active Users</Title>
+          <Text size="xs" c="dimmed" mt={4}>
+            Filtered to users with email addresses (typically logged-in users)
+          </Text>
+        </div>
         <Group>
           <SegmentedControl
             value={period}
@@ -165,6 +170,7 @@ export function PosthogMausView() {
         <MetricCard
           title={`Current ${periodLabel} Active Users`}
           value={latestMetric.activeUsers}
+          subtitle="Users with email addresses (typically logged-in)"
           trend={calculateTrend(
             latestMetric.activeUsers,
             previousMetric?.activeUsers
@@ -182,7 +188,7 @@ export function PosthogMausView() {
       <TimeSeriesChart
         ref={activeUsersChartRef}
         title={`${periodLabel} Active Users`}
-        subtitle={`Unique users with activity each ${period === 'day' ? 'day' : period === 'week' ? 'week' : 'month'} (from PostHog)`}
+        subtitle={`Users with email addresses (typically logged-in) with activity each ${period === 'day' ? 'day' : period === 'week' ? 'week' : 'month'} (from PostHog)`}
         data={data.periodData.map(d => ({
           month: d.period,
           activeUsers: d.activeUsers,
@@ -233,6 +239,9 @@ export function PosthogMausView() {
           ]}
           keyField="period"
         />
+        <Text size="xs" c="dimmed" mt="md">
+          All metrics shown are for users with email addresses (typically logged-in users only). Anonymous users without emails are excluded.
+        </Text>
       </Paper>
     </Container>
   );

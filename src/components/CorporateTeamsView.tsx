@@ -45,7 +45,7 @@ export function CorporateTeamsView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -61,7 +61,7 @@ export function CorporateTeamsView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -75,7 +75,7 @@ export function CorporateTeamsView() {
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No corporate and teams data available.
         </Alert>
@@ -102,7 +102,7 @@ export function CorporateTeamsView() {
   };
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Anchor
         component={Link}
         href="/users"
@@ -144,8 +144,7 @@ export function CorporateTeamsView() {
                 Corporate Users
               </Text>
               <Text size="xs" c="dimmed">
-                Users whose email domain is NOT in the free email domains list (gmail.com, yahoo.com, hotmail.com, outlook.com, icloud.com, aol.com, comcast.net, qq.com, me.com, protonmail.com, live.com, msn.com, zoho.com, gmx.com, yandex.com). 
-                This metric also excludes .edu and .gov domains. The count is cumulative (total registered users from corporate domains).
+                Users whose email domain is not .edu or .gov. The count is cumulative (total registered users from corporate domains).
               </Text>
             </div>
             <div>
@@ -183,7 +182,7 @@ export function CorporateTeamsView() {
               </Text>
               <Text size="xs" c="dimmed">
                 The number of new users registered in each month whose email domain qualifies as corporate 
-                (not a free email provider and not .edu/.gov).
+                (not .edu/.gov).
               </Text>
             </div>
             <Alert color="blue" variant="light" mt="sm">

@@ -36,7 +36,7 @@ export function TopRegistrationsView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={400} />
@@ -47,7 +47,7 @@ export function TopRegistrationsView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -61,7 +61,7 @@ export function TopRegistrationsView() {
 
   if (!data || data.data.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No registration data available.
         </Alert>
@@ -130,7 +130,7 @@ export function TopRegistrationsView() {
   };
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Anchor
         component={Link}
         href="/users"

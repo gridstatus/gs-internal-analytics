@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
-import { loadSql } from '@/lib/queries';
-import { withRequestContext } from '@/lib/api-helpers';
+import { loadSql, renderSqlTemplate } from '@/lib/queries';
+import { getFilterGridstatus, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
+    const filterGridstatus = getFilterGridstatus(searchParams);
 
     try {
     // If ID provided, get single user with details
@@ -233,15 +234,7 @@ export async function GET(request: Request) {
 
     // Search users
     // Optimized: Use EXISTS instead of LEFT JOIN to avoid scanning entire api_key_usage table
-    const users = await query<{
-      id: number;
-      username: string;
-      first_name: string;
-      last_name: string;
-      created_at: Date;
-      last_active_at: Date;
-      has_api_key: boolean;
-    }>(`
+    let searchSql = `
       SELECT 
         u.id, 
         u.username, 
@@ -257,10 +250,22 @@ export async function GET(request: Request) {
           LIMIT 1
         ) as has_api_key
       FROM api_server.users u
-      WHERE u.username ILIKE $1 OR u.first_name ILIKE $1 OR u.last_name ILIKE $1
+      WHERE (u.username ILIKE $1 OR u.first_name ILIKE $1 OR u.last_name ILIKE $1)
+        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+        {{INTERNAL_EMAIL_FILTER}}
       ORDER BY u.last_active_at DESC NULLS LAST
       LIMIT 100
-    `, [`%${search}%`]);
+    `;
+    searchSql = renderSqlTemplate(searchSql, { filterGridstatus, usernamePrefix: 'u.' });
+    const users = await query<{
+      id: number;
+      username: string;
+      first_name: string;
+      last_name: string;
+      created_at: Date;
+      last_active_at: Date;
+      has_api_key: boolean;
+    }>(searchSql, [`%${search}%`]);
 
     return NextResponse.json({
       users: users.map(u => ({

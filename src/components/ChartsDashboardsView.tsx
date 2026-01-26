@@ -29,7 +29,7 @@ export function ChartsDashboardsView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
@@ -45,7 +45,7 @@ export function ChartsDashboardsView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -115,7 +115,7 @@ export function ChartsDashboardsView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Title order={1} mb="xl">Charts & Dashboards</Title>
 
       {/* Summary Metrics */}

@@ -99,7 +99,7 @@ export default function OrganizationDetailPage() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
@@ -109,7 +109,7 @@ export default function OrganizationDetailPage() {
 
   if (error || !data) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading organization"
@@ -122,7 +122,7 @@ export default function OrganizationDetailPage() {
   }
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group mb="xl">
         <Anchor
           component={Link}

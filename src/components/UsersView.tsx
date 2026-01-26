@@ -79,7 +79,7 @@ export function UsersView() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -95,7 +95,7 @@ export function UsersView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -109,7 +109,7 @@ export function UsersView() {
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No user registration data available.
         </Alert>
@@ -151,8 +151,12 @@ export function UsersView() {
   };
   const todayDateLabel = formatTodayDate();
 
+  // Get last 30 days data from API (accurate calculation from database)
+  const last30Days = data.last30DaysUsers?.last30Days ?? 0;
+  const previous30Days = data.last30DaysUsers?.previous30Days ?? 0;
+
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group justify="space-between" mb="xl">
         <Title order={1}>User Registrations</Title>
         <Group>
@@ -177,7 +181,7 @@ export function UsersView() {
       </Group>
 
       {/* Summary Metrics */}
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md" mb="xl">
         <MetricCard
           title={`Users Today - ${todayDateLabel}`}
           value={data.usersToday.today}
@@ -280,6 +284,25 @@ export function UsersView() {
             )
           }
         />
+        <MetricCard
+          title="New Users - Last 30 days"
+          value={last30Days.toLocaleString()}
+          subtitle={
+            previous30Days > 0 ? (
+              <Text size="xs" c="dimmed">
+                vs Previous 30 days: {previous30Days.toLocaleString()}
+                <Text span c={last30Days >= previous30Days ? 'green' : 'red'} ml="xs">
+                  ({last30Days >= previous30Days ? '+' : ''}
+                  {Math.round(((last30Days - previous30Days) / previous30Days) * 100).toLocaleString()}%)
+                </Text>
+              </Text>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Last 30 days
+              </Text>
+            )
+          }
+        />
       </SimpleGrid>
 
       {/* Charts */}
@@ -287,7 +310,7 @@ export function UsersView() {
         <TimeSeriesChart
           ref={totalUsersChartRef}
           title="Total Registered Users"
-          subtitle="Cumulative user signups over time"
+          subtitle={data.totalUsers ? `Current total: ${data.totalUsers.toLocaleString()} users` : "Cumulative user signups over time"}
           data={data.monthlyData}
           dataKey="totalUsers"
           color="blue.6"
@@ -309,7 +332,7 @@ export function UsersView() {
           New Users by Hour (Today)
         </Text>
         <Text size="sm" c="dimmed" mb="md">
-          Bar shows new users per hour, line shows cumulative users through the day
+          Bar shows new users per hour. Lines show cumulative users: today (solid), yesterday (dashed), last week (dotted)
         </Text>
         {data.hourlyRegistrations && data.hourlyRegistrations.length > 0 ? (
           <Box>
@@ -319,16 +342,35 @@ export function UsersView() {
                 hourLabel: DateTime.fromISO(row.hour)
                   .setZone(timezone)
                   .toLocaleString(DateTime.TIME_SIMPLE),
+                // Map to readable names for legend
+                'New Users': row.newUsers,
+                'Cumulative (Today)': row.cumulativeUsers,
+                // Use 0 instead of null for chart compatibility
+                'Cumulative (Yesterday)': row.cumulativeYesterday ?? undefined,
+                'Cumulative (Last Week)': row.cumulativeLastWeek ?? undefined,
               }));
+              
+              const series = [
+                { name: 'New Users', type: 'bar', color: 'teal.6' },
+                { name: 'Cumulative (Today)', type: 'line', color: 'blue.6', yAxisId: 'right' },
+              ];
+              
+              // Add yesterday cumulative line if data exists
+              if (hourlyChartData.some(row => row['Cumulative (Yesterday)'] !== undefined)) {
+                series.push({ name: 'Cumulative (Yesterday)', type: 'line', color: 'gray.6', yAxisId: 'right', strokeDasharray: '5 5' });
+              }
+              
+              // Add last week cumulative line if data exists
+              if (hourlyChartData.some(row => row['Cumulative (Last Week)'] !== undefined)) {
+                series.push({ name: 'Cumulative (Last Week)', type: 'line', color: 'orange.6', yAxisId: 'right', strokeDasharray: '3 3' });
+              }
+              
               return (
                 <CompositeChart
                   h={300}
                   data={hourlyChartData}
                   dataKey="hourLabel"
-                  series={[
-                    { name: 'newUsers', type: 'bar', color: 'teal.6' },
-                    { name: 'cumulativeUsers', type: 'line', color: 'blue.6', yAxisId: 'right' },
-                  ]}
+                  series={series}
                   curveType="linear"
                   withLegend
                   legendProps={{ verticalAlign: 'bottom', height: 40 }}

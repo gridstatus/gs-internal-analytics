@@ -15,6 +15,7 @@ import {
   Anchor,
   SegmentedControl,
   Button,
+  Switch,
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch, IconUsers } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
@@ -50,19 +51,35 @@ export function InsightsView() {
       ? (chartPeriodParam as 'day' | 'week' | 'month')
       : 'month'
   );
+  
+  // Initialize summaryPeriod from URL params
+  const summaryPeriodParam = searchParams.get('summaryPeriod');
+  const [summaryPeriod, setSummaryPeriod] = useState<'1d' | '7d' | '30d' | 'all'>(
+    (summaryPeriodParam && ['1d', '7d', '30d', 'all'].includes(summaryPeriodParam)) 
+      ? (summaryPeriodParam as '1d' | '7d' | '30d' | 'all')
+      : 'all'
+  );
+
+  // Initialize showAnonymous from URL params
+  const showAnonymousParam = searchParams.get('showAnonymous');
+  const [showAnonymous, setShowAnonymous] = useState<boolean>(
+    showAnonymousParam !== null ? showAnonymousParam === 'true' : true
+  );
 
   const postsChartRef = useRef<HTMLDivElement>(null);
   const impressionsChartRef = useRef<HTMLDivElement>(null);
   const viewsChartRef = useRef<HTMLDivElement>(null);
   const reactionsChartRef = useRef<HTMLDivElement>(null);
-  const authorsChartRef = useRef<HTMLDivElement>(null);
+  const uniqueVisitorsChartRef = useRef<HTMLDivElement>(null);
+  const homefeedVisitorsChartRef = useRef<HTMLDivElement>(null);
 
   const chartRefs = [
-    { name: 'posts', ref: postsChartRef },
+    { name: 'unique-visitors', ref: uniqueVisitorsChartRef },
+    { name: 'homefeed-visitors', ref: homefeedVisitorsChartRef },
+    { name: 'engagements', ref: viewsChartRef },
     { name: 'impressions', ref: impressionsChartRef },
-    { name: 'views', ref: viewsChartRef },
     { name: 'reactions', ref: reactionsChartRef },
-    { name: 'authors', ref: authorsChartRef },
+    { name: 'posts', ref: postsChartRef },
   ];
 
   // Sync state when URL params change (e.g., browser back/forward)
@@ -82,9 +99,23 @@ export function InsightsView() {
     if (newPeriod !== chartPeriod) {
       setChartPeriod(newPeriod);
     }
+    
+    const urlSummaryPeriod = searchParams.get('summaryPeriod');
+    const newSummaryPeriod = (urlSummaryPeriod && ['1d', '7d', '30d', 'all'].includes(urlSummaryPeriod))
+      ? (urlSummaryPeriod as '1d' | '7d' | '30d' | 'all')
+      : 'all';
+    if (newSummaryPeriod !== summaryPeriod) {
+      setSummaryPeriod(newSummaryPeriod);
+    }
+    
+    const urlShowAnonymous = searchParams.get('showAnonymous');
+    const newShowAnonymous = urlShowAnonymous !== null ? urlShowAnonymous === 'true' : true;
+    if (newShowAnonymous !== showAnonymous) {
+      setShowAnonymous(newShowAnonymous);
+    }
   }, [searchParams]);
 
-  // Update URL when timeFilter or chartPeriod changes
+  // Update URL when timeFilter, chartPeriod, or summaryPeriod changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     if (timeFilter) {
@@ -97,16 +128,27 @@ export function InsightsView() {
     } else {
       params.delete('chartPeriod');
     }
+    if (summaryPeriod !== 'all') {
+      params.set('summaryPeriod', summaryPeriod);
+    } else {
+      params.delete('summaryPeriod');
+    }
+    if (!showAnonymous) {
+      params.set('showAnonymous', 'false');
+    } else {
+      params.delete('showAnonymous');
+    }
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
     // Only update if URL would actually change
     if (newUrl !== currentUrl) {
       router.replace(newUrl, { scroll: false });
     }
-  }, [timeFilter, chartPeriod, pathname, router, searchParams]);
+  }, [timeFilter, chartPeriod, summaryPeriod, showAnonymous, pathname, router, searchParams]);
 
-  const { timezone } = useFilter();
+  const { filterGridstatus, timezone } = useFilter();
   const params = new URLSearchParams();
+  params.set('filterGridstatus', filterGridstatus.toString());
   params.set('timezone', timezone);
   if (timeFilter) {
     params.set('timeFilter', timeFilter);
@@ -115,11 +157,11 @@ export function InsightsView() {
     params.set('chartPeriod', chartPeriod);
   }
   const url = `/api/insights?${params.toString()}`;
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, timezone]);
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, filterGridstatus, timezone]);
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
@@ -135,7 +177,7 @@ export function InsightsView() {
 
   if (error) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -149,7 +191,7 @@ export function InsightsView() {
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container size="xl" py="xl">
+      <Container fluid py="xl">
         <Alert title="No data" color="yellow">
           No insights data available.
         </Alert>
@@ -157,15 +199,39 @@ export function InsightsView() {
     );
   }
 
-  const latestMetric = data.monthlyData[data.monthlyData.length - 1];
-  const previousMetric =
-    data.monthlyData.length > 1
-      ? data.monthlyData[data.monthlyData.length - 2]
-      : null;
-
-  const calculateTrend = (current: number, previous: number | undefined) => {
-    if (previous === undefined || previous === 0) return undefined;
-    return Math.round(((current - previous) / previous) * 100);
+  // Calculate period summary values
+  const getPeriodValue = (field: keyof typeof data.monthlyData[0]): number => {
+    if (summaryPeriod === 'all') {
+      // Sum all values
+      return data.monthlyData.reduce((sum, item) => sum + (Number(item[field]) || 0), 0);
+    }
+    
+    // Calculate cutoff date
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    const days = summaryPeriod === '1d' ? 1 : summaryPeriod === '7d' ? 7 : 30;
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - days);
+    
+    // Filter and sum data within the period
+    return data.monthlyData.reduce((sum, item) => {
+      // Parse the month string based on chartPeriod
+      let itemDate: Date;
+      if (chartPeriod === 'day') {
+        // Format: YYYY-MM-DD
+        itemDate = new Date(item.month + 'T00:00:00Z');
+      } else if (chartPeriod === 'week') {
+        // Format: YYYY-MM-DD (start of week)
+        itemDate = new Date(item.month + 'T00:00:00Z');
+      } else {
+        // Format: YYYY-MM
+        itemDate = new Date(item.month + '-01T00:00:00Z');
+      }
+      
+      if (itemDate >= cutoffDate) {
+        return sum + (Number(item[field]) || 0);
+      }
+      return sum;
+    }, 0);
   };
 
   const filteredPosts = data.topPosts
@@ -265,7 +331,7 @@ export function InsightsView() {
   ];
 
   return (
-    <Container size="xl" py="xl">
+    <Container fluid py="xl">
       <Group justify="space-between" mb="xl">
         <Title order={1}>Insights</Title>
         <Group>
@@ -280,39 +346,76 @@ export function InsightsView() {
           <ExportButton charts={chartRefs} />
         </Group>
       </Group>
-
       {/* Summary Metrics */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Summary</Title>
+        <Group gap="md">
+          <Switch
+            label="Show anonymous users"
+            checked={showAnonymous}
+            onChange={(e) => setShowAnonymous(e.currentTarget.checked)}
+          />
+          <SegmentedControl
+            value={summaryPeriod}
+            onChange={(value) => setSummaryPeriod(value as '1d' | '7d' | '30d' | 'all')}
+            data={[
+              { label: '1d', value: '1d' },
+              { label: '7d', value: '7d' },
+              { label: '30d', value: '30d' },
+              { label: 'All Time', value: 'all' },
+            ]}
+          />
+        </Group>
+      </Group>
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
         <MetricCard
-          title="Total Posts"
-          value={data.summary.totalPosts}
+          title="Unique Visitors (Any /insights/*)"
+          value={showAnonymous ? getPeriodValue('uniqueVisitors').toLocaleString() : getPeriodValue('uniqueVisitorsLoggedIn').toLocaleString()}
+          subtitle={
+            showAnonymous ? (
+              <Text size="xs" c="dimmed">
+                Logged-in: {getPeriodValue('uniqueVisitorsLoggedIn').toLocaleString()} • Anonymous: {getPeriodValue('uniqueVisitorsAnon').toLocaleString()}
+              </Text>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Logged-in users only
+              </Text>
+            )
+          }
+        />
+        <MetricCard
+          title="Homefeed Visitors (/insights)"
+          value={showAnonymous ? getPeriodValue('uniqueHomefeedVisitors').toLocaleString() : getPeriodValue('uniqueHomefeedVisitorsLoggedIn').toLocaleString()}
+          subtitle={
+            showAnonymous ? (
+              <Text size="xs" c="dimmed">
+                Logged-in: {getPeriodValue('uniqueHomefeedVisitorsLoggedIn').toLocaleString()} • Anonymous: {getPeriodValue('uniqueHomefeedVisitorsAnon').toLocaleString()}
+              </Text>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Logged-in users only
+              </Text>
+            )
+          }
+        />
+        <MetricCard
+          title="Engagements"
+          value={getPeriodValue('engagements').toLocaleString()}
+          subtitle="Logged-in users, clicked to read"
         />
         <MetricCard
           title="Impressions"
-          value={data.summary.totalImpressions.toLocaleString()}
-          trend={calculateTrend(
-            latestMetric.impressions,
-            previousMetric?.impressions
-          )}
-          trendLabel="MoM"
+          value={getPeriodValue('impressions').toLocaleString()}
+          subtitle="Logged-in users, seen in feed"
         />
         <MetricCard
-          title="Views"
-          value={data.summary.totalViews.toLocaleString()}
-          trend={calculateTrend(
-            latestMetric.views,
-            previousMetric?.views
-          )}
-          trendLabel="MoM"
+          title="Reactions"
+          value={getPeriodValue('reactions')}
+          subtitle="Logged-in users only"
         />
         <MetricCard
-          title="Total Reactions"
-          value={data.summary.totalReactions}
-          trend={calculateTrend(
-            latestMetric.reactions,
-            previousMetric?.reactions
-          )}
-          trendLabel="MoM"
+          title="Total Posts"
+          value={getPeriodValue('posts')}
         />
       </SimpleGrid>
 
@@ -331,47 +434,66 @@ export function InsightsView() {
       </Group>
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" mb="xl">
         <TimeSeriesChart
-          ref={postsChartRef}
-          title="Posts Published"
-          subtitle={`Published posts per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          ref={uniqueVisitorsChartRef}
+          title="Unique Visitors"
+          subtitle={`Any /insights/* page per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
-          dataKey="posts"
+          dataKey={showAnonymous ? 'uniqueVisitors' : 'uniqueVisitorsLoggedIn'}
           color="blue.6"
+          chartType="bar"
+          stacked={showAnonymous}
+          stackedSeries={showAnonymous ? [
+            { name: 'uniqueVisitorsLoggedIn', color: 'blue.6', label: 'Logged-in Users' },
+            { name: 'uniqueVisitorsAnon', color: 'gray.5', label: 'Anonymous Users' },
+          ] : []}
+        />
+        <TimeSeriesChart
+          ref={homefeedVisitorsChartRef}
+          title="Homefeed Visitors"
+          subtitle={`Visited /insights per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          data={data.monthlyData}
+          dataKey={showAnonymous ? 'uniqueHomefeedVisitors' : 'uniqueHomefeedVisitorsLoggedIn'}
+          color="teal.6"
+          chartType="bar"
+          stacked={showAnonymous}
+          stackedSeries={showAnonymous ? [
+            { name: 'uniqueHomefeedVisitorsLoggedIn', color: 'teal.6', label: 'Logged-in Users' },
+            { name: 'uniqueHomefeedVisitorsAnon', color: 'gray.5', label: 'Anonymous Users' },
+          ] : []}
+        />
+        <TimeSeriesChart
+          ref={viewsChartRef}
+          title="Engagements"
+          subtitle={`Logged-in users, clicks to read per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          data={data.monthlyData}
+          dataKey="engagements"
+          color="green.6"
           chartType="bar"
         />
         <TimeSeriesChart
           ref={impressionsChartRef}
           title="Impressions"
-          subtitle={`Feed impressions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          subtitle={`Logged-in users, feed impressions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="impressions"
           color="cyan.6"
           chartType="bar"
         />
         <TimeSeriesChart
-          ref={viewsChartRef}
-          title="Post Views"
-          subtitle={`Feed expanded + detail views per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
-          data={data.monthlyData}
-          dataKey="views"
-          color="green.6"
-          chartType="bar"
-        />
-        <TimeSeriesChart
           ref={reactionsChartRef}
           title="Reactions"
-          subtitle={`Total reactions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          subtitle={`Logged-in users, reactions per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
           dataKey="reactions"
           color="violet.6"
           chartType="bar"
         />
         <TimeSeriesChart
-          ref={authorsChartRef}
-          title="Unique Authors"
-          subtitle={`Authors publishing per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
+          ref={postsChartRef}
+          title="Posts Published"
+          subtitle={`Published posts per ${chartPeriod === 'day' ? 'day' : chartPeriod === 'week' ? 'week' : 'month'}`}
           data={data.monthlyData}
-          dataKey="authors"
+          dataKey="posts"
           color="orange.6"
           chartType="bar"
         />
