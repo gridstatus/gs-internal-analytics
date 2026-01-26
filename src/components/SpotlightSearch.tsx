@@ -13,6 +13,7 @@ import {
   Loader,
   Kbd,
 } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch, IconUser, IconBuilding } from '@tabler/icons-react';
 import { useFilter } from '@/contexts/FilterContext';
 import { useApiData } from '@/hooks/useApiData';
@@ -28,25 +29,26 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
   const router = useRouter();
   const { filterGridstatus } = useFilter();
   const [search, setSearch] = useState('');
+  const [debouncedSearch] = useDebouncedValue(search, 300);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Fetch users and organizations in background
   const usersUrl = useApiUrl('/api/users-list', {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     filterGridstatus,
   });
   const orgsUrl = useApiUrl('/api/organizations', {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     filterGridstatus,
   });
 
   const { data: usersData, loading: usersLoading } = useApiData<UsersListResponse>(
-    search ? usersUrl : null,
-    [search, filterGridstatus]
+    debouncedSearch ? usersUrl : null,
+    [debouncedSearch, filterGridstatus]
   );
   const { data: orgsData, loading: orgsLoading } = useApiData<OrganizationsResponse>(
-    search ? orgsUrl : null,
-    [search, filterGridstatus]
+    debouncedSearch ? orgsUrl : null,
+    [debouncedSearch, filterGridstatus]
   );
 
   const users = usersData?.users || [];
@@ -90,7 +92,7 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, allResults.length - 1));
+        setSelectedIndex(prev => (allResults.length > 0 ? Math.min(prev + 1, allResults.length - 1) : 0));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedIndex(prev => Math.max(prev - 1, 0));
@@ -167,11 +169,11 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
 
         {!loading && search && !hasResults && (
           <Text c="dimmed" ta="center" py="xl">
-            No results found
+            {debouncedSearch === search ? 'No results found' : 'Searching...'}
           </Text>
         )}
 
-        {!loading && hasResults && (
+        {!loading && search && hasResults && (
           <Stack gap={2}>
             {allResults.map((result, index) => {
               const isSelected = index === selectedIndex;
