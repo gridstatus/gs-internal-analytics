@@ -18,8 +18,35 @@ export function getFilterGridstatus(searchParams: URLSearchParams): boolean {
 }
 
 export function jsonError(error: unknown, status: number = 500) {
+  let errorMessage = getErrorMessage(error);
+  
+  // Enhance error message with stack trace information if available
+  if (error instanceof Error && error.stack) {
+    // Extract file paths and line numbers from stack trace
+    const stackLines = error.stack.split('\n').slice(1); // Skip the error message line
+    const relevantStack = stackLines
+      .filter(line => line.includes('src/') && !line.includes('node_modules'))
+      .slice(0, 5) // Limit to first 5 relevant stack frames
+      .map(line => {
+        // Extract file path and line number: "at functionName (file:line:col)" or "at file:line:col"
+        const match = line.match(/at\s+(?:\w+\s+\()?([^\s]+):(\d+):(\d+)/);
+        if (match) {
+          const [, file, lineNum, col] = match;
+          // Clean up file path to be relative to src/
+          const cleanPath = file.replace(/^.*\/src\//, 'src/');
+          return `${cleanPath}:${lineNum}:${col}`;
+        }
+        return line.trim();
+      })
+      .join('\n');
+    
+    if (relevantStack) {
+      errorMessage = `${errorMessage}\n\nStack trace:\n${relevantStack}`;
+    }
+  }
+  
   return NextResponse.json(
-    { error: getErrorMessage(error) },
+    { error: errorMessage },
     { status }
   );
 }

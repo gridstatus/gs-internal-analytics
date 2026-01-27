@@ -134,25 +134,7 @@ export async function GET(request: Request) {
     }
 
     // Search organizations
-    let searchSql = `
-      SELECT 
-        o.id, 
-        o.name, 
-        o.created_at, 
-        COUNT(DISTINCT uo.user_id) as user_count,
-        COUNT(DISTINCT CASE WHEN u.created_at >= NOW() - INTERVAL '7 days' THEN u.id END) as new_users_7d,
-        COUNT(DISTINCT CASE WHEN u.last_active_at >= NOW() - INTERVAL '7 days' THEN u.id END) as active_users_7d
-      FROM api_server.organizations o
-      LEFT JOIN api_server.user_organizations uo ON uo.organization_id = o.id
-      LEFT JOIN api_server.users u ON u.id = uo.user_id
-        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-      WHERE o.name ILIKE $1
-      GROUP BY o.id, o.name, o.created_at
-      ORDER BY COUNT(uo.user_id) DESC
-      LIMIT 100
-    `;
-    searchSql = renderSqlTemplate(searchSql, { filterGridstatus, usernamePrefix: 'u.' });
+    const searchSql = renderSqlTemplate('organizations-search.sql', { filterGridstatus, usernamePrefix: 'u.' });
     const orgs = await query<{
       id: string;
       name: string;

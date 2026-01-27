@@ -6,8 +6,10 @@ const sqlDir = join(process.cwd(), 'src/sql');
 const hogqlDir = join(process.cwd(), 'src/hogql');
 
 interface TemplateContext {
-  filterGridstatus: boolean;
+  filterGridstatus?: boolean;
   usernamePrefix?: string; // 'u.' or '' - determined from SQL context
+  // Custom template variables - any key-value pairs for {{KEY}} placeholders
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface HogqlTemplateContext {
@@ -24,9 +26,6 @@ export function loadSql(filename: string): string {
   return readFileSync(join(sqlDir, filename), 'utf-8');
 }
 
-export function loadRenderedSql(filename: string, context: TemplateContext): string {
-  return renderSqlTemplate(loadSql(filename), context);
-}
 
 export function loadHogql(filename: string): string {
   return readFileSync(join(hogqlDir, filename), 'utf-8');
@@ -85,131 +84,110 @@ export function loadRenderedHogql(filename: string, context: HogqlTemplateContex
 }
 
 /**
- * Renders SQL template with placeholders.
+ * Renders SQL template with placeholders from a file.
  * 
  * Available placeholders:
- * - {{GRIDSTATUS_FILTER_STANDALONE}} - Replaced with "NOT IN ('gridstatus.io')" or removed
- * - {{GRIDSTATUS_FILTER_IN_LIST}} - Replaced with ", 'gridstatus.io'" or empty string
- * - {{INTERNAL_EMAIL_FILTER}} - Replaced with "AND {usernamePrefix}username != 'kmax12+dev@gmail.com'" or empty string
+ * - {{USER_FILTER}} - Combined filter for both gridstatus.io domain and test account
+ * - Any custom {{KEY}} placeholders - Replaced with values from context[key]
  * 
  * BEST PRACTICES to prevent SQL syntax errors:
- * - Always use "WHERE 1=1" or another base condition before using {{GRIDSTATUS_FILTER_STANDALONE}} with AND
- * - Example: "WHERE 1=1 AND SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}"
- * - Avoid: "WHERE SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" (can leave invalid SQL when filter is removed)
+ * - Always use "WHERE 1=1" or another base condition before using {{USER_FILTER}}
+ * - Example: "WHERE 1=1\n  {{USER_FILTER}}"
  * - The template renderer will attempt to fix this, but it's safer to structure SQL correctly from the start
  */
-export function renderSqlTemplate(sql: string, context: TemplateContext): string {
-  let rendered = sql;
+export function renderSqlTemplate(filename: string, context: TemplateContext): string {
+  let sql = loadSql(filename);
+  
+  // Remove SQL comment lines
+  const lines = sql.split('\n');
+  let rendered = lines.filter(line => !line.trim().startsWith('--')).join('\n');
   
   // Determine username prefix if not provided
   if (!context.usernamePrefix) {
-    context.usernamePrefix = sql.includes('FROM api_server.users u') || sql.includes('JOIN api_server.users u') 
+    context.usernamePrefix = rendered.includes('FROM api_server.users u') || rendered.includes('JOIN api_server.users u') 
       ? 'u.' 
       : '';
   }
 
-  // Handle GRIDSTATUS_FILTER_STANDALONE (for standalone NOT IN ('gridstatus.io'))
+  // Handle USER_FILTER (combined filter for both gridstatus.io and test account)
+  // This replaces the old GRIDSTATUS_FILTER_STANDALONE + INTERNAL_EMAIL_FILTER pattern
+  // Pattern: {{USER_FILTER}} - expands to both domain and email filters
+  // Works in both WHERE clauses and JOIN conditions
   if (context.filterGridstatus) {
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, "NOT IN ('gridstatus.io')");
-  } else {
-    // Remove the filter and clean up surrounding whitespace/AND
-    // The placeholder is typically used like: "SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}"
-    // When removing, we need to remove the entire condition including the SUBSTRING part
-    // Since SUBSTRING can have nested parentheses, we'll match the common pattern more specifically
-    // Pattern 1: "AND SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove entire AND clause (multiline)
-    // Match: AND + SUBSTRING + (username or u.username) + FROM + POSITION + ... + ) + whitespace/newlines + placeholder
-    rendered = rendered.replace(/\s+AND\s+SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s*[\r\n\s]*\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, '');
-    // Pattern 2: "WHERE SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove entire WHERE clause condition
-    // This handles cases where WHERE starts with the filter (which would leave invalid SQL)
-    rendered = rendered.replace(/WHERE\s+SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s*[\r\n\s]*\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, 'WHERE 1=1');
-    // Pattern 3: "SUBSTRING(...) {{GRIDSTATUS_FILTER_STANDALONE}}" - remove the SUBSTRING condition (fallback, multiline)
-    rendered = rendered.replace(/SUBSTRING\([u]?\.?username\s+FROM\s+POSITION\([^)]+\)\s*\+\s*\d+\)\s*[\r\n\s]*\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/gi, '');
-    // Pattern 4: Lines that only contain the placeholder (with optional whitespace)
-    rendered = rendered.replace(/^\s*\{\{GRIDSTATUS_FILTER_STANDALONE\}\}\s*$/gm, '');
-    // Pattern 5: Any remaining placeholder with leading whitespace
-    rendered = rendered.replace(/\s+\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, '');
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_STANDALONE\}\}/g, '');
-  }
-  
-  // Handle GRIDSTATUS_FILTER_IN_LIST (for ", 'gridstatus.io'" in exclusion lists)
-  if (context.filterGridstatus) {
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_IN_LIST\}\}/g, ", 'gridstatus.io'");
-  } else {
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER_IN_LIST\}\}/g, '');
-  }
-  
-  // Handle INTERNAL_EMAIL_FILTER
-  if (context.filterGridstatus) {
-    rendered = rendered.replace(/\{\{INTERNAL_EMAIL_FILTER\}\}/g, `AND ${context.usernamePrefix}username != 'kmax12+dev@gmail.com'`);
+    // Build the combined filter with proper prefix handling
+    const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
+    const domainFilter = `AND SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) NOT IN ('gridstatus.io')`;
+    const emailFilter = `AND ${usernameRef} != 'kmax12+dev@gmail.com'`;
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, `${domainFilter}\n  ${emailFilter}`);
   } else {
     // Remove the filter, including any leading whitespace/newlines
-    rendered = rendered.replace(/\s+\{\{INTERNAL_EMAIL_FILTER\}\}/g, '');
-    rendered = rendered.replace(/\{\{INTERNAL_EMAIL_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\s+\{\{USER_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
   }
   
+  // Handle custom template variables (any {{KEY}} placeholders not already handled)
+  // Process after standard placeholders to allow overrides if needed
+  for (const [key, value] of Object.entries(context)) {
+    // Skip standard context properties that are already handled
+    if (key === 'filterGridstatus' || key === 'usernamePrefix') {
+      continue;
+    }
+    
+    // Replace {{KEY}} with the value (convert to string, escape single quotes for SQL safety)
+    // Note: Empty strings are valid values and should be replaced (e.g., empty domainFilter)
+    if (value !== undefined && value !== null) {
+      const placeholder = `{{${key.toUpperCase()}}}`;
+      const stringValue = String(value);
+      // Escape single quotes for SQL safety
+      const escapedValue = stringValue.replace(/'/g, "''");
+      rendered = rendered.replace(new RegExp(`\\{\\{${key.toUpperCase()}\\}\\}`, 'g'), escapedValue);
+    } else {
+      // If value is undefined or null, remove the placeholder (for optional filters)
+      const placeholder = `{{${key.toUpperCase()}}}`;
+      rendered = rendered.replace(new RegExp(`\\s*\\{\\{${key.toUpperCase()}\\}\\}`, 'g'), '');
+    }
+  }
+  
+  // Clean up trailing whitespace/newlines that might result from removing filters or empty placeholders
+  // This must happen AFTER all placeholders are replaced
+  // Remove trailing whitespace/newlines before GROUP BY, ORDER BY, etc. (most aggressive pattern first)
+  rendered = rendered.replace(/\n\s*\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
+  // Remove trailing whitespace on the same line before GROUP BY, ORDER BY, etc.
+  rendered = rendered.replace(/\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
+  // Remove trailing whitespace at end of WHERE clause (before GROUP BY, etc.)
+  rendered = rendered.replace(/(WHERE[^\n]*(?:\n[^\n]*)*?)\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '$1\n$2');
+  
   // Clean up empty WHERE clauses that might result from removing all filters
-  // Pattern: "WHERE\n" or "WHERE " followed by only whitespace and newlines
-  rendered = rendered.replace(/WHERE\s*$/gm, '');
+  // Only clean up if WHERE is followed immediately by GROUP BY, ORDER BY, etc. (no conditions)
   // Pattern: "WHERE\n  \n)" - empty WHERE before closing paren or other clause
   rendered = rendered.replace(/WHERE\s+(?=\)|GROUP BY|ORDER BY|HAVING|LIMIT)/gi, '');
   // Pattern: "WHERE " followed by only whitespace and then another keyword - replace with nothing
   rendered = rendered.replace(/WHERE\s+(?=\s*(?:GROUP BY|ORDER BY|HAVING|LIMIT|\)|,))/gi, '');
-  // Pattern: "WHERE " with only whitespace/newlines before next clause - ensure we have 1=1 as fallback
-  rendered = rendered.replace(/WHERE\s*$/gm, '');
+  
+  // Validate: Check for any remaining unresolved placeholders
+  // Only check for standard/reserved placeholders that should have been handled
+  // Custom placeholders that are intentionally optional (like empty domainFilter) may remain
+  const remainingPlaceholders = rendered.match(/\{\{[A-Z_]+\}\}/g);
+  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+    const uniquePlaceholders = [...new Set(remainingPlaceholders)];
+    // Filter out known optional placeholders that can be empty strings
+    const requiredPlaceholders = uniquePlaceholders.filter(
+      p => !['DOMAIN_FILTER', 'TIME_FILTER', 'DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES'].includes(p.replace(/[{}]/g, ''))
+    );
+    
+    if (requiredPlaceholders.length > 0) {
+      console.warn(
+        `Warning: Unresolved placeholders in ${filename}: ${requiredPlaceholders.join(', ')}. ` +
+        `This may cause SQL syntax errors.`
+      );
+    }
+  }
+  
+  // Add SQL file name as a comment at the top for error tracking
+  // This will help identify which SQL file caused an error
+  rendered = `-- SQL file: src/sql/${filename}\n${rendered}`;
   
   return rendered;
-}
-
-/**
- * @deprecated Use renderSqlTemplate instead. This function is kept for backward compatibility
- * but will be removed once all SQL files are migrated to templates.
- */
-export function applyGridstatusFilter(sql: string, filterGridstatus: boolean): string {
-  // Try to detect if this is a template-based SQL file
-  if (
-    sql.includes('{{GRIDSTATUS_FILTER') ||
-    sql.includes('{{INTERNAL_EMAIL_FILTER}}')
-  ) {
-    return renderSqlTemplate(sql, { filterGridstatus });
-  }
-  
-  // Fall back to old regex-based approach for non-template files
-  if (!filterGridstatus) {
-    sql = sql.replace(/, 'gridstatus\.io'/g, '');
-    sql = sql.replace(/'gridstatus\.io', /g, '');
-    sql = sql.replace(/\s+NOT IN \('gridstatus\.io'\)/g, ' IS NOT NULL');
-    sql = sql.replace(/NOT IN \(\s*\)/g, '1=1');
-    sql = sql.replace(/\s+AND username != 'kmax12\+dev@gmail\.com'/g, '');
-    sql = sql.replace(/\s+AND u\.username != 'kmax12\+dev@gmail\.com'/g, '');
-  } else {
-    if (!sql.includes("'gridstatus.io'")) {
-      sql = sql.replace(
-        /NOT IN \(([^)]+)\)/g,
-        (match, list) => {
-          if (!list.includes("'gridstatus.io'")) {
-            return `NOT IN (${list}, 'gridstatus.io')`;
-          }
-          return match;
-        }
-      );
-    }
-    if (!sql.includes("username != 'kmax12+dev@gmail.com'") && !sql.includes("u.username != 'kmax12+dev@gmail.com'")) {
-      sql = sql.replace(
-        /(WHERE[^W]+?)(\s+(?:GROUP BY|ORDER BY|HAVING|\)|LIMIT))/gi,
-        (match, whereClause, nextClause) => {
-          if (!whereClause.includes("username != 'kmax12+dev@gmail.com'") && 
-              !whereClause.includes("u.username != 'kmax12+dev@gmail.com'") &&
-              !whereClause.trim().endsWith("IS NOT NULL")) {
-            const needsPrefix = whereClause.includes('u.') || whereClause.includes('FROM api_server.users u');
-            const usernameRef = needsPrefix ? 'u.username' : 'username';
-            return `${whereClause} AND ${usernameRef} != 'kmax12+dev@gmail.com'${nextClause}`;
-          }
-          return match;
-        }
-      );
-    }
-  }
-  return sql;
 }
 
 export interface MonthlyUserCount {
@@ -246,39 +224,32 @@ export interface DomainSummary {
 }
 
 export async function getMonthlyUserCounts(filterGridstatus: boolean = true): Promise<MonthlyUserCount[]> {
-  let sql = loadSql('monthly-user-counts.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('monthly-user-counts.sql', { filterGridstatus });
   return query<MonthlyUserCount>(sql);
 }
 
 export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year', filterGridstatus: boolean = true): Promise<MonthlyUserCount[]> {
-  let sql = loadSql('user-counts-by-period.sql');
-  sql = sql.replace(/\{\{PERIOD\}\}/g, period);
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('user-counts-by-period.sql', { filterGridstatus, period });
   return query<MonthlyUserCount>(sql);
 }
 
 export async function getMonthlyApiUsage(filterGridstatus: boolean = true): Promise<MonthlyApiUsage[]> {
-  let sql = loadSql('monthly-api-usage.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('monthly-api-usage.sql', { filterGridstatus });
   return query<MonthlyApiUsage>(sql);
 }
 
 export async function getMonthlyCorpMetrics(filterGridstatus: boolean = true): Promise<MonthlyCorpMetric[]> {
-  let sql = loadSql('monthly-corp-metrics.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('monthly-corp-metrics.sql', { filterGridstatus });
   return query<MonthlyCorpMetric>(sql);
 }
 
 export async function getDomainDistribution(filterGridstatus: boolean = true): Promise<DomainDistribution[]> {
-  let sql = loadSql('domain-distribution.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('domain-distribution.sql', { filterGridstatus });
   return query<DomainDistribution>(sql);
 }
 
 export async function getDomainSummary(filterGridstatus: boolean = true): Promise<DomainSummary[]> {
-  let sql = loadSql('domain-summary.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('domain-summary.sql', { filterGridstatus });
   return query<DomainSummary>(sql);
 }
 
@@ -291,8 +262,7 @@ export interface ActiveUsers {
 }
 
 export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
-  let sql = loadSql('active-users.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('active-users.sql', { filterGridstatus });
   return query<ActiveUsers>(sql);
 }
 
@@ -306,8 +276,7 @@ export interface ActiveUsersByDomain {
 }
 
 export async function getActiveUsersByDomain(filterGridstatus: boolean = true): Promise<ActiveUsersByDomain[]> {
-  let sql = loadSql('active-users-by-domain.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('active-users-by-domain.sql', { filterGridstatus });
   return query<ActiveUsersByDomain>(sql);
 }
 
@@ -356,40 +325,30 @@ export interface TopInsightsPost {
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
 // The filterGridstatus param is kept for API consistency but not used for posts.
 export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsPosts[]> {
-  let sql = loadSql('monthly-insights-posts.sql');
+  let sql = renderSqlTemplate('monthly-insights-posts.sql', { filterGridstatus });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsPosts>(sql);
 }
 
 export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsViews[]> {
-  let sql = loadSql('monthly-insights-views.sql');
+  let sql = renderSqlTemplate('monthly-insights-views.sql', { filterGridstatus });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
-  sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<MonthlyInsightsViews>(sql);
 }
 
 export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsReactions[]> {
-  let sql = loadSql('monthly-insights-reactions.sql');
+  let sql = renderSqlTemplate('monthly-insights-reactions.sql', { filterGridstatus });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
-  sql = renderSqlTemplate(sql, { filterGridstatus });
   return query<MonthlyInsightsReactions>(sql);
 }
 
 // Get total unique logged-in users who have visited insights (any view source)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
 export async function getTotalUniqueVisitors(filterGridstatus: boolean = true): Promise<number> {
-  let sql = `
-    SELECT COUNT(DISTINCT pv.user_id) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE pv.viewed_at >= '2025-10-01'
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('total-unique-visitors.sql', { filterGridstatus, usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -397,16 +356,7 @@ export async function getTotalUniqueVisitors(filterGridstatus: boolean = true): 
 // Get total unique logged-in users who have visited the homefeed (/insights)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
 export async function getTotalUniqueHomefeedVisitors(filterGridstatus: boolean = true): Promise<number> {
-  let sql = `
-    SELECT COUNT(DISTINCT pv.user_id) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE pv.view_source = 'feed'
-      AND pv.viewed_at >= '2025-10-01'
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { filterGridstatus, usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -423,16 +373,7 @@ export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'al
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  let sql = `
-    SELECT COUNT(DISTINCT pv.user_id) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE 1=1
-      ${dateFilter}
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('summary-unique-visitors.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -446,17 +387,7 @@ export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | '
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  let sql = `
-    SELECT COUNT(DISTINCT pv.user_id) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE 1=1
-      AND pv.view_source = 'feed'
-      ${dateFilter}
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -470,17 +401,7 @@ export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  let sql = `
-    SELECT COUNT(*) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE 1=1
-      AND pv.view_source IN ('feed_expanded', 'detail')
-      ${dateFilter}
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('summary-engagements.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -494,17 +415,7 @@ export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  let sql = `
-    SELECT COUNT(*) AS total
-    FROM insights.post_views pv
-    JOIN api_server.users u ON pv.user_id = u.id
-    WHERE 1=1
-      AND pv.view_source = 'feed'
-      ${dateFilter}
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('summary-impressions.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -518,16 +429,7 @@ export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', f
     dateFilter = `AND r.created_at >= '2025-10-01'`;
   }
   
-  let sql = `
-    SELECT COUNT(*) AS total
-    FROM insights.reactions r
-    JOIN api_server.users u ON r.user_id = u.id
-    WHERE 1=1
-      ${dateFilter}
-      AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('summary-reactions.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -848,8 +750,6 @@ export interface MostEngagedUser {
 }
 
 export async function getMostEngagedUsers(filterGridstatus: boolean = true, days: number | null = null): Promise<MostEngagedUser[]> {
-  let sql = loadSql('most-engaged-users.sql');
-  
   // Build time filter conditions
   let timeFilterReactions = '';
   let timeFilterViews = '';
@@ -869,20 +769,21 @@ export async function getMostEngagedUsers(filterGridstatus: boolean = true, days
     timeFilterSaves = `AND sp.created_at >= '${cutoffDateStr}'`;
   }
   
-  sql = sql.replace(/\{\{TIME_FILTER_REACTIONS\}\}/g, timeFilterReactions);
-  sql = sql.replace(/\{\{TIME_FILTER_VIEWS\}\}/g, timeFilterViews);
-  sql = sql.replace(/\{\{TIME_FILTER_SAVES\}\}/g, timeFilterSaves);
-  
-  sql = renderSqlTemplate(sql, { filterGridstatus, usernamePrefix: 'u.' });
+  const sql = renderSqlTemplate('top-engaged-users.sql', { 
+    filterGridstatus, 
+    usernamePrefix: 'u.',
+    time_filter_reactions: timeFilterReactions,
+    time_filter_views: timeFilterViews,
+    time_filter_saves: timeFilterSaves
+  });
   return query<MostEngagedUser>(sql);
 }
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
 // The filterGridstatus param is kept for API consistency but not used for posts.
 export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filterGridstatus: boolean = true): Promise<TopInsightsPost[]> {
-  let sql = loadSql('top-insights-posts.sql');
-  
   // Apply time filter if provided
+  let timeFilterClause = '';
   if (timeFilter) {
     const now = new Date();
     let cutoffDate: Date;
@@ -908,12 +809,13 @@ export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filt
     const seconds = String(cutoffDate.getUTCSeconds()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     
-    sql = sql.replace('{{TIME_FILTER}}', `AND p.created_at >= '${dateStr}'`);
+    timeFilterClause = `AND p.created_at >= '${dateStr}'`;
   } else {
     // Default: show all posts from Oct 2025 onwards
-    sql = sql.replace('{{TIME_FILTER}}', "AND p.created_at >= '2025-10-01'");
+    timeFilterClause = "AND p.created_at >= '2025-10-01'";
   }
   
+  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause, filterGridstatus: true });
   return query<TopInsightsPost>(sql);
 }
 
@@ -926,8 +828,7 @@ export interface UserActivity {
 }
 
 export async function getUserActivities(filterGridstatus: boolean = true): Promise<UserActivity[]> {
-  let sql = loadSql('user-activities.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('user-activities.sql', { filterGridstatus });
   return query<UserActivity>(sql);
 }
 
@@ -937,8 +838,7 @@ export interface NewUsersLast3Months {
 }
 
 export async function getNewUsersLast3Months(filterGridstatus: boolean = true): Promise<NewUsersLast3Months[]> {
-  let sql = loadSql('new-users-last-3-months.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('last-3-months-new-users.sql', { filterGridstatus });
   return query<NewUsersLast3Months>(sql);
 }
 
@@ -949,8 +849,7 @@ export interface TopRegistration {
 }
 
 export async function getTopRegistrations(filterGridstatus: boolean = true): Promise<TopRegistration[]> {
-  let sql = loadSql('top-registrations.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('top-registrations.sql', { filterGridstatus });
   return query<TopRegistration>(sql);
 }
 
@@ -971,64 +870,7 @@ export interface MonthlyNewUsers {
 }
 
 export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = true): Promise<MonthlyNewUsers[]> {
-  let sql = `
-    WITH current_month_start AS (
-      SELECT DATE_TRUNC('month', NOW()) AS start_time
-    ),
-    previous_month_start AS (
-      SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 month') AS start_time
-    ),
-    current_month_all AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM current_month_start)
-        AND created_at < (SELECT start_time FROM current_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    previous_month_all AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM previous_month_start)
-        AND created_at < (SELECT start_time FROM previous_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    previous_month_same_time AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM previous_month_start)
-        AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    last_year_month_start AS (
-      SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 year') AS start_time
-    ),
-    last_year_month_all AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM last_year_month_start)
-        AND created_at < (SELECT start_time FROM last_year_month_start) + INTERVAL '1 month'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    last_year_month_same_time AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM last_year_month_start)
-        AND created_at < (SELECT start_time FROM last_year_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    )
-    SELECT 
-      (SELECT count FROM current_month_all) as current_month_all,
-      (SELECT count FROM previous_month_all) as previous_month_all,
-      (SELECT count FROM previous_month_same_time) as previous_month_same_time,
-      (SELECT count FROM last_year_month_all) as last_year_month_all,
-      (SELECT count FROM last_year_month_same_time) as last_year_month_same_time
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', { filterGridstatus });
   return query<MonthlyNewUsers>(sql);
 }
 
@@ -1042,111 +884,17 @@ export interface TotalUsersCount {
 }
 
 export async function getTotalUsersCount(filterGridstatus: boolean = true): Promise<TotalUsersCount[]> {
-  let sql = `
-    SELECT COUNT(*)::text AS total_users
-    FROM api_server.users
-    WHERE created_at IS NOT NULL
-      AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-      {{INTERNAL_EMAIL_FILTER}}
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('total-users-count.sql', { filterGridstatus });
   return query<TotalUsersCount>(sql);
 }
 
 export async function getLast30DaysUsers(filterGridstatus: boolean = true): Promise<Last30DaysUsers[]> {
-  let sql = `
-    WITH last_30_days_start AS (
-      SELECT NOW() - INTERVAL '30 days' AS start_time
-    ),
-    previous_30_days_start AS (
-      SELECT NOW() - INTERVAL '60 days' AS start_time
-    ),
-    previous_30_days_end AS (
-      SELECT NOW() - INTERVAL '30 days' AS end_time
-    ),
-    last_30_days_count AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM last_30_days_start)
-        AND created_at < NOW()
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    previous_30_days_count AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM previous_30_days_start)
-        AND created_at < (SELECT end_time FROM previous_30_days_end)
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    )
-    SELECT 
-      (SELECT count FROM last_30_days_count)::text AS last_30_days,
-      (SELECT count FROM previous_30_days_count)::text AS previous_30_days
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('last-30-days-users.sql', { filterGridstatus });
   return query<Last30DaysUsers>(sql);
 }
 
 export async function getUsersToday(filterGridstatus: boolean = true): Promise<UsersToday[]> {
-  let sql = `
-    WITH today_start AS (
-      SELECT DATE_TRUNC('day', NOW()) AS start_time
-    ),
-    yesterday_start AS (
-      SELECT DATE_TRUNC('day', NOW() - INTERVAL '1 day') AS start_time
-    ),
-    last_week_start AS (
-      SELECT DATE_TRUNC('day', NOW() - INTERVAL '7 days') AS start_time
-    ),
-    users_today AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM today_start)
-        AND created_at < (SELECT start_time FROM today_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    users_yesterday_all AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM yesterday_start)
-        AND created_at < (SELECT start_time FROM yesterday_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    users_yesterday_same_time AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM yesterday_start)
-        AND created_at < (SELECT start_time FROM yesterday_start) + (NOW() - (SELECT start_time FROM today_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    users_last_week_all AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM last_week_start)
-        AND created_at < (SELECT start_time FROM last_week_start) + INTERVAL '1 day'
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    ),
-    users_last_week_same_time AS (
-      SELECT COUNT(*) as count
-      FROM api_server.users
-      WHERE created_at >= (SELECT start_time FROM last_week_start)
-        AND created_at < (SELECT start_time FROM last_week_start) + (NOW() - (SELECT start_time FROM today_start))
-        AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    )
-    SELECT 
-      (SELECT count FROM users_today) as users_today,
-      (SELECT count FROM users_yesterday_all) as users_yesterday_all,
-      (SELECT count FROM users_yesterday_same_time) as users_yesterday_same_time,
-      (SELECT count FROM users_last_week_all) as users_last_week_all,
-      (SELECT count FROM users_last_week_same_time) as users_last_week_same_time
-  `;
-  sql = renderSqlTemplate(sql, { filterGridstatus });
+  const sql = renderSqlTemplate('users-today.sql', { filterGridstatus });
   return query<UsersToday>(sql);
 }
 

@@ -37,6 +37,41 @@ export async function query<T>(sql: string, params?: unknown[]): Promise<T[]> {
     
     const result = await client.query(sql, params);
     return result.rows as T[];
+  } catch (error) {
+    // Log the SQL that caused the error for debugging
+    console.error('SQL Error - Query:', sql);
+    console.error('SQL Error - Params:', params);
+    // Enhance error with SQL context and stack trace
+    if (error instanceof Error) {
+      // Extract relevant stack frames (skip node_modules and internal files)
+      const stackLines = error.stack?.split('\n') || [];
+      const relevantStack = stackLines
+        .filter(line => {
+          const hasSrc = line.includes('src/');
+          const noNodeModules = !line.includes('node_modules');
+          const noInternal = !line.includes('node:') && !line.includes('internal/');
+          return hasSrc && noNodeModules && noInternal;
+        })
+        .slice(0, 10) // Get up to 10 relevant frames
+        .map(line => {
+          // Extract file path and line number: "at functionName (file:line:col)" or "at file:line:col"
+          const match = line.match(/at\s+(?:\w+\s+\()?([^\s()]+):(\d+):(\d+)/);
+          if (match) {
+            const [, file, lineNum, col] = match;
+            // Clean up file path to be relative to project root
+            const cleanPath = file.replace(/^.*\/gs-internal-analytics\//, '').replace(/^.*\/src\//, 'src/');
+            return `${cleanPath}:${lineNum}:${col}`;
+          }
+          return line.trim();
+        })
+        .join('\n');
+      
+      const enhancedMessage = `${error.message}\n\nSQL Query:\n${sql}\n\nParams: ${JSON.stringify(params || [])}${relevantStack ? `\n\nStack trace:\n${relevantStack}` : ''}`;
+      const enhancedError = new Error(enhancedMessage);
+      enhancedError.stack = error.stack;
+      throw enhancedError;
+    }
+    throw error;
   } finally {
     client.release();
   }

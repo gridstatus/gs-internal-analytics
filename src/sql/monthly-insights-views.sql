@@ -14,8 +14,7 @@ FROM insights.post_views pv
 JOIN api_server.users u ON pv.user_id = u.id
 WHERE 1=1
   AND pv.viewed_at >= '2025-10-01'
-  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{INTERNAL_EMAIL_FILTER}}
+  {{USER_FILTER}}
 GROUP BY DATE_TRUNC('month', pv.viewed_at)
 ORDER BY month DESC;
 

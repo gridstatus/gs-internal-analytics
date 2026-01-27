@@ -90,6 +90,16 @@ export async function GET(request: Request) {
         ORDER BY created_at DESC
       `, [id]);
 
+      // Get alert logs for this user
+      const alertLogs = await query<{
+        id: string;
+        alert_id: string | null;
+        type: string;
+        value: string;
+        timestamp: Date | null;
+        message: string | null;
+      }>(loadSql('user-alert-logs.sql'), [id]);
+
       // Get API usage (last 30 days)
       const apiUsage = await query<{
         request_count: string;
@@ -193,6 +203,14 @@ export async function GET(request: Request) {
           id: a.id,
           createdAt: a.created_at,
         })),
+        alertLogs: alertLogs.map(al => ({
+          id: al.id,
+          alertId: al.alert_id,
+          type: al.type,
+          value: al.value,
+          timestamp: al.timestamp,
+          message: al.message,
+        })),
         apiKeys: apiKeys.map(k => ({
           apiKey: k.api_key,
           firstUsed: k.first_used,
@@ -234,36 +252,7 @@ export async function GET(request: Request) {
 
     // Search users with fuzzy matching on username/email and first/last name
     // Uses ILIKE for pattern matching - exact matches work, partial matches supported
-    let searchSql = `
-      SELECT 
-        u.id, 
-        u.username, 
-        u.first_name, 
-        u.last_name, 
-        u.created_at, 
-        u.last_active_at,
-        EXISTS (
-          SELECT 1
-          FROM api_server.api_key_usage aku
-          WHERE aku.user_id = u.id
-            AND aku.api_key IS NOT NULL
-          LIMIT 1
-        ) as has_api_key
-      FROM api_server.users u
-      WHERE (
-        u.username ILIKE $1 
-        OR COALESCE(u.first_name, '') ILIKE $1 
-        OR COALESCE(u.last_name, '') ILIKE $1
-        OR COALESCE(u.first_name || ' ' || u.last_name, '') ILIKE $1
-        OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM 1 FOR POSITION('@' IN u.username) - 1) ILIKE $1)
-        OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) ILIKE $1)
-      )
-        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-      ORDER BY u.last_active_at DESC NULLS LAST
-      LIMIT 100
-    `;
-    searchSql = renderSqlTemplate(searchSql, { filterGridstatus, usernamePrefix: 'u.' });
+    const searchSql = renderSqlTemplate('users-list-search.sql', { filterGridstatus, usernamePrefix: 'u.' });
     const users = await query<{
       id: number;
       username: string;

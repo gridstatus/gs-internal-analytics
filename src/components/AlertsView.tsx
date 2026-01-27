@@ -6,14 +6,13 @@ import {
   Title,
   SimpleGrid,
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
   TextInput,
   Group,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { AlertsResponse } from '@/lib/api-types';
@@ -21,6 +20,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
 import { DataTable, Column } from './DataTable';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
@@ -47,13 +47,7 @@ export function AlertsView() {
   if (error) {
     return (
       <Container fluid py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay error={error} />
       </Container>
     );
   }

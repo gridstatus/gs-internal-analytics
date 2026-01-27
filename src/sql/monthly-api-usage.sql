@@ -12,8 +12,7 @@ FROM (
   WHERE 1=1
     AND aku.api_key IS NOT NULL
     AND aku."timestamp" >= NOW() - INTERVAL '7 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ) a
 GROUP BY DATE_TRUNC('month', a."timestamp")
 ORDER BY month;

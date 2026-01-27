@@ -1,3 +1,7 @@
+-- Required placeholders:
+--   {{PERIOD}} - Period type: 'day', 'week', 'month', or 'year'
+--   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+
 WITH user_data AS (
   SELECT
     clerk_id as user_id,
@@ -11,8 +15,7 @@ WITH user_data AS (
     END AS is_corporate_domain
   FROM api_server.users
   WHERE 1=1
-    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 )
 SELECT
   DATE_TRUNC('{{PERIOD}}', created_at) AS month,

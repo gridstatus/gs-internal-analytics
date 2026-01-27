@@ -2,8 +2,7 @@ WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users
   WHERE 1=1
-    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 domain_counts AS (
   SELECT domain, COUNT(*) AS user_count

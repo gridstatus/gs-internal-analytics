@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { loadRenderedSql, renderSqlTemplate } from '@/lib/queries';
+import { renderSqlTemplate } from '@/lib/queries';
 import { formatDateOnly, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -10,29 +10,13 @@ export async function GET(request: Request) {
       const filterGridstatus = getFilterGridstatus(searchParams);
 
     // Get summary stats (filtered)
-    const chartStatsSql = `
-      SELECT COUNT(*) as total, COUNT(DISTINCT c.user_id) as users 
-      FROM api_server.charts c
-      JOIN api_server.users u ON u.id = c.user_id
-      WHERE 1=1
-        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    `;
-    const dashboardStatsSql = `
-      SELECT COUNT(*) as total, COUNT(DISTINCT d.user_id) as users 
-      FROM api_server.dashboards d
-      JOIN api_server.users u ON u.id = d.user_id
-      WHERE 1=1
-        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    `;
     const [chartStats, dashboardStats] = await Promise.all([
-      query<{ total: string; users: string }>(renderSqlTemplate(chartStatsSql, { filterGridstatus })),
-      query<{ total: string; users: string }>(renderSqlTemplate(dashboardStatsSql, { filterGridstatus })),
+      query<{ total: string; users: string }>(renderSqlTemplate('chart-stats.sql', { filterGridstatus })),
+      query<{ total: string; users: string }>(renderSqlTemplate('dashboard-stats.sql', { filterGridstatus })),
     ]);
 
     // Get user breakdown for charts/dashboards
-    const chartsDashboardsSql = loadRenderedSql('charts-dashboards-by-user.sql', { filterGridstatus });
+    const chartsDashboardsSql = renderSqlTemplate('charts-dashboards-by-user.sql', { filterGridstatus });
     const userBreakdown = await query<{
       user_id: number;
       username: string;

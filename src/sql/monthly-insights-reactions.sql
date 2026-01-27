@@ -11,8 +11,7 @@ FROM insights.reactions r
 JOIN api_server.users u ON r.user_id = u.id
 WHERE 1=1
   AND r.created_at >= '2025-10-01'
-  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{INTERNAL_EMAIL_FILTER}}
+  {{USER_FILTER}}
 GROUP BY DATE_TRUNC('month', r.created_at)
 ORDER BY month DESC;
 

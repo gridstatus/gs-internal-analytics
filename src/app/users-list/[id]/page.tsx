@@ -90,6 +90,15 @@ interface Alert {
   createdAt: string;
 }
 
+interface AlertLog {
+  id: string;
+  alertId: string | null;
+  type: string;
+  value: string;
+  timestamp: string | null;
+  message: string | null;
+}
+
 interface UserDetails {
   user: User;
   organizations: Organization[];
@@ -103,6 +112,7 @@ interface UserDetails {
   charts: Chart[];
   dashboards: Dashboard[];
   alerts: Alert[];
+  alertLogs: AlertLog[];
   apiKeys: ApiKey[];
   insights?: {
     reactions: InsightReaction[];
@@ -142,6 +152,16 @@ interface PostHogData {
   totalEvents: number;
 }
 
+interface PostHogSessionData {
+  email: string;
+  sessionCounts: {
+    last1d: number;
+    last7d: number;
+    last30d: number;
+    allTime: number;
+  };
+}
+
 interface ApiUsageResponse {
   data: ApiUsageData[];
 }
@@ -164,6 +184,10 @@ export default function UserDetailPage() {
   // Fetch PostHog events data
   const posthogUrl = id ? `/api/users-list/${id}/posthog-events?days=${posthogDays === 'all' ? 'all' : posthogDays}` : null;
   const { data: posthogData, loading: posthogLoading, error: posthogError } = useApiData<PostHogData>(posthogUrl, [id, posthogDays]);
+
+  // Fetch PostHog session counts
+  const sessionsUrl = id ? `/api/users-list/${id}/posthog-sessions` : null;
+  const { data: sessionsData, loading: sessionsLoading } = useApiData<PostHogSessionData>(sessionsUrl, [id]);
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -418,6 +442,45 @@ export default function UserDetailPage() {
             )}
           </Paper>
 
+          {/* Alert Logs */}
+          <Paper shadow="sm" p="md" radius="md" withBorder style={{ maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+            <Text fw={600} size="lg" mb="md">
+              Alert Logs ({data.alertLogs.length})
+            </Text>
+            {data.alertLogs.length === 0 ? (
+              <Text c="dimmed" size="sm">No alert logs</Text>
+            ) : (
+              <ScrollArea style={{ flex: 1 }}>
+                <Stack gap="xs">
+                  {data.alertLogs.map((log) => (
+                    <Stack key={log.id} gap={4} pb="xs" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
+                      <Group justify="space-between" wrap="nowrap">
+                        <Badge size="xs" variant="light" color={
+                          log.type === 'email' ? 'blue' :
+                          log.type === 'sms' ? 'green' :
+                          log.type === 'error' ? 'red' : 'gray'
+                        }>
+                          {log.type}
+                        </Badge>
+                        <Text size="xs" c="dimmed">
+                          {log.timestamp ? formatTimeAgo(log.timestamp) : '—'}
+                        </Text>
+                      </Group>
+                      <Text size="sm" lineClamp={2} title={log.value}>
+                        {log.value}
+                      </Text>
+                      {log.message && (
+                        <Text size="xs" c="dimmed" lineClamp={1}>
+                          {log.message}
+                        </Text>
+                      )}
+                    </Stack>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
+
           {/* API Keys */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Text fw={600} size="lg" mb="md">
@@ -445,6 +508,39 @@ export default function UserDetailPage() {
                   ))}
                 </Stack>
               </ScrollArea>
+            )}
+          </Paper>
+
+          {/* PostHog Sessions */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Sessions (PostHog)
+            </Text>
+            {sessionsLoading ? (
+              <Stack align="center" py="md">
+                <Loader size="sm" />
+              </Stack>
+            ) : sessionsData ? (
+              <Stack gap="xs">
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 24h</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last1d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 7d</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last7d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 30d</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last30d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">All Time</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.allTime.toLocaleString()}</Text>
+                </Group>
+              </Stack>
+            ) : (
+              <Text c="dimmed" size="sm">Unable to load session data</Text>
             )}
           </Paper>
         </Stack>

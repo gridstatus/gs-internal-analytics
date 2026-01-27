@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { loadRenderedSql, renderSqlTemplate } from '@/lib/queries';
+import { renderSqlTemplate } from '@/lib/queries';
 import { formatDateOnly, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -10,19 +10,12 @@ export async function GET(request: Request) {
       const filterGridstatus = getFilterGridstatus(searchParams);
 
     // Get summary stats (filtered)
-    const summarySql = `
-      SELECT COUNT(*) as total, COUNT(DISTINCT a.user_id) as users 
-      FROM api_server.alerts a
-      JOIN api_server.users u ON u.id = a.user_id
-      WHERE 1=1
-        AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-        {{INTERNAL_EMAIL_FILTER}}
-    `;
-    const filteredSummarySql = renderSqlTemplate(summarySql, { filterGridstatus });
-    const alertStats = await query<{ total: string; users: string }>(filteredSummarySql);
+    const alertStats = await query<{ total: string; users: string }>(
+      renderSqlTemplate('summary-alerts.sql', { filterGridstatus })
+    );
 
     // Get user breakdown for alerts
-    const alertsSql = loadRenderedSql('alerts-by-user.sql', { filterGridstatus });
+    const alertsSql = renderSqlTemplate('alerts-by-user.sql', { filterGridstatus });
     const alertsBreakdown = await query<{
       user_id: number;
       username: string;

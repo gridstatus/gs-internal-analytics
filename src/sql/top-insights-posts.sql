@@ -1,3 +1,7 @@
+-- Required placeholders:
+--   {{TIME_FILTER}} - Time filter clause (e.g., "AND p.created_at >= '2025-01-01'")
+--   NOTE: This query does NOT filter by author domain - all posts are by GS employees
+
 -- NOTE: We do NOT filter post authors by internal email domain.
 -- All insight posts are authored by GS employees, so filtering would remove all posts.
 -- The internal filter only applies to views/reactions (user engagement metrics).
@@ -33,4 +37,3 @@ WHERE p.status = 'PUBLISHED'
 GROUP BY p.id, p.content, p.created_at, p.updated_at, p.author_id, u.username
 ORDER BY view_count DESC, reaction_count DESC
 LIMIT 100;
-

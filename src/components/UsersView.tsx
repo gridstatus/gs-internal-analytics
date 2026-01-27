@@ -19,13 +19,14 @@ import {
   Box,
   Select,
 } from '@mantine/core';
-import { IconSearch, IconAlertCircle, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
+import { IconSearch, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { CompositeChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
+import { ErrorDisplay } from './ErrorDisplay';
 import Link from 'next/link';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { UsersResponse } from '@/lib/api-types';
@@ -88,13 +89,7 @@ export function UsersView() {
   if (error) {
     return (
       <Container fluid py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay error={error} />
       </Container>
     );
   }

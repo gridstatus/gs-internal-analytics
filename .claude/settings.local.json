@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git diff:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(while read f)",
+      "Bash(do if [ -f \"$f\" ])",
+      "Bash(then grep -l 'GRIDSTATUS_FILTER_STANDALONE\\\\|INTERNAL_EMAIL_FILTER' \"$f\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(then grep -n 'WHERE[[:space:]]*{{USER_FILTER}}' \"$f\")"
     ]
   }
 }

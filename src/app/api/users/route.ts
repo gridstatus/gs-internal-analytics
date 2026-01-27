@@ -17,98 +17,30 @@ export async function GET(request: Request) {
     const newUsersPeriod = (searchParams.get('newUsersPeriod') as 'day' | 'week' | 'month' | 'year') || 'month';
     
     const getTopDomains = async (days: number) => {
-      let sql = loadSql('top-domains.sql');
-      
-      // Replace custom placeholders first (before renderSqlTemplate)
-      sql = sql.replace(/\{\{DAYS\}\}/g, days.toString());
-      sql = sql.replace(/\{\{TIMESTAMP_FIELD\}\}/g, timestampField);
-      
       // Add domain filter if provided
       let domainFilter = '';
       if (domainSearch) {
         domainFilter = `AND SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
       }
-      sql = sql.replace(/\{\{DOMAIN_FILTER\}\}/g, domainFilter);
       
-      // Then render the template placeholders
-      sql = renderSqlTemplate(sql, { filterGridstatus });
+      // Render template with all placeholders
+      // Note: Context keys must match SQL placeholder names (uppercase with underscores)
+      const sql = renderSqlTemplate('top-domains.sql', { 
+        filterGridstatus, 
+        days, 
+        timestamp_field: timestampField,  // Use snake_case to match {{TIMESTAMP_FIELD}}
+        domain_filter: domainFilter      // Use snake_case to match {{DOMAIN_FILTER}}
+      });
       return query<{ domain: string; user_count: string }>(sql);
     };
 
-    const hourlyRegistrationsSql = `
-      WITH hours AS (
-        SELECT generate_series(
-          DATE_TRUNC('day', NOW()),
-          DATE_TRUNC('hour', NOW()),
-          INTERVAL '1 hour'
-        ) AS hour
-      ),
-      counts AS (
-        SELECT
-          DATE_TRUNC('hour', created_at) AS hour,
-          COUNT(*) AS new_users
-        FROM api_server.users
-        WHERE created_at >= DATE_TRUNC('day', NOW())
-          AND created_at < DATE_TRUNC('day', NOW()) + INTERVAL '1 day'
-          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-          {{INTERNAL_EMAIL_FILTER}}
-        GROUP BY 1
-      )
-      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
-      FROM hours h
-      LEFT JOIN counts c ON c.hour = h.hour
-      ORDER BY h.hour ASC
-    `;
-
-    const hourlyRegistrationsYesterdaySql = `
-      WITH hours AS (
-        SELECT generate_series(
-          DATE_TRUNC('day', NOW() - INTERVAL '1 day'),
-          DATE_TRUNC('day', NOW() - INTERVAL '1 day') + (NOW() - DATE_TRUNC('day', NOW())),
-          INTERVAL '1 hour'
-        ) AS hour
-      ),
-      counts AS (
-        SELECT
-          DATE_TRUNC('hour', created_at) AS hour,
-          COUNT(*) AS new_users
-        FROM api_server.users
-        WHERE created_at >= DATE_TRUNC('day', NOW() - INTERVAL '1 day')
-          AND created_at < DATE_TRUNC('day', NOW() - INTERVAL '1 day') + (NOW() - DATE_TRUNC('day', NOW()))
-          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-          {{INTERNAL_EMAIL_FILTER}}
-        GROUP BY 1
-      )
-      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
-      FROM hours h
-      LEFT JOIN counts c ON c.hour = h.hour
-      ORDER BY h.hour ASC
-    `;
-
-    const hourlyRegistrationsLastWeekSql = `
-      WITH hours AS (
-        SELECT generate_series(
-          DATE_TRUNC('day', NOW() - INTERVAL '7 days'),
-          DATE_TRUNC('day', NOW() - INTERVAL '7 days') + (NOW() - DATE_TRUNC('day', NOW())),
-          INTERVAL '1 hour'
-        ) AS hour
-      ),
-      counts AS (
-        SELECT
-          DATE_TRUNC('hour', created_at) AS hour,
-          COUNT(*) AS new_users
-        FROM api_server.users
-        WHERE created_at >= DATE_TRUNC('day', NOW() - INTERVAL '7 days')
-          AND created_at < DATE_TRUNC('day', NOW() - INTERVAL '7 days') + (NOW() - DATE_TRUNC('day', NOW()))
-          AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-          {{INTERNAL_EMAIL_FILTER}}
-        GROUP BY 1
-      )
-      SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
-      FROM hours h
-      LEFT JOIN counts c ON c.hour = h.hour
-      ORDER BY h.hour ASC
-    `;
+    // Load and render hourly registrations SQL template for different day offsets
+    const getHourlyRegistrationsSql = (daysOffset: number) => {
+      return renderSqlTemplate('hourly-registrations.sql', { 
+        filterGridstatus, 
+        days_offset: daysOffset  // Use snake_case to match {{DAYS_OFFSET}}
+      });
+    };
 
     // Use period-specific query for combined chart (single query with cumulative calc in DB)
     // When period is 'month', reuse this data for monthlyData too
@@ -132,15 +64,9 @@ export async function GET(request: Request) {
       getTopDomains(1),
       getTopDomains(7),
       getTopDomains(30),
-      query<{ hour: Date; new_users: string }>(
-        renderSqlTemplate(hourlyRegistrationsSql, { filterGridstatus })
-      ),
-      query<{ hour: Date; new_users: string }>(
-        renderSqlTemplate(hourlyRegistrationsYesterdaySql, { filterGridstatus })
-      ),
-      query<{ hour: Date; new_users: string }>(
-        renderSqlTemplate(hourlyRegistrationsLastWeekSql, { filterGridstatus })
-      ),
+      query<{ hour: Date; new_users: string }>(getHourlyRegistrationsSql(0)),
+      query<{ hour: Date; new_users: string }>(getHourlyRegistrationsSql(1)),
+      query<{ hour: Date; new_users: string }>(getHourlyRegistrationsSql(7)),
     ]);
 
     let cumulativeUsers = 0;

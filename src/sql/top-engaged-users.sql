@@ -1,3 +1,9 @@
+-- Required placeholders:
+--   {{TIME_FILTER_REACTIONS}} - Time filter for reactions (e.g., "AND r.created_at >= '2025-01-01'")
+--   {{TIME_FILTER_VIEWS}} - Time filter for views (e.g., "AND pv.viewed_at >= '2025-01-01'")
+--   {{TIME_FILTER_SAVES}} - Time filter for saves (e.g., "AND sp.created_at >= '2025-01-01'")
+--   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+
 SELECT
   u.id as user_id,
   u.username,
@@ -21,7 +27,7 @@ LEFT JOIN insights.saved_posts sp ON u.id = sp.user_id
   {{TIME_FILTER_SAVES}}
 WHERE 1=1
   AND u.username IS NOT NULL
-  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
+  {{USER_FILTER}}
 GROUP BY u.id, u.username, u.first_name, u.last_name
 HAVING 
   COUNT(DISTINCT r.id) > 0 OR 

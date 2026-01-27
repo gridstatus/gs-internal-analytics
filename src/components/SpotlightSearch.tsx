@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Modal,
@@ -31,6 +31,18 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (opened) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [opened]);
 
   // Fetch users and organizations in background
   const usersUrl = useApiUrl('/api/users-list', {
@@ -145,11 +157,11 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
       <Stack gap="md">
         <Stack gap={4}>
           <TextInput
+            ref={inputRef}
             placeholder="Search users or organizations..."
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value)}
             leftSection={<IconSearch size={16} />}
-            autoFocus
           />
           <Group gap={4} justify="flex-end" visibleFrom="sm">
             <Text size="xs" c="dimmed">Use</Text>

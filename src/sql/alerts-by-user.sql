@@ -8,8 +8,7 @@ FROM api_server.users u
 LEFT JOIN api_server.alerts a ON a.user_id = u.id
 WHERE 1=1
   AND a.id IS NOT NULL
-  AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{INTERNAL_EMAIL_FILTER}}
+  {{USER_FILTER}}
 GROUP BY u.id, u.username
 ORDER BY COUNT(DISTINCT a.id) DESC;
 

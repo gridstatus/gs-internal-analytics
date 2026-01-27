@@ -10,8 +10,7 @@ WITH user_registrations AS (
   FROM api_server.users u
   WHERE 1=1
     AND u.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 org_joins AS (
   SELECT
@@ -25,8 +24,7 @@ org_joins AS (
   JOIN api_server.organizations o ON o.id = uo.organization_id
   WHERE 1=1
     AND u.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 chart_creations AS (
   SELECT
@@ -39,8 +37,7 @@ chart_creations AS (
   JOIN api_server.users u ON u.id = c.user_id
   WHERE 1=1
     AND c.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 dashboard_creations AS (
   SELECT
@@ -53,8 +50,7 @@ dashboard_creations AS (
   JOIN api_server.users u ON u.id = d.user_id
   WHERE 1=1
     AND d.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 api_key_creations AS (
   SELECT
@@ -67,8 +63,7 @@ api_key_creations AS (
   JOIN api_server.users u ON u.id = ak.user_id
   WHERE 1=1
     AND ak.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 ),
 alert_creations AS (
   SELECT
@@ -81,8 +76,7 @@ alert_creations AS (
   JOIN api_server.users u ON u.id = a.user_id
   WHERE 1=1
     AND a.created_at >= NOW() - INTERVAL '90 days'
-    AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 )
 SELECT
   user_id,

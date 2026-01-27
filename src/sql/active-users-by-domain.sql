@@ -5,8 +5,7 @@ WITH user_domains AS (
   FROM api_server.users
   WHERE 1=1
     AND last_active_at IS NOT NULL
-    AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-    {{INTERNAL_EMAIL_FILTER}}
+    {{USER_FILTER}}
 )
 SELECT
   domain,

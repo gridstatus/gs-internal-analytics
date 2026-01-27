@@ -54,7 +54,7 @@ These protections work together to prevent search engine indexing both in the ap
 - Use `/api/sql` POST endpoint with `{"sql": "..."}` to explore database
 
 ### Corporate Domain Filtering
-Queries should filter out free email domains (e.g., gmail.com, yahoo.com, etc.) and optionally `gridstatus.io` (internal). The `renderSqlTemplate()` function in `src/lib/queries.ts` dynamically renders SQL template placeholders (e.g., `{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{FREE_EMAIL_DOMAINS}}`) based on the filter context, allowing users to toggle internal users via the sidebar filter.
+Queries should filter out free email domains (e.g., gmail.com, yahoo.com, etc.) and optionally `gridstatus.io` (internal). The `renderSqlTemplate()` function in `src/lib/queries.ts` dynamically renders the `{{USER_FILTER}}` placeholder based on the filter context, allowing users to toggle internal users via the sidebar filter.
 
 ## PostHog Queries
 PostHog is used to track user activity and provides data for anonymous users (not tracked in PostgreSQL).
@@ -115,30 +115,147 @@ Each analytics page follows this pattern:
 
 **CRITICAL - Clean Up Dead Code**: When refactoring code, queries, or components, always delete unused functions, SQL files, and imports. Search the codebase to verify nothing references the code before deleting. Dead code increases maintenance burden and causes confusion.
 
+**CRITICAL - No Backward Compatibility**: When migrating to a new approach (e.g., new placeholder patterns, new query functions, new component patterns), migrate everything to the new approach immediately and remove all dead code. Do not maintain backward compatibility handlers, deprecated functions, or old patterns. This keeps the codebase clean and maintainable.
+
 ### SQL Queries
-**CRITICAL - AND Clause Safety**: When writing SQL queries with template placeholders (especially `{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{EDU_GOV_FILTER}}`, `{{INTERNAL_EMAIL_FILTER}}`), always use `WHERE 1=1` as a base condition. This prevents invalid SQL syntax when filters are removed.
+**CRITICAL - All SQL and HogQL Must Be in Files**: Never write SQL or HogQL queries inline in TypeScript/JavaScript code. All queries must be in separate files:
+- SQL queries: `src/sql/[name].sql`
+- HogQL queries: `src/hogql/[name].hogql`
+
+**SQL File Naming Convention**: All SQL files must follow a consistent naming pattern using **kebab-case** (lowercase with hyphens) and descriptive prefixes to group related queries. This makes files easy to find, understand, and maintain.
+
+**Format**: `[prefix]-[descriptive-name].sql`
+
+**Prefix Categories** (use these to group related queries):
+
+1. **Time-based prefixes** (for time-series/aggregated data):
+   - `hourly-*` - Hourly aggregations (e.g., `hourly-registrations.sql`)
+   - `monthly-*` - Monthly aggregations (e.g., `monthly-user-counts.sql`, `monthly-insights-posts.sql`)
+   - `last-[N]-[period]-*` - Time-bounded queries (e.g., `last-30-days-users.sql`, `last-3-months-new-users.sql`)
+   - **Rule**: Time period comes first in the name
+
+2. **Aggregation prefixes** (for summary/total metrics):
+   - `summary-*` - Summary KPIs/metrics for a time period (e.g., `summary-unique-visitors.sql`, `summary-engagements.sql`)
+   - `total-*` - Total counts across all time (e.g., `total-users-count.sql`, `total-unique-visitors.sql`)
+   - **Rule**: Aggregation type comes first, entity comes second
+
+3. **Ranking/listing prefixes**:
+   - `top-*` - Top N rankings (e.g., `top-registrations.sql`, `top-domains.sql`, `top-insights-posts.sql`)
+   - **Rule**: Use `top-*` for any ranking query, not `most-*` or `best-*`
+
+4. **Entity-based prefixes** (for entity-specific queries):
+   - `user-*` - User-related queries (e.g., `user-activities.sql`, `user-insights-views.sql`)
+   - `domain-*` - Domain-specific queries (e.g., `domain-analytics.sql`, `domain-distribution.sql`)
+   - `[entity]-stats.sql` - Statistics for an entity (e.g., `chart-stats.sql`, `dashboard-stats.sql`)
+   - **Rule**: Entity name comes first, use singular form
+
+5. **Action/verb-based names** (when no prefix category fits):
+   - Use descriptive action names (e.g., `active-users.sql`)
+   - **Rule**: Only use when no prefix category applies
+
+**Naming Rules**:
+- **Always use kebab-case**: lowercase letters and hyphens only (e.g., `monthly-user-counts.sql`)
+- **Prefix order matters**: Time → Aggregation → Ranking → Entity → Action
+- **Singular for entities**: Use `user-*`, not `users-*` (e.g., `user-activities.sql`)
+- **Plural for aggregations**: Use `total-users-count.sql`, `summary-engagements.sql`
+- **Be specific**: `monthly-insights-posts.sql` is clearer than `monthly-posts.sql`
+- **Aggregation before entity**: `summary-alerts.sql` not `alert-summary.sql`
+
+**Examples**:
+
+✅ **Good naming**:
+- `monthly-user-counts.sql` - Time prefix + entity + aggregation
+- `summary-unique-visitors.sql` - Aggregation prefix + descriptive metric
+- `top-registrations.sql` - Ranking prefix + entity
+- `user-activities.sql` - Entity prefix + action
+- `last-30-days-users.sql` - Time prefix first, then entity
+- `total-unique-visitors.sql` - Total prefix + descriptive metric
+
+❌ **Bad naming** (and what to use instead):
+- `new-users-last-3-months.sql` → `last-3-months-new-users.sql` (time prefix should come first)
+- `alert-summary.sql` → `summary-alerts.sql` (aggregation prefix should come first)
+- `most-engaged-users.sql` → `top-engaged-users.sql` (use `top-*` prefix, not `most-*`)
+- `users-activities.sql` → `user-activities.sql` (use singular for entity prefix)
+- `monthly-posts.sql` → `monthly-insights-posts.sql` (be more specific)
+
+Use `renderSqlTemplate(filename, context)` to load and render SQL templates. This improves maintainability, enables syntax highlighting, and makes queries reusable.
+
+**Bad Example** (inline SQL):
+```typescript
+const sql = `SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`;
+```
+
+**Good Example** (SQL in file):
+```typescript
+const sql = renderSqlTemplate('recent-users.sql', { filterGridstatus });
+```
+
+**Template Placeholder Naming Convention**:
+
+- **Reserved/Standard Placeholders** (handled automatically by `renderSqlTemplate()` - DO NOT use these names for custom placeholders):
+  - `{{USER_FILTER}}` - Combined filter that excludes both `@gridstatus.io` users and the test account (`kmax12+dev@gmail.com`). Replaced with both domain and email filters when `filterGridstatus` is true, or removed when false.
+
+  **Important**: This placeholder is automatically processed by `renderSqlTemplate()`. You cannot override it with custom context values. It is tied to the `filterGridstatus` parameter in the query function.
+
+  **Usage**: Always use `{{USER_FILTER}}` in SQL files. It automatically handles both the domain filter (`NOT IN ('gridstatus.io')`) and the email filter (`username != 'kmax12+dev@gmail.com'`) based on the `usernamePrefix` context.
+
+- **Common Custom Placeholder Patterns** (passed via context - follow these naming conventions):
+  - **Filter clauses** (complete SQL filter clauses): Use `{{[TYPE]_FILTER}}` suffix
+    - `{{DATE_FILTER}}` - Date filter clause (e.g., `"AND pv.viewed_at >= NOW() - INTERVAL '7 days'"`)
+    - `{{TIME_FILTER}}` - Time filter clause (e.g., `"AND p.created_at >= '2025-01-01'"`)
+    - `{{TIME_FILTER_REACTIONS}}` - Time filter for reactions table
+    - `{{TIME_FILTER_VIEWS}}` - Time filter for views table
+    - `{{TIME_FILTER_SAVES}}` - Time filter for saves table
+    - `{{DOMAIN_FILTER}}` - Domain search filter clause
+  
+  - **Values** (single values inserted into SQL): Use descriptive UPPERCASE names
+    - `{{DAYS_OFFSET}}` - Number of days to offset (0 = today, 1 = yesterday, etc.)
+    - `{{DAYS}}` - Number of days to look back
+    - `{{PERIOD}}` - Period type: 'day', 'week', 'month', or 'year'
+    - `{{TIMESTAMP_FIELD}}` - Field name to filter by (e.g., 'created_at', 'last_active_at')
+    - `{{LIMIT}}` - Row limit for queries
+  
+  - **Naming Rules for Custom Placeholders**:
+    - Use UPPERCASE with underscores: `{{DAYS_OFFSET}}`, `{{PERIOD}}`, `{{TIMESTAMP_FIELD}}`
+    - For filter clauses, always use `{{[TYPE]_FILTER}}` suffix pattern
+    - For values, use descriptive names that indicate the data type/usage
+    - Custom variables are automatically uppercased: `daysOffset` in context becomes `{{DAYS_OFFSET}}` in SQL
+    - Single quotes in values are automatically escaped for SQL safety
+
+- **SQL File Headers**: Each SQL file should start with a comment block listing required placeholders:
+```sql
+-- Required placeholders:
+--   {{DAYS_OFFSET}} - Number of days to offset (0 = today, 1 = yesterday, etc.)
+--   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+```
+
+- **WHERE Clause Pattern**: Always use `WHERE 1=1` before filter placeholders to prevent SQL syntax errors:
+```sql
+WHERE 1=1
+  {{USER_FILTER}}
+```
+
+**CRITICAL - AND Clause Safety**: When writing SQL queries with `{{USER_FILTER}}`, always use `WHERE 1=1` as a base condition. This prevents invalid SQL syntax when filters are removed.
 
 **Bad Example** (leaves invalid SQL when filter is removed):
 ```sql
-WHERE SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{EDU_GOV_FILTER}}
+WHERE {{USER_FILTER}}
 ```
 
 **Good Example** (always valid SQL):
 ```sql
 WHERE 1=1
-  AND SUBSTRING(username FROM POSITION('@' IN username) + 1) {{GRIDSTATUS_FILTER_STANDALONE}}
-  {{EDU_GOV_FILTER}}
+  {{USER_FILTER}}
 ```
 
 The `renderSqlTemplate()` function attempts to clean up invalid SQL, but it's safer to structure queries correctly from the start.
 
-**CRITICAL - Template Rendering**: If a SQL file contains template placeholders (e.g., `{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{INTERNAL_EMAIL_FILTER}}`), the query function MUST use `renderSqlTemplate()` to process them before executing the query. Failing to do so will cause SQL syntax errors because raw template placeholders will be sent to PostgreSQL.
+**CRITICAL - Template Rendering**: If a SQL file contains template placeholders (e.g., `{{USER_FILTER}}`), the query function MUST use `renderSqlTemplate()` to process them before executing the query. Failing to do so will cause SQL syntax errors because raw template placeholders will be sent to PostgreSQL.
 
 **Bug Example** (causes "syntax error at or near '{'"):
 ```typescript
 export async function getActiveUsers(): Promise<ActiveUsers[]> {
-  const sql = loadSql('active-users.sql'); // Contains {{GRIDSTATUS_FILTER_STANDALONE}}
+  const sql = loadSql('active-users.sql'); // Contains {{USER_FILTER}}
   return query<ActiveUsers>(sql); // ❌ Template not rendered!
 }
 ```
@@ -146,8 +263,7 @@ export async function getActiveUsers(): Promise<ActiveUsers[]> {
 **Correct Example**:
 ```typescript
 export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
-  let sql = loadSql('active-users.sql');
-  sql = renderSqlTemplate(sql, { filterGridstatus }); // ✅ Template rendered
+  const sql = renderSqlTemplate('active-users.sql', { filterGridstatus }); // ✅ Template rendered
   return query<ActiveUsers>(sql);
 }
 ```
@@ -258,7 +374,7 @@ To implement in new views/queries:
 1. **View Components**: Use `useFilter()` hook, include `filterGridstatus` in fetch URL and dependency array
 2. **API Routes**: Read filter from query params, pass to query functions
 3. **Query Functions**: Accept `filterGridstatus` parameter, use `renderSqlTemplate()`
-4. **SQL Files**: Use template placeholders (`{{GRIDSTATUS_FILTER_STANDALONE}}`, `{{FREE_EMAIL_DOMAINS}}`, `{{EDU_GOV_FILTER}}`)
+4. **SQL Files**: Use the `{{USER_FILTER}}` template placeholder
 
 **Example files:**
 - View with filter: `src/components/AlertsView.tsx`

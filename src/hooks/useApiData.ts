@@ -20,7 +20,17 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
       try {
         const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
+          // Try to extract error message from response body
+          let errorMessage = `Request failed: ${response.status} ${response.statusText || ''}\nURL: ${url}`;
+          try {
+            const errorData = await response.json();
+            if (errorData?.error) {
+              errorMessage = `${errorMessage}\n\nError details:\n${errorData.error}`;
+            }
+          } catch {
+            // If response is not JSON, status text already included above
+          }
+          throw new Error(errorMessage);
         }
         const result = (await response.json()) as T;
         if (isActive) {
