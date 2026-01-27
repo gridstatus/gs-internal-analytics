@@ -138,8 +138,11 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
     if (value !== undefined && value !== null) {
       const placeholder = `{{${key.toUpperCase()}}}`;
       const stringValue = String(value);
-      // Escape single quotes for SQL safety
-      const escapedValue = stringValue.replace(/'/g, "''");
+      // Don't escape SQL clauses (they already contain properly formatted SQL)
+      // Detect SQL clauses by checking if they start with SQL keywords (AND/OR) or contain WHERE/JOIN/FROM
+      // This prevents double-escaping of already-formatted SQL clauses like "AND p.created_at >= '2026-01-26'"
+      const isSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue);
+      const escapedValue = isSqlClause ? stringValue : stringValue.replace(/'/g, "''");
       rendered = rendered.replace(new RegExp(`\\{\\{${key.toUpperCase()}\\}\\}`, 'g'), escapedValue);
     } else {
       // If value is undefined or null, remove the placeholder (for optional filters)
