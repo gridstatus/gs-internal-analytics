@@ -1,7 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
--- Note: This query uses $1 parameter for search term
-
+-- Organizations matching search (name ILIKE), with user counts and 7d new/active. Parameter $1 = search term. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT 
   o.id, 
   o.name, 

@@ -1,3 +1,4 @@
+-- API usage by month (last 7 days): requests, rows returned, unique API users. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT
   DATE_TRUNC('month', a."timestamp") AS month,
   COUNT(*) AS total_api_requests,

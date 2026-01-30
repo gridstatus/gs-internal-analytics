@@ -1,5 +1,4 @@
--- Unified activity feed: user registrations, joining orgs, creating charts/dashboards, creating API keys, creating alerts
--- Optimized: Only fetch activities from last 90 days to improve performance
+-- Unified activity feed (registrations, org joins, charts, dashboards, API keys, alerts) for the last 90 days. {{USER_FILTER}} is applied to restrict to correct users.
 WITH user_registrations AS (
   SELECT
     u.id as user_id,

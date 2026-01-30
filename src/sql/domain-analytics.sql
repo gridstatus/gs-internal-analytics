@@ -1,4 +1,4 @@
--- Domain analytics query
+-- Analytics for a single domain: total users, new/active in 7d and 30d, admin count. Parameter $1 = domain (e.g. substring after @).
 WITH domain_users AS (
   SELECT
     u.id,

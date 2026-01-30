@@ -1,3 +1,4 @@
+-- Total corp domains, count of domains with 3+ users (teams), and users on those teams. {{USER_FILTER}} is applied to restrict to correct users.
 WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users

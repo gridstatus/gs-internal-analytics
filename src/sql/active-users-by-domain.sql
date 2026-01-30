@@ -1,3 +1,4 @@
+-- Active users grouped by email domain (24h, 7d, 30d, 90d and total). {{USER_FILTER}} is applied to restrict to correct users.
 WITH user_domains AS (
   SELECT
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,

@@ -1,4 +1,4 @@
--- Summary of new users created over last 3 months
+-- New users per month for the last 3 months. {{USER_FILTER}} is applied to restrict to correct users.
 WITH user_data AS (
   SELECT
     DATE_TRUNC('month', created_at) AS month,

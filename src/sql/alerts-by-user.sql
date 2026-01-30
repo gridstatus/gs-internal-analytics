@@ -1,3 +1,4 @@
+-- Users with at least one alert, ordered by alert count. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT
   u.id AS user_id,
   u.username,

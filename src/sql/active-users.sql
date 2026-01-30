@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Count of active users in 24h, 7d, 30d, 90d and total. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT
   COUNT(*) FILTER (WHERE last_active_at >= NOW() - INTERVAL '24 hours') AS active_24h,
   COUNT(*) FILTER (WHERE last_active_at >= NOW() - INTERVAL '7 days') AS active_7d,

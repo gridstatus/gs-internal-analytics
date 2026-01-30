@@ -1,3 +1,4 @@
+-- Registrations by period (day, week, or month) with counts and corp breakdown. {{USER_FILTER}} is applied to restrict to correct users.
 WITH user_data AS (
   SELECT
     created_at,

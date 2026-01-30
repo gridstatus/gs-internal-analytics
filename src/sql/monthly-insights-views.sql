@@ -1,6 +1,4 @@
--- Filter views by internal users (engagement metrics should exclude GS employees)
--- Note: Post authorship is NOT filtered since all posts are by GS employees.
--- Note: PostgreSQL only tracks logged-in users. Anonymous users are tracked in PostHog.
+-- Monthly post view counts (impressions, views, unique viewers) since 2025-10-01. {{USER_FILTER}} is applied to restrict to correct users. Logged-in users only; anonymous in PostHog.
 SELECT
   DATE_TRUNC('month', pv.viewed_at) AS month,
   COUNT(*) FILTER (WHERE pv.view_source = 'feed') AS impressions,

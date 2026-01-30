@@ -1,3 +1,4 @@
+-- Alert logs for a user, most recent first. Parameter $1 = user_id.
 SELECT
   al.id,
   al.alert_id,

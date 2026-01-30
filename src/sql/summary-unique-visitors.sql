@@ -1,7 +1,4 @@
--- Required placeholders:
---   {{DATE_FILTER}} - Date filter clause (e.g., "AND pv.viewed_at >= NOW() - INTERVAL '7 days'")
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Distinct users who viewed posts (any view source) in the date window. {{DATE_FILTER}} and {{USER_FILTER}} are applied to restrict to correct users.
 SELECT COUNT(DISTINCT pv.user_id) AS total
 FROM insights.post_views pv
 JOIN api_server.users u ON pv.user_id = u.id

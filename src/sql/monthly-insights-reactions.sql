@@ -1,5 +1,4 @@
--- Filter reactions by internal users (engagement metrics should exclude GS employees)
--- Note: Post authorship is NOT filtered since all posts are by GS employees.
+-- Monthly reaction counts (total, posts, reactors, likes, dislikes) since 2025-10-01. {{USER_FILTER}} is applied to restrict to correct users (engagement excludes GS).
 SELECT
   DATE_TRUNC('month', r.created_at) AS month,
   COUNT(*) AS total_reactions,

@@ -1,9 +1,4 @@
--- Required placeholders:
---   {{TIME_FILTER_REACTIONS}} - Time filter for reactions (e.g., "AND r.created_at >= '2025-01-01'")
---   {{TIME_FILTER_VIEWS}} - Time filter for views (e.g., "AND pv.viewed_at >= '2025-01-01'")
---   {{TIME_FILTER_SAVES}} - Time filter for saves (e.g., "AND sp.created_at >= '2025-01-01'")
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Users ranked by engagement (reactions, views, saves) in a time window. {{TIME_FILTER_REACTIONS}}, {{TIME_FILTER_VIEWS}}, {{TIME_FILTER_SAVES}} and {{USER_FILTER}} are applied to restrict to correct users and time range.
 SELECT
   u.id as user_id,
   u.username,

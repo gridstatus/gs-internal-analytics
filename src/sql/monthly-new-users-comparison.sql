@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- New-user counts for current month, previous month, and same month last year. {{USER_FILTER}} is applied to restrict to correct users.
 WITH current_month_start AS (
   SELECT DATE_TRUNC('month', NOW()) AS start_time
 ),

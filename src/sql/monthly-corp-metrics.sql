@@ -1,3 +1,4 @@
+-- Corp domains, teams (3+ users), and users on teams by month (cumulative). {{USER_FILTER}} is applied to restrict to correct users.
 WITH corp_domains AS (
   SELECT
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,

@@ -1,7 +1,4 @@
--- Required placeholders:
---   {{DAYS_OFFSET}} - Number of days to offset (0 = today, 1 = yesterday, 7 = last week)
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- New users per hour for a given day. {{DAYS_OFFSET}} = 0 for today, 1 for yesterday, etc. {{USER_FILTER}} is applied to restrict to correct users.
 WITH hours AS (
   SELECT generate_series(
     DATE_TRUNC('day', NOW() - INTERVAL '{{DAYS_OFFSET}} days'),

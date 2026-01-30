@@ -1,3 +1,4 @@
+-- Histogram of domain sizes: how many domains have 2, 3, … users (bucketed to 25). {{USER_FILTER}} is applied to restrict to correct users.
 WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users

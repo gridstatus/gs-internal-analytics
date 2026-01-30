@@ -1,10 +1,4 @@
--- Required placeholders:
---   {{TIMEFILTER}} - Time filter clause (e.g., "AND p.created_at >= '2025-01-01'")
---   NOTE: This query does NOT filter by author domain - all posts are by GS employees
-
--- NOTE: We do NOT filter post authors by internal email domain.
--- All insight posts are authored by GS employees, so filtering would remove all posts.
--- The internal filter only applies to views/reactions (user engagement metrics).
+-- Published insight posts ranked by engagement (impressions, views, reactions, saves, engagement rate). {{TIMEFILTER}} filters by post date. Does not filter by author (all posts by GS).
 SELECT
   p.id,
   p.content,

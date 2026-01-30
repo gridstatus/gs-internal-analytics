@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- New users and cumulative total by month, with corporate-domain breakdown. {{USER_FILTER}} is applied to restrict to correct users.
 WITH user_data AS (
   SELECT
     clerk_id as user_id,

@@ -1,3 +1,4 @@
+-- Saved posts for a user, most recent first. Parameter $1 = user_id.
 SELECT
   p.id,
   p.content,

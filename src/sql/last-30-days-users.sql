@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Count of new users in the last 30 days vs the previous 30 days. {{USER_FILTER}} is applied to restrict to correct users.
 WITH last_30_days_start AS (
   SELECT NOW() - INTERVAL '30 days' AS start_time
 ),

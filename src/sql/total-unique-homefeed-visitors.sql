@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Distinct users who viewed the feed since 2025-10-01 (all time). {{USER_FILTER}} is applied to restrict to correct users.
 SELECT COUNT(DISTINCT pv.user_id) AS total
 FROM insights.post_views pv
 JOIN api_server.users u ON pv.user_id = u.id

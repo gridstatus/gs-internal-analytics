@@ -1,3 +1,4 @@
+-- Users who have created at least one chart or dashboard, with counts per user. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT
   u.id AS user_id,
   u.username,

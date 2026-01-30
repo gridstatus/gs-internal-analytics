@@ -1,3 +1,4 @@
+-- Reactions by a user on published posts, most recent first. Parameter $1 = user_id.
 SELECT
   p.id,
   p.content,

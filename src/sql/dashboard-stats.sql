@@ -1,6 +1,4 @@
--- Required placeholders:
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- Total dashboard count and distinct users who created dashboards. {{USER_FILTER}} is applied to restrict to correct users.
 SELECT COUNT(*) as total, COUNT(DISTINCT d.user_id) as users 
 FROM api_server.dashboards d
 JOIN api_server.users u ON u.id = d.user_id

@@ -1,7 +1,4 @@
--- Required placeholders:
---   {{PERIOD}} - Period type: 'day', 'week', 'month', or 'year'
---   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
-
+-- New users and cumulative total by period (day, week, month, or year). {{PERIOD}} and {{USER_FILTER}} are applied; {{USER_FILTER}} restricts to correct users.
 WITH user_data AS (
   SELECT
     clerk_id as user_id,

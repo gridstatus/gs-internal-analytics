@@ -1,3 +1,4 @@
+-- Post views (feed_expanded or detail) by a user, most recent first. Parameter $1 = user_id.
 SELECT
   p.id,
   p.content,
