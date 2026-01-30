@@ -1,21 +1,22 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { renderSqlTemplate } from '@/lib/queries';
-import { formatDateOnly, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatDateOnly, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
 
     // Get summary stats (filtered)
     const alertStats = await query<{ total: string; users: string }>(
-      renderSqlTemplate('summary-alerts.sql', { filterGridstatus })
+      renderSqlTemplate('summary-alerts.sql', { filterInternal, filterFree })
     );
 
     // Get user breakdown for alerts
-    const alertsSql = renderSqlTemplate('alerts-by-user.sql', { filterGridstatus });
+    const alertsSql = renderSqlTemplate('alerts-by-user.sql', { filterInternal, filterFree });
     const alertsBreakdown = await query<{
       user_id: number;
       username: string;

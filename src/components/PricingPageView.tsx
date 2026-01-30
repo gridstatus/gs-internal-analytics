@@ -42,9 +42,9 @@ interface PricingPageResponse {
 
 export function PricingPageView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus, timezone } = useFilter();
-  const url = useApiUrl('/api/pricing-page', { filterGridstatus, timezone });
-  const { data, loading, error } = useApiData<PricingPageResponse>(url, [filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const url = useApiUrl('/api/pricing-page', { filterInternal, filterFree, timezone });
+  const { data, loading, error } = useApiData<PricingPageResponse>(url, [filterInternal, filterFree, timezone]);
 
   if (loading) {
     return (

@@ -1,22 +1,23 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { renderSqlTemplate } from '@/lib/queries';
-import { formatDateOnly, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatDateOnly, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
 
     // Get summary stats (filtered)
     const [chartStats, dashboardStats] = await Promise.all([
-      query<{ total: string; users: string }>(renderSqlTemplate('chart-stats.sql', { filterGridstatus })),
-      query<{ total: string; users: string }>(renderSqlTemplate('dashboard-stats.sql', { filterGridstatus })),
+      query<{ total: string; users: string }>(renderSqlTemplate('chart-stats.sql', { filterInternal, filterFree })),
+      query<{ total: string; users: string }>(renderSqlTemplate('dashboard-stats.sql', { filterInternal, filterFree })),
     ]);
 
     // Get user breakdown for charts/dashboards
-    const chartsDashboardsSql = renderSqlTemplate('charts-dashboards-by-user.sql', { filterGridstatus });
+    const chartsDashboardsSql = renderSqlTemplate('charts-dashboards-by-user.sql', { filterInternal, filterFree });
     const userBreakdown = await query<{
       user_id: number;
       username: string;

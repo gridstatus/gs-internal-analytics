@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPricingPageVisitCounts, getPricingPageMostVisits } from '@/lib/queries';
-import { withRequestContext, getFilterGridstatus } from '@/lib/api-helpers';
+import { withRequestContext, getFilterInternal, getFilterFree } from '@/lib/api-helpers';
 import { getErrorMessage, query } from '@/lib/db';
 
 // Look up user IDs from emails
@@ -23,14 +23,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
       const [visitCounts1d, visitCounts7d, visitCounts30d, mostVisits1d, mostVisits7d, mostVisits30d] = await Promise.all([
-        getPricingPageVisitCounts('1d', filterGridstatus),
-        getPricingPageVisitCounts('7d', filterGridstatus),
-        getPricingPageVisitCounts('30d', filterGridstatus),
-        getPricingPageMostVisits('1d', 50, filterGridstatus),
-        getPricingPageMostVisits('7d', 50, filterGridstatus),
-        getPricingPageMostVisits('30d', 50, filterGridstatus),
+        getPricingPageVisitCounts('1d', filterInternal, filterFree),
+        getPricingPageVisitCounts('7d', filterInternal, filterFree),
+        getPricingPageVisitCounts('30d', filterInternal, filterFree),
+        getPricingPageMostVisits('1d', 50, filterInternal, filterFree),
+        getPricingPageMostVisits('7d', 50, filterInternal, filterFree),
+        getPricingPageMostVisits('30d', 50, filterInternal, filterFree),
       ]);
 
       // Get all unique emails

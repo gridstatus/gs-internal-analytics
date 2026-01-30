@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
 
-async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterGridstatus: boolean): Promise<{ period: string; activeUsers: number }[]> {
+async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterInternal: boolean, filterFree: boolean): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -38,7 +38,8 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month', filterG
   }
 
   const hogql = loadRenderedHogql('posthog-active-users.hogql', {
-    filterGridstatus,
+    filterInternal,
+    filterFree,
     dateFunction,
     dateFilter,
     orderDirection,
@@ -114,7 +115,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
       const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month';
     
     if (!['day', 'week', 'month'].includes(period)) {
@@ -124,7 +126,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const activeUsers = await fetchPosthogActiveUsers(period, filterGridstatus);
+    const activeUsers = await fetchPosthogActiveUsers(period, filterInternal, filterFree);
 
     // Calculate period-over-period change
     const periodData = activeUsers.map((row, index) => {

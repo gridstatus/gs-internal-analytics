@@ -1,7 +1,9 @@
 # GS Internal Analytics Dashboard
 
 ## Project Overview
-Internal analytics dashboard for Grid Status employees to understand user behavior, product usage, and business metrics. Built with Next.js 16 (App Router), Mantine UI, and PostgreSQL.
+Internal analytics dashboard for Grid Status employees to understand user behavior, product usage, and business metrics. 
+
+This app connects directly to the same database as the main Grid Status app. Therefore YOU MUST err on the side of caution. NEVER make changes that could harm the database this app is running on. Be considerate of unintended side effects of your actions. This is a CRITICAL requirement you MUST NEVER break. FOLLOW AT ALL TIMES.
 
 **Key Principles:**
 - **Internal only** — This app is exclusively for GS employees. Never expose to the public.
@@ -24,9 +26,6 @@ Internal analytics dashboard for Grid Status employees to understand user behavi
 Auth is handled by Clerk middleware in `src/proxy.ts`. All API routes require authentication by default.
 
 **CRITICAL**: All API routes MUST require authentication unless explicitly added to `PUBLIC_API_ROUTES`. Never expose data endpoints without auth. Never add routes to `PUBLIC_API_ROUTES` without explicit user request.
-
-### Keep-Alive Endpoint
-The `/api/health` endpoint is public and used by external cron services (e.g., cron-job.org) to keep the free Render instance awake. Render's free tier spins down after 15 minutes of inactivity.
 
 ## Security
 
@@ -54,7 +53,11 @@ These protections work together to prevent search engine indexing both in the ap
 - Use `/api/sql` POST endpoint with `{"sql": "..."}` to explore database
 
 ### Corporate Domain Filtering
-Queries should filter out free email domains (e.g., gmail.com, yahoo.com, etc.) and optionally `gridstatus.io` (internal). The `renderSqlTemplate()` function in `src/lib/queries.ts` dynamically renders the `{{USER_FILTER}}` placeholder based on the filter context, allowing users to toggle internal users via the sidebar filter.
+Two independent sidebar filters control which users are included:
+- **Filter Internal** (when on): excludes `@gridstatus.io` and the test account (`kmax12+dev@gmail.com`). Variable: `filterInternal`.
+- **Filter Free** (when on): excludes free email domains (gmail.com, yahoo.com, outlook.com, etc.). Variable: `filterFree`.
+
+The `renderSqlTemplate()` function in `src/lib/queries.ts` dynamically renders the `{{USER_FILTER}}` placeholder from these two booleans (optional internal clause + optional free clause). Views and API routes pass both `filterInternal` and `filterFree`; query functions accept both.
 
 ## PostHog Queries
 PostHog is used to track user activity and provides data for anonymous users (not tracked in PostgreSQL).
@@ -92,11 +95,6 @@ PostHog is used to track user activity and provides data for anonymous users (no
 
 **Example file:** `src/components/TimeSeriesChart.tsx`
 
-### API Routes (Performance)
-- **Separate fast from slow queries** - create dedicated endpoints per page
-- PostHog API: fast (~500ms)
-- Database queries: can take 30s-2min depending on table size
-- For slow tables (like `api_key_usage`), consider adding time filters (e.g., last 7 days)
 
 ### Page Pattern
 Each analytics page follows this pattern:
@@ -187,17 +185,17 @@ const sql = `SELECT * FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`;
 
 **Good Example** (SQL in file):
 ```typescript
-const sql = renderSqlTemplate('recent-users.sql', { filterGridstatus });
+const sql = renderSqlTemplate('recent-users.sql', { filterInternal, filterFree });
 ```
 
 **Template Placeholder Naming Convention**:
 
 - **Reserved/Standard Placeholders** (handled automatically by `renderSqlTemplate()` - DO NOT use these names for custom placeholders):
-  - `{{USER_FILTER}}` - Combined filter that excludes both `@gridstatus.io` users and the test account (`kmax12+dev@gmail.com`). Replaced with both domain and email filters when `filterGridstatus` is true, or removed when false.
+  - `{{USER_FILTER}}` - Optional filter built from two separate AND clauses: (1) when `filterInternal` is true: excludes `@gridstatus.io` and test account; (2) when `filterFree` is true: excludes free email domains (see `FREE_EMAIL_DOMAINS` in `src/lib/queries.ts`). Replaced with the concatenation of these clauses, or removed when both are false.
 
-  **Important**: This placeholder is automatically processed by `renderSqlTemplate()`. You cannot override it with custom context values. It is tied to the `filterGridstatus` parameter in the query function.
+  **Important**: This placeholder is automatically processed by `renderSqlTemplate()`. You cannot override it with custom context values. It is driven by the `filterInternal` and `filterFree` parameters in the query function.
 
-  **Usage**: Always use `{{USER_FILTER}}` in SQL files. It automatically handles both the domain filter (`NOT IN ('gridstatus.io')`) and the email filter (`username != 'kmax12+dev@gmail.com'`) based on the `usernamePrefix` context.
+  **Usage**: Always use `{{USER_FILTER}}` in SQL files. Content is built from `filterInternal` and `filterFree` (and `usernamePrefix` for the column reference). Keeping internal and free as separate clauses keeps the generated SQL aligned with the two sidebar toggles.
 
 - **Common Custom Placeholder Patterns** (passed via context - follow these naming conventions):
   - **Filter clauses** (complete SQL filter clauses): Use `{{[TYPE]_FILTER}}` suffix
@@ -226,7 +224,7 @@ const sql = renderSqlTemplate('recent-users.sql', { filterGridstatus });
 ```sql
 -- Required placeholders:
 --   {{DAYS_OFFSET}} - Number of days to offset (0 = today, 1 = yesterday, etc.)
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 ```
 
 - **WHERE Clause Pattern**: Always use `WHERE 1=1` before filter placeholders to prevent SQL syntax errors:
@@ -262,15 +260,15 @@ export async function getActiveUsers(): Promise<ActiveUsers[]> {
 
 **Correct Example**:
 ```typescript
-export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
-  const sql = renderSqlTemplate('active-users.sql', { filterGridstatus }); // ✅ Template rendered
+export async function getActiveUsers(filterInternal: boolean = true, filterFree: boolean = true): Promise<ActiveUsers[]> {
+  const sql = renderSqlTemplate('active-users.sql', { filterInternal, filterFree }); // ✅ Template rendered
   return query<ActiveUsers>(sql);
 }
 ```
 
 **Checklist when creating query functions:**
 1. Does the SQL file contain `{{...}}` placeholders? → Must use `renderSqlTemplate()`
-2. Does the query need domain filtering? → Accept `filterGridstatus` parameter
+2. Does the query need domain filtering? → Accept `filterInternal` and `filterFree` parameters
 3. Always test the query function to ensure templates are properly rendered
 
 ### Tables
@@ -367,14 +365,17 @@ Use the `useApiData` hook for fetching data in view components. It handles loadi
 
 **Example file:** `src/app/api/alerts/route.ts`
 
-### Internal Filtering Support
-**CRITICAL**: The internal filter (`@gridstatus.io` users) MUST be applied to EVERY view and query. When the filter is enabled, internal users should be completely invisible — as if they don't exist. This applies to all metrics, tables, charts, and aggregations.
+### Internal and Free Filtering Support
+**CRITICAL**: The sidebar filters (Filter Internal and Filter Free) MUST be applied to EVERY view and query. When a filter is enabled, excluded users should be completely invisible. This applies to all metrics, tables, charts, and aggregations.
+
+- **Filter Internal** (when on): excludes `@gridstatus.io` and test account.
+- **Filter Free** (when on): excludes free email domains (see `FREE_EMAIL_DOMAINS` in `src/lib/queries.ts`).
 
 To implement in new views/queries:
-1. **View Components**: Use `useFilter()` hook, include `filterGridstatus` in fetch URL and dependency array
-2. **API Routes**: Read filter from query params, pass to query functions
-3. **Query Functions**: Accept `filterGridstatus` parameter, use `renderSqlTemplate()`
-4. **SQL Files**: Use the `{{USER_FILTER}}` template placeholder
+1. **View Components**: Use `useFilter()` hook, include `filterInternal` and `filterFree` in fetch URL and dependency array
+2. **API Routes**: Read filters via `getFilterInternal(searchParams)` and `getFilterFree(searchParams)`, pass both to query functions
+3. **Query Functions**: Accept `filterInternal` and `filterFree` parameters, use `renderSqlTemplate()`
+4. **SQL Files**: Use the `{{USER_FILTER}}` template placeholder (expanded from both booleans)
 
 **Example files:**
 - View with filter: `src/components/AlertsView.tsx`

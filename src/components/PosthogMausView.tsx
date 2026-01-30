@@ -40,9 +40,9 @@ export function PosthogMausView() {
     { name: 'posthog_active_users', ref: activeUsersChartRef },
   ];
 
-  const { filterGridstatus, timezone } = useFilter();
-  const url = useApiUrl('/api/posthog-maus', { period, filterGridstatus, timezone });
-  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [period, filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const url = useApiUrl('/api/posthog-maus', { period, filterInternal, filterFree, timezone });
+  const { data, loading, error } = useApiData<PosthogActiveUsersResponse>(url, [period, filterInternal, filterFree, timezone]);
 
   if (loading) {
     return (

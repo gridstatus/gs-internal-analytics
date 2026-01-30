@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { loadSql, renderSqlTemplate } from '@/lib/queries';
-import { getFilterGridstatus, withRequestContext } from '@/lib/api-helpers';
+import { getFilterInternal, getFilterFree, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
-    const filterGridstatus = getFilterGridstatus(searchParams);
+    const filterInternal = getFilterInternal(searchParams);
+    const filterFree = getFilterFree(searchParams);
 
     try {
     // If ID provided, get single user with details
@@ -252,7 +253,7 @@ export async function GET(request: Request) {
 
     // Search users with fuzzy matching on username/email and first/last name
     // Uses ILIKE for pattern matching - exact matches work, partial matches supported
-    const searchSql = renderSqlTemplate('users-list-search.sql', { filterGridstatus, usernamePrefix: 'u.' });
+    const searchSql = renderSqlTemplate('users-list-search.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
     const users = await query<{
       id: number;
       username: string;

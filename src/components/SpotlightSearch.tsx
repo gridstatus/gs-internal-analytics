@@ -27,7 +27,7 @@ interface SpotlightSearchProps {
 
 export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
   const router = useRouter();
-  const { filterGridstatus } = useFilter();
+  const { filterInternal, filterFree } = useFilter();
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -47,20 +47,22 @@ export function SpotlightSearch({ opened, onClose }: SpotlightSearchProps) {
   // Fetch users and organizations in background
   const usersUrl = useApiUrl('/api/users-list', {
     search: debouncedSearch || undefined,
-    filterGridstatus,
+    filterInternal,
+    filterFree,
   });
   const orgsUrl = useApiUrl('/api/organizations', {
     search: debouncedSearch || undefined,
-    filterGridstatus,
+    filterInternal,
+    filterFree,
   });
 
   const { data: usersData, loading: usersLoading } = useApiData<UsersListResponse>(
     debouncedSearch ? usersUrl : null,
-    [debouncedSearch, filterGridstatus]
+    [debouncedSearch, filterInternal, filterFree]
   );
   const { data: orgsData, loading: orgsLoading } = useApiData<OrganizationsResponse>(
     debouncedSearch ? orgsUrl : null,
-    [debouncedSearch, filterGridstatus]
+    [debouncedSearch, filterInternal, filterFree]
   );
 
   const users = usersData?.users || [];

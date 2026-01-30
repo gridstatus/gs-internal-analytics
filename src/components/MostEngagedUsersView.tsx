@@ -43,7 +43,7 @@ interface MostEngagedUsersResponse {
 }
 
 export function MostEngagedUsersView() {
-  const { filterGridstatus, timezone } = useFilter();
+  const { filterInternal, filterFree, timezone } = useFilter();
 
   // URL state management with nuqs
   const [timeFilter, setTimeFilter] = useQueryState(
@@ -52,8 +52,8 @@ export function MostEngagedUsersView() {
   );
 
   const days = timeFilter === 'all' ? null : parseInt(timeFilter, 10);
-  const apiUrl = useApiUrl('/api/insights/most-engaged-users', { filterGridstatus, timezone, days });
-  const { data: response, loading, error } = useApiData<MostEngagedUsersResponse>(apiUrl, [filterGridstatus, timezone, timeFilter]);
+  const apiUrl = useApiUrl('/api/insights/most-engaged-users', { filterInternal, filterFree, timezone, days });
+  const { data: response, loading, error } = useApiData<MostEngagedUsersResponse>(apiUrl, [filterInternal, filterFree, timezone, timeFilter]);
   const data = response?.users || [];
 
   const getUserName = (user: MostEngagedUser) => {

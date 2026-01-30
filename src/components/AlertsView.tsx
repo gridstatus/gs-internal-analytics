@@ -24,9 +24,9 @@ import { ErrorDisplay } from './ErrorDisplay';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus, timezone } = useFilter();
-  const url = useApiUrl('/api/alerts', { filterGridstatus, timezone });
-  const { data, loading, error } = useApiData<AlertsResponse>(url, [filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const url = useApiUrl('/api/alerts', { filterInternal, filterFree, timezone });
+  const { data, loading, error } = useApiData<AlertsResponse>(url, [filterInternal, filterFree, timezone]);
 
   if (loading) {
     return (

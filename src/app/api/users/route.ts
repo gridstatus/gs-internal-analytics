@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatMonthUtc, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 import { DateTime } from 'luxon';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
     
     // Get top domains for different time periods
     const domainSearch = searchParams.get('domainSearch') || '';
@@ -26,7 +27,8 @@ export async function GET(request: Request) {
       // Render template with all placeholders
       // Note: Context keys must match SQL placeholder names (uppercase with underscores)
       const sql = renderSqlTemplate('top-domains.sql', { 
-        filterGridstatus, 
+        filterInternal, 
+        filterFree, 
         days, 
         timestamp_field: timestampField,  // Use snake_case to match {{TIMESTAMP_FIELD}}
         domain_filter: domainFilter      // Use snake_case to match {{DOMAIN_FILTER}}
@@ -37,7 +39,8 @@ export async function GET(request: Request) {
     // Load and render hourly registrations SQL template for different day offsets
     const getHourlyRegistrationsSql = (daysOffset: number) => {
       return renderSqlTemplate('hourly-registrations.sql', { 
-        filterGridstatus, 
+        filterInternal, 
+        filterFree, 
         days_offset: daysOffset  // Use snake_case to match {{DAYS_OFFSET}}
       });
     };
@@ -45,22 +48,22 @@ export async function GET(request: Request) {
     // Use period-specific query for combined chart (single query with cumulative calc in DB)
     // When period is 'month', reuse this data for monthlyData too
     const periodUserCountsPromise = newUsersPeriod === 'month' 
-      ? getMonthlyUserCounts(filterGridstatus)
-      : getUserCountsByPeriod(newUsersPeriod, filterGridstatus);
+      ? getMonthlyUserCounts(filterInternal, filterFree)
+      : getUserCountsByPeriod(newUsersPeriod, filterInternal, filterFree);
 
     // Still need monthly data for metrics and table (reuse when period is 'month')
     const monthlyUserCountsPromise = newUsersPeriod === 'month'
       ? periodUserCountsPromise
-      : getMonthlyUserCounts(filterGridstatus);
+      : getMonthlyUserCounts(filterInternal, filterFree);
 
     const [periodUserCounts, userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
       periodUserCountsPromise,
       monthlyUserCountsPromise,
-      getMonthlyCorpMetrics(filterGridstatus),
-      getUsersToday(filterGridstatus),
-      getMonthlyNewUsersComparison(filterGridstatus),
-      getLast30DaysUsers(filterGridstatus),
-      getTotalUsersCount(filterGridstatus),
+      getMonthlyCorpMetrics(filterInternal, filterFree),
+      getUsersToday(filterInternal, filterFree),
+      getMonthlyNewUsersComparison(filterInternal, filterFree),
+      getLast30DaysUsers(filterInternal, filterFree),
+      getTotalUsersCount(filterInternal, filterFree),
       getTopDomains(1),
       getTopDomains(7),
       getTopDomains(30),

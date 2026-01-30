@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyApiUsage } from '@/lib/queries';
-import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatMonthUtc, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
 
-    const apiUsage = await getMonthlyApiUsage(filterGridstatus);
+    const apiUsage = await getMonthlyApiUsage(filterInternal, filterFree);
 
     const monthlyData = apiUsage.map((row, index) => {
       const prevRow = index > 0 ? apiUsage[index - 1] : null;

@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getMonthlyCorpMetrics } from '@/lib/queries';
-import { formatMonthUtc, getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatMonthUtc, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
     
     const [userCounts, corpMetrics] = await Promise.all([
-      getMonthlyUserCounts(filterGridstatus),
-      getMonthlyCorpMetrics(filterGridstatus),
+      getMonthlyUserCounts(filterInternal, filterFree),
+      getMonthlyCorpMetrics(filterInternal, filterFree),
     ]);
 
     const corpMetricsMap = new Map(

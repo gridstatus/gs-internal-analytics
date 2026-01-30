@@ -1,6 +1,6 @@
 -- Required placeholders:
 --   {{PERIOD}} - Period type: 'day', 'week', 'month', or 'year'
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 
 WITH user_data AS (
   SELECT

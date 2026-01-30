@@ -4,8 +4,10 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { ValidTimezone, sanitizeTimezone } from '@/lib/timezones';
 
 interface FilterContextType {
-  filterGridstatus: boolean;
-  setFilterGridstatus: (value: boolean) => void;
+  filterInternal: boolean;
+  setFilterInternal: (value: boolean) => void;
+  filterFree: boolean;
+  setFilterFree: (value: boolean) => void;
   timezone: ValidTimezone;
   setTimezone: (value: ValidTimezone) => void;
 }
@@ -13,10 +15,20 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filterGridstatus, setFilterGridstatus] = useState<boolean>(() => {
+  const [filterInternal, setFilterInternal] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('filterGridstatus');
-      return saved === 'true';
+      const saved = localStorage.getItem('filterInternal');
+      if (saved !== null) return saved === 'true';
+      const legacy = localStorage.getItem('filterGridstatus');
+      if (legacy !== null) return legacy === 'true';
+    }
+    return true; // Default to filtering
+  });
+
+  const [filterFree, setFilterFree] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('filterFree');
+      return saved !== null ? saved === 'true' : true;
     }
     return true; // Default to filtering
   });
@@ -29,14 +41,18 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     return 'UTC';
   });
 
-  // Persist to localStorage for user preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('filterGridstatus', String(filterGridstatus));
+      localStorage.setItem('filterInternal', String(filterInternal));
     }
-  }, [filterGridstatus]);
+  }, [filterInternal]);
 
-  // Persist to localStorage for user preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('filterFree', String(filterFree));
+    }
+  }, [filterFree]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('timezone', timezone);
@@ -44,7 +60,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   }, [timezone]);
 
   return (
-    <FilterContext.Provider value={{ filterGridstatus, setFilterGridstatus, timezone, setTimezone }}>
+    <FilterContext.Provider value={{ filterInternal, setFilterInternal, filterFree, setFilterFree, timezone, setTimezone }}>
       {children}
     </FilterContext.Provider>
   );

@@ -72,15 +72,16 @@ export function InsightsView() {
     { name: 'posts', ref: postsChartRef },
   ];
 
-  const { filterGridstatus, timezone } = useFilter();
+  const { filterInternal, filterFree, timezone } = useFilter();
   const url = useApiUrl('/api/insights', {
-    filterGridstatus,
+    filterInternal,
+    filterFree,
     timezone,
     timeFilter: timeFilter ?? '24h',
     chartPeriod: chartPeriod !== 'month' ? chartPeriod : undefined,
     summaryPeriod: summaryPeriod !== 'all' ? summaryPeriod : undefined,
   });
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [filterGridstatus, timezone, timeFilter, chartPeriod, summaryPeriod]);
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [filterInternal, filterFree, timezone, timeFilter, chartPeriod, summaryPeriod]);
 
   if (loading) {
     return (
@@ -426,10 +427,10 @@ export function InsightsView() {
           data={filteredPosts}
           columns={columns}
           keyField="id"
-          defaultSort={{ column: 'viewCount', direction: 'desc' }}
+          defaultSort={{ column: 'engagementRate', direction: 'desc' }}
         />
         <Text size="xs" c="dimmed" mt="md">
-          Showing up to 100 posts, sorted by views and reactions. Engagement rate = (Views / Impressions) × 100%. Click on a post to see details.
+          Showing up to 100 posts, sorted by engagement rate. Engagement rate = (Views / Impressions) × 100%. Click on a post to see details.
         </Text>
       </Paper>
     </Container>

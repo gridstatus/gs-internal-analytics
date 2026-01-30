@@ -24,9 +24,9 @@ import { DataTable, Column } from './DataTable';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus, timezone } = useFilter();
-  const url = useApiUrl('/api/charts-dashboards', { filterGridstatus, timezone });
-  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const url = useApiUrl('/api/charts-dashboards', { filterInternal, filterFree, timezone });
+  const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [filterInternal, filterFree, timezone]);
 
   if (loading) {
     return (

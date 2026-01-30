@@ -5,15 +5,25 @@ import { query } from './db';
 const sqlDir = join(process.cwd(), 'src/sql');
 const hogqlDir = join(process.cwd(), 'src/hogql');
 
+/** Free email domains excluded when filterFree is true. */
+export const FREE_EMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
+  'hotmail.com', 'hotmail.co.uk', 'live.com', 'icloud.com', 'mac.com', 'me.com', 'aol.com',
+  'mail.com', 'protonmail.com', 'proton.me', 'zoho.com', 'yandex.com',
+  'gmx.com', 'gmx.net', 'mail.ru', 'qq.com', '163.com', 'comcast.net', 'att.net', 'verizon.net',
+];
+
 interface TemplateContext {
-  filterGridstatus?: boolean;
+  filterInternal?: boolean;
+  filterFree?: boolean;
   usernamePrefix?: string; // 'u.' or '' - determined from SQL context
   // Custom template variables - any key-value pairs for {{KEY}} placeholders
   [key: string]: string | number | boolean | undefined;
 }
 
 interface HogqlTemplateContext {
-  filterGridstatus?: boolean;
+  filterInternal?: boolean;
+  filterFree?: boolean;
   limit?: number;
   days?: number;
   dateFunction?: string;
@@ -34,9 +44,14 @@ export function loadHogql(filename: string): string {
 export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext): string {
   let rendered = hogql;
   
-  // Handle GRIDSTATUS_FILTER
-  if (context.filterGridstatus) {
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, "AND NOT person.properties.email LIKE '%@gridstatus.io'");
+  // Handle GRIDSTATUS_FILTER (concatenation of optional internal + optional free clause)
+  const internalClause = context.filterInternal ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" : '';
+  const freeClauses = context.filterFree
+    ? FREE_EMAIL_DOMAINS.map(d => `AND NOT person.properties.email LIKE '%@${d}'`).join('\n  ')
+    : '';
+  const gridstatusFilter = [internalClause, freeClauses].filter(Boolean).join('\n  ');
+  if (gridstatusFilter) {
+    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, gridstatusFilter);
   } else {
     rendered = rendered.replace(/\s+\{\{GRIDSTATUS_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, '');
@@ -109,27 +124,28 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
       : '';
   }
 
-  // Handle USER_FILTER (combined filter for both gridstatus.io and test account)
-  // This replaces the old GRIDSTATUS_FILTER_STANDALONE + INTERNAL_EMAIL_FILTER pattern
-  // Pattern: {{USER_FILTER}} - expands to both domain and email filters
-  // Works in both WHERE clauses and JOIN conditions
-  if (context.filterGridstatus) {
-    // Build the combined filter with proper prefix handling
-    const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
-    const domainFilter = `AND SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1) NOT IN ('gridstatus.io')`;
-    const emailFilter = `AND ${usernameRef} != 'kmax12+dev@gmail.com'`;
-    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, `${domainFilter}\n  ${emailFilter}`);
+  // Handle USER_FILTER (two separate AND clauses: optional internal + optional free)
+  const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
+  const domainExpr = `SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1)`;
+  const internalClause = context.filterInternal
+    ? `AND ${domainExpr} NOT IN ('gridstatus.io')\n  AND ${usernameRef} != 'kmax12+dev@gmail.com'`
+    : '';
+  const freeClause = context.filterFree
+    ? `AND ${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
+    : '';
+  const userFilter = [internalClause, freeClause].filter(Boolean).join('\n  ');
+  if (userFilter) {
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
   } else {
-    // Remove the filter, including any leading whitespace/newlines
     rendered = rendered.replace(/\s+\{\{USER_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
   }
-  
+
   // Handle custom template variables (any {{KEY}} placeholders not already handled)
   // Process after standard placeholders to allow overrides if needed
   for (const [key, value] of Object.entries(context)) {
     // Skip standard context properties that are already handled
-    if (key === 'filterGridstatus' || key === 'usernamePrefix') {
+    if (key === 'filterInternal' || key === 'filterFree' || key === 'usernamePrefix') {
       continue;
     }
     
@@ -226,33 +242,33 @@ export interface DomainSummary {
   users_on_teams: number;
 }
 
-export async function getMonthlyUserCounts(filterGridstatus: boolean = true): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('monthly-user-counts.sql', { filterGridstatus });
+export async function getMonthlyUserCounts(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyUserCount[]> {
+  const sql = renderSqlTemplate('monthly-user-counts.sql', { filterInternal, filterFree });
   return query<MonthlyUserCount>(sql);
 }
 
-export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year', filterGridstatus: boolean = true): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('user-counts-by-period.sql', { filterGridstatus, period });
+export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyUserCount[]> {
+  const sql = renderSqlTemplate('user-counts-by-period.sql', { filterInternal, filterFree, period });
   return query<MonthlyUserCount>(sql);
 }
 
-export async function getMonthlyApiUsage(filterGridstatus: boolean = true): Promise<MonthlyApiUsage[]> {
-  const sql = renderSqlTemplate('monthly-api-usage.sql', { filterGridstatus });
+export async function getMonthlyApiUsage(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyApiUsage[]> {
+  const sql = renderSqlTemplate('monthly-api-usage.sql', { filterInternal, filterFree });
   return query<MonthlyApiUsage>(sql);
 }
 
-export async function getMonthlyCorpMetrics(filterGridstatus: boolean = true): Promise<MonthlyCorpMetric[]> {
-  const sql = renderSqlTemplate('monthly-corp-metrics.sql', { filterGridstatus });
+export async function getMonthlyCorpMetrics(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyCorpMetric[]> {
+  const sql = renderSqlTemplate('monthly-corp-metrics.sql', { filterInternal, filterFree });
   return query<MonthlyCorpMetric>(sql);
 }
 
-export async function getDomainDistribution(filterGridstatus: boolean = true): Promise<DomainDistribution[]> {
-  const sql = renderSqlTemplate('domain-distribution.sql', { filterGridstatus });
+export async function getDomainDistribution(filterInternal: boolean = true, filterFree: boolean = true): Promise<DomainDistribution[]> {
+  const sql = renderSqlTemplate('domain-distribution.sql', { filterInternal, filterFree });
   return query<DomainDistribution>(sql);
 }
 
-export async function getDomainSummary(filterGridstatus: boolean = true): Promise<DomainSummary[]> {
-  const sql = renderSqlTemplate('domain-summary.sql', { filterGridstatus });
+export async function getDomainSummary(filterInternal: boolean = true, filterFree: boolean = true): Promise<DomainSummary[]> {
+  const sql = renderSqlTemplate('domain-summary.sql', { filterInternal, filterFree });
   return query<DomainSummary>(sql);
 }
 
@@ -264,8 +280,8 @@ export interface ActiveUsers {
   total_users: number;
 }
 
-export async function getActiveUsers(filterGridstatus: boolean = true): Promise<ActiveUsers[]> {
-  const sql = renderSqlTemplate('active-users.sql', { filterGridstatus });
+export async function getActiveUsers(filterInternal: boolean = true, filterFree: boolean = true): Promise<ActiveUsers[]> {
+  const sql = renderSqlTemplate('active-users.sql', { filterInternal, filterFree });
   return query<ActiveUsers>(sql);
 }
 
@@ -278,8 +294,8 @@ export interface ActiveUsersByDomain {
   total_users: number;
 }
 
-export async function getActiveUsersByDomain(filterGridstatus: boolean = true): Promise<ActiveUsersByDomain[]> {
-  const sql = renderSqlTemplate('active-users-by-domain.sql', { filterGridstatus });
+export async function getActiveUsersByDomain(filterInternal: boolean = true, filterFree: boolean = true): Promise<ActiveUsersByDomain[]> {
+  const sql = renderSqlTemplate('active-users-by-domain.sql', { filterInternal, filterFree });
   return query<ActiveUsersByDomain>(sql);
 }
 
@@ -326,23 +342,23 @@ export interface TopInsightsPost {
 }
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
-// The filterGridstatus param is kept for API consistency but not used for posts.
-export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsPosts[]> {
-  let sql = renderSqlTemplate('monthly-insights-posts.sql', { filterGridstatus });
+// The filterInternal/filterFree params are kept for API consistency but not used for posts.
+export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsPosts[]> {
+  let sql = renderSqlTemplate('monthly-insights-posts.sql', { filterInternal, filterFree });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsPosts>(sql);
 }
 
-export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsViews[]> {
-  let sql = renderSqlTemplate('monthly-insights-views.sql', { filterGridstatus });
+export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsViews[]> {
+  let sql = renderSqlTemplate('monthly-insights-views.sql', { filterInternal, filterFree });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsViews>(sql);
 }
 
-export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month', filterGridstatus: boolean = true): Promise<MonthlyInsightsReactions[]> {
-  let sql = renderSqlTemplate('monthly-insights-reactions.sql', { filterGridstatus });
+export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsReactions[]> {
+  let sql = renderSqlTemplate('monthly-insights-reactions.sql', { filterInternal, filterFree });
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsReactions>(sql);
@@ -350,16 +366,16 @@ export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'mont
 
 // Get total unique logged-in users who have visited insights (any view source)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
-export async function getTotalUniqueVisitors(filterGridstatus: boolean = true): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-visitors.sql', { filterGridstatus, usernamePrefix: 'u.' });
+export async function getTotalUniqueVisitors(filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+  const sql = renderSqlTemplate('total-unique-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
 // Get total unique logged-in users who have visited the homefeed (/insights)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
-export async function getTotalUniqueHomefeedVisitors(filterGridstatus: boolean = true): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { filterGridstatus, usernamePrefix: 'u.' });
+export async function getTotalUniqueHomefeedVisitors(filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -367,7 +383,7 @@ export async function getTotalUniqueHomefeedVisitors(filterGridstatus: boolean =
 // Summary KPI queries with period support (1d, 7d, 30d, all)
 // These are independent queries for summary metrics, not derived from chart data
 
-export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -376,12 +392,12 @@ export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'al
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-unique-visitors.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-unique-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -390,12 +406,12 @@ export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | '
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -404,12 +420,12 @@ export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-engagements.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-engagements.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -418,12 +434,12 @@ export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-impressions.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-impressions.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', filterGridstatus: boolean = true): Promise<number> {
+export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -432,7 +448,7 @@ export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', f
     dateFilter = `AND r.created_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-reactions.sql', { filterGridstatus, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-reactions.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -752,7 +768,7 @@ export interface MostEngagedUser {
   total_engagement_score: number;
 }
 
-export async function getMostEngagedUsers(filterGridstatus: boolean = true, days: number | null = null): Promise<MostEngagedUser[]> {
+export async function getMostEngagedUsers(filterInternal: boolean = true, filterFree: boolean = true, days: number | null = null): Promise<MostEngagedUser[]> {
   // Build time filter conditions
   let timeFilterReactions = '';
   let timeFilterViews = '';
@@ -773,7 +789,8 @@ export async function getMostEngagedUsers(filterGridstatus: boolean = true, days
   }
   
   const sql = renderSqlTemplate('top-engaged-users.sql', { 
-    filterGridstatus, 
+    filterInternal, 
+    filterFree, 
     usernamePrefix: 'u.',
     time_filter_reactions: timeFilterReactions,
     time_filter_views: timeFilterViews,
@@ -783,8 +800,8 @@ export async function getMostEngagedUsers(filterGridstatus: boolean = true, days
 }
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
-// The filterGridstatus param is kept for API consistency but not used for posts.
-export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filterGridstatus: boolean = true): Promise<TopInsightsPost[]> {
+// The filterInternal/filterFree params are kept for API consistency but not used for posts.
+export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filterInternal: boolean = true, filterFree: boolean = true): Promise<TopInsightsPost[]> {
   // Apply time filter if provided
   let timeFilterClause = '';
   if (timeFilter) {
@@ -818,7 +835,7 @@ export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filt
     timeFilterClause = "AND p.created_at >= '2025-10-01'";
   }
   
-  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause, filterGridstatus: true });
+  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause, filterInternal: true, filterFree: true });
   return query<TopInsightsPost>(sql);
 }
 
@@ -830,8 +847,8 @@ export interface UserActivity {
   activity_detail: string | null;
 }
 
-export async function getUserActivities(filterGridstatus: boolean = true): Promise<UserActivity[]> {
-  const sql = renderSqlTemplate('user-activities.sql', { filterGridstatus });
+export async function getUserActivities(filterInternal: boolean = true, filterFree: boolean = true): Promise<UserActivity[]> {
+  const sql = renderSqlTemplate('user-activities.sql', { filterInternal, filterFree });
   return query<UserActivity>(sql);
 }
 
@@ -840,8 +857,8 @@ export interface NewUsersLast3Months {
   new_users: number;
 }
 
-export async function getNewUsersLast3Months(filterGridstatus: boolean = true): Promise<NewUsersLast3Months[]> {
-  const sql = renderSqlTemplate('last-3-months-new-users.sql', { filterGridstatus });
+export async function getNewUsersLast3Months(filterInternal: boolean = true, filterFree: boolean = true): Promise<NewUsersLast3Months[]> {
+  const sql = renderSqlTemplate('last-3-months-new-users.sql', { filterInternal, filterFree });
   return query<NewUsersLast3Months>(sql);
 }
 
@@ -851,8 +868,8 @@ export interface TopRegistration {
   registration_count: number;
 }
 
-export async function getTopRegistrations(filterGridstatus: boolean = true): Promise<TopRegistration[]> {
-  const sql = renderSqlTemplate('top-registrations.sql', { filterGridstatus });
+export async function getTopRegistrations(filterInternal: boolean = true, filterFree: boolean = true): Promise<TopRegistration[]> {
+  const sql = renderSqlTemplate('top-registrations.sql', { filterInternal, filterFree });
   return query<TopRegistration>(sql);
 }
 
@@ -872,8 +889,8 @@ export interface MonthlyNewUsers {
   last_year_month_same_time: number;
 }
 
-export async function getMonthlyNewUsersComparison(filterGridstatus: boolean = true): Promise<MonthlyNewUsers[]> {
-  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', { filterGridstatus });
+export async function getMonthlyNewUsersComparison(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyNewUsers[]> {
+  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', { filterInternal, filterFree });
   return query<MonthlyNewUsers>(sql);
 }
 
@@ -886,18 +903,18 @@ export interface TotalUsersCount {
   total_users: string;
 }
 
-export async function getTotalUsersCount(filterGridstatus: boolean = true): Promise<TotalUsersCount[]> {
-  const sql = renderSqlTemplate('total-users-count.sql', { filterGridstatus });
+export async function getTotalUsersCount(filterInternal: boolean = true, filterFree: boolean = true): Promise<TotalUsersCount[]> {
+  const sql = renderSqlTemplate('total-users-count.sql', { filterInternal, filterFree });
   return query<TotalUsersCount>(sql);
 }
 
-export async function getLast30DaysUsers(filterGridstatus: boolean = true): Promise<Last30DaysUsers[]> {
-  const sql = renderSqlTemplate('last-30-days-users.sql', { filterGridstatus });
+export async function getLast30DaysUsers(filterInternal: boolean = true, filterFree: boolean = true): Promise<Last30DaysUsers[]> {
+  const sql = renderSqlTemplate('last-30-days-users.sql', { filterInternal, filterFree });
   return query<Last30DaysUsers>(sql);
 }
 
-export async function getUsersToday(filterGridstatus: boolean = true): Promise<UsersToday[]> {
-  const sql = renderSqlTemplate('users-today.sql', { filterGridstatus });
+export async function getUsersToday(filterInternal: boolean = true, filterFree: boolean = true): Promise<UsersToday[]> {
+  const sql = renderSqlTemplate('users-today.sql', { filterInternal, filterFree });
   return query<UsersToday>(sql);
 }
 
@@ -908,7 +925,7 @@ export interface PricingPageVisitCount {
 }
 
 // Get visit counts for pricing page by period (1d, 7d, 30d)
-export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', filterGridstatus: boolean = true): Promise<number> {
+export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -920,7 +937,8 @@ export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', fil
   const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
 
   const hogql = loadRenderedHogql('pricing-page-visit-counts.hogql', {
-    filterGridstatus,
+    filterInternal,
+    filterFree,
     days,
   });
 
@@ -958,7 +976,7 @@ export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', fil
 }
 
 // Get users with most visits to pricing page for a period
-export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limit: number = 50, filterGridstatus: boolean = true): Promise<PricingPageVisitCount[]> {
+export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limit: number = 50, filterInternal: boolean = true, filterFree: boolean = true): Promise<PricingPageVisitCount[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -970,7 +988,8 @@ export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limi
   const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
 
   const hogql = loadRenderedHogql('pricing-page-most-visits.hogql', {
-    filterGridstatus,
+    filterInternal,
+    filterFree,
     days,
     limit,
   });

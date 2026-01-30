@@ -35,5 +35,5 @@ LEFT JOIN insights.saved_posts sp ON p.id = sp.post_id
 WHERE p.status = 'PUBLISHED'
   {{TIMEFILTER}}
 GROUP BY p.id, p.content, p.created_at, p.updated_at, p.author_id, u.username
-ORDER BY view_count DESC, reaction_count DESC
+ORDER BY engagement_rate DESC, view_count DESC
 LIMIT 100;

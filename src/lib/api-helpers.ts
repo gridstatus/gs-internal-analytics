@@ -13,8 +13,14 @@ export function getBooleanSearchParam(
   return value !== 'false';
 }
 
-export function getFilterGridstatus(searchParams: URLSearchParams): boolean {
-  return getBooleanSearchParam(searchParams, 'filterGridstatus', true);
+export function getFilterInternal(searchParams: URLSearchParams): boolean {
+  const value = searchParams.get('filterInternal') ?? searchParams.get('filterGridstatus');
+  if (value === null) return true;
+  return value !== 'false';
+}
+
+export function getFilterFree(searchParams: URLSearchParams): boolean {
+  return getBooleanSearchParam(searchParams, 'filterFree', true);
 }
 
 export function jsonError(error: unknown, status: number = 500) {

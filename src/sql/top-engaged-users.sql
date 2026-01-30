@@ -2,7 +2,7 @@
 --   {{TIME_FILTER_REACTIONS}} - Time filter for reactions (e.g., "AND r.created_at >= '2025-01-01'")
 --   {{TIME_FILTER_VIEWS}} - Time filter for views (e.g., "AND pv.viewed_at >= '2025-01-01'")
 --   {{TIME_FILTER_SAVES}} - Time filter for saves (e.g., "AND sp.created_at >= '2025-01-01'")
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 
 SELECT
   u.id as user_id,

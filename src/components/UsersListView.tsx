@@ -24,10 +24,10 @@ import { DataTable, Column } from './DataTable';
 export function UsersListView() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const { filterGridstatus, timezone } = useFilter();
+  const { filterInternal, filterFree, timezone } = useFilter();
 
-  const url = useApiUrl('/api/users-list', { search: debouncedSearch || undefined, filterGridstatus, timezone });
-  const { data, loading } = useApiData<UsersListResponse>(url, [debouncedSearch, filterGridstatus, timezone]);
+  const url = useApiUrl('/api/users-list', { search: debouncedSearch || undefined, filterInternal, filterFree, timezone });
+  const { data, loading } = useApiData<UsersListResponse>(url, [debouncedSearch, filterInternal, filterFree, timezone]);
   const users = data?.users ?? [];
 
   const columns: Column<UsersListItem>[] = [

@@ -59,12 +59,12 @@ export function Dashboard() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
-  const { filterGridstatus, timezone } = useFilter();
-  const activitiesUrl = `/api/activities?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<ActivitiesResponse>(activitiesUrl, [activitiesUrl, filterGridstatus, timezone]);
-  
-  const activeUsersUrl = `/api/domains?filterGridstatus=${filterGridstatus}&timezone=${timezone}`;
-  const { data: activeUsersData, loading: activeUsersLoading, error: activeUsersError } = useApiData<ActiveUsersResponse>(activeUsersUrl, [activeUsersUrl, filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const activitiesUrl = `/api/activities?filterInternal=${filterInternal}&filterFree=${filterFree}&timezone=${timezone}`;
+  const { data, loading, error } = useApiData<ActivitiesResponse>(activitiesUrl, [activitiesUrl, filterInternal, filterFree, timezone]);
+
+  const activeUsersUrl = `/api/domains?filterInternal=${filterInternal}&filterFree=${filterFree}&timezone=${timezone}`;
+  const { data: activeUsersData, loading: activeUsersLoading, error: activeUsersError } = useApiData<ActiveUsersResponse>(activeUsersUrl, [activeUsersUrl, filterInternal, filterFree, timezone]);
 
   // Group activities by type and filter by search
   const activitiesByType = useMemo(() => {

@@ -18,7 +18,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const { filterGridstatus, setFilterGridstatus, timezone, setTimezone } = useFilter();
+  const { filterInternal, setFilterInternal, filterFree, setFilterFree, timezone, setTimezone } = useFilter();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure();
   const [spotlightOpened, { open: openSpotlight, close: closeSpotlight }] = useDisclosure(false);
@@ -180,8 +180,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Text size="sm" fw={500}>Settings</Text>
                 <Switch
                   label="Filter Internal"
-                  checked={filterGridstatus}
-                  onChange={(e) => setFilterGridstatus(e.currentTarget.checked)}
+                  checked={filterInternal}
+                  onChange={(e) => setFilterInternal(e.currentTarget.checked)}
+                />
+                <Switch
+                  label="Filter Free"
+                  checked={filterFree}
+                  onChange={(e) => setFilterFree(e.currentTarget.checked)}
                 />
                 <Select
                   label="Timezone"

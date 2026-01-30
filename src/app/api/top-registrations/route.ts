@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getTopRegistrations } from '@/lib/queries';
-import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
     
-    const data = await getTopRegistrations(filterGridstatus);
+    const data = await getTopRegistrations(filterInternal, filterFree);
 
     // Format the data
     const formatted = data.map((row) => ({

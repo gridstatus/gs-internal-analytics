@@ -6,7 +6,7 @@ Perform a check of staged changes for regressions or unintended side effects.
 
 **CRITICAL - Security & Guidelines**: Verify all changes strictly follow `CLAUDE.md`, specifically:
 - **Security**: Auth requirements, `PUBLIC_API_ROUTES` restrictions, and parameterized/templated SQL.
-- **Filtering**: `filterGridstatus` applied correctly to all new queries and views.
+- **Filtering**: `filterInternal` and `filterFree` applied correctly to all new queries and views.
 - **Dead Code**: Ensure no unused imports, functions, or SQL files remain.
 - **Patterns**: Use existing utilities (e.g., `useApiData`, `UserHoverCard`, `renderSqlTemplate`).
 

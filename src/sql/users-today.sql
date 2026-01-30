@@ -1,5 +1,5 @@
 -- Required placeholders:
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 
 WITH today_start AS (
   SELECT DATE_TRUNC('day', NOW()) AS start_time

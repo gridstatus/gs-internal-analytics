@@ -1,6 +1,6 @@
 -- Required placeholders:
 --   {{DATE_FILTER}} - Date filter clause (e.g., "AND pv.viewed_at >= NOW() - INTERVAL '7 days'")
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 
 SELECT COUNT(*) AS total
 FROM insights.post_views pv

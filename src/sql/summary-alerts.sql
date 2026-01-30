@@ -1,5 +1,5 @@
 -- Required placeholders:
---   {{USER_FILTER}} - Combined filter for gridstatus.io domain and test account
+--   {{USER_FILTER}} - Optional filter for internal (gridstatus.io + test account) and/or free email domains; expanded from filterInternal and filterFree
 
 SELECT COUNT(*) as total, COUNT(DISTINCT a.user_id) as users 
 FROM api_server.alerts a

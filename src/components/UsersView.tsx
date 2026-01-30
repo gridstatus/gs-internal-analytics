@@ -60,15 +60,16 @@ export function UsersView() {
     parseAsStringEnum(['week', 'month', 'year']).withDefault('month')
   );
 
-  const { filterGridstatus, timezone } = useFilter();
+  const { filterInternal, filterFree, timezone } = useFilter();
   const url = useApiUrl('/api/users', {
-    filterGridstatus,
+    filterInternal,
+    filterFree,
     timezone,
     domainSearch: debouncedDomainFilter || undefined,
     timestampType: timestampType !== 'created_at' ? timestampType : undefined,
     newUsersPeriod: newUsersPeriod !== 'month' ? newUsersPeriod : undefined,
   });
-  const { data, loading, error } = useApiData<UsersResponse>(url, [filterGridstatus, timezone, debouncedDomainFilter, timestampType, newUsersPeriod]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [filterInternal, filterFree, timezone, debouncedDomainFilter, timestampType, newUsersPeriod]);
 
   if (loading) {
     return (

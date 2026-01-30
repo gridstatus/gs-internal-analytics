@@ -24,9 +24,9 @@ import { DataTable, Column } from './DataTable';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
-  const { filterGridstatus, timezone } = useFilter();
-  const url = useApiUrl('/api/domains', { filterGridstatus, timezone });
-  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [filterGridstatus, timezone]);
+  const { filterInternal, filterFree, timezone } = useFilter();
+  const url = useApiUrl('/api/domains', { filterInternal, filterFree, timezone });
+  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [filterInternal, filterFree, timezone]);
 
   if (loading) {
     return (

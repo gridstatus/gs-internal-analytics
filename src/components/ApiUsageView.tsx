@@ -34,9 +34,9 @@ export function ApiUsageView() {
     { name: 'unique_api_users', ref: usersChartRef },
   ];
 
-  const { filterGridstatus } = useFilter();
-  const url = useApiUrl('/api/api-usage', { filterGridstatus });
-  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [filterGridstatus]);
+  const { filterInternal, filterFree } = useFilter();
+  const url = useApiUrl('/api/api-usage', { filterInternal, filterFree });
+  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [filterInternal, filterFree]);
 
   if (loading) {
     return (

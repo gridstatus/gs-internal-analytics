@@ -15,7 +15,7 @@ import {
   fetchPosthogAnonymousUsers,
   fetchPosthogAnonymousHomefeedVisitors,
 } from '@/lib/queries';
-import { getFilterGridstatus, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -49,16 +49,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterGridstatus = getFilterGridstatus(searchParams);
+      const filterInternal = getFilterInternal(searchParams);
+      const filterFree = getFilterFree(searchParams);
       const timeFilter = searchParams.get('timeFilter') as '24h' | '7d' | '1m' | null;
       const chartPeriod = (searchParams.get('chartPeriod') as 'day' | 'week' | 'month') || 'month';
       const summaryPeriod = (searchParams.get('summaryPeriod') as '1d' | '7d' | '30d' | 'all') || 'all';
     
     const [posts, views, reactions, topPosts, anonymousVisitors, anonymousHomefeedVisitors] = await Promise.all([
-      getMonthlyInsightsPosts(chartPeriod, filterGridstatus),
-      getMonthlyInsightsViews(chartPeriod, filterGridstatus),
-      getMonthlyInsightsReactions(chartPeriod, filterGridstatus),
-      getTopInsightsPosts(timeFilter || undefined, filterGridstatus),
+      getMonthlyInsightsPosts(chartPeriod, filterInternal, filterFree),
+      getMonthlyInsightsViews(chartPeriod, filterInternal, filterFree),
+      getMonthlyInsightsReactions(chartPeriod, filterInternal, filterFree),
+      getTopInsightsPosts(timeFilter || undefined, filterInternal, filterFree),
       fetchPosthogAnonymousUsers(chartPeriod),
       fetchPosthogAnonymousHomefeedVisitors(chartPeriod),
     ]);
@@ -74,11 +75,11 @@ export async function GET(request: Request) {
       summaryAnonymousVisitors,
       summaryAnonymousHomefeedVisitors,
     ] = await Promise.all([
-      getSummaryUniqueVisitors(summaryPeriod, filterGridstatus),
-      getSummaryHomefeedVisitors(summaryPeriod, filterGridstatus),
-      getSummaryEngagements(summaryPeriod, filterGridstatus),
-      getSummaryImpressions(summaryPeriod, filterGridstatus),
-      getSummaryReactions(summaryPeriod, filterGridstatus),
+      getSummaryUniqueVisitors(summaryPeriod, filterInternal, filterFree),
+      getSummaryHomefeedVisitors(summaryPeriod, filterInternal, filterFree),
+      getSummaryEngagements(summaryPeriod, filterInternal, filterFree),
+      getSummaryImpressions(summaryPeriod, filterInternal, filterFree),
+      getSummaryReactions(summaryPeriod, filterInternal, filterFree),
       getSummaryPosts(summaryPeriod),
       getSummaryAnonymousVisitors(summaryPeriod),
       getSummaryAnonymousHomefeedVisitors(summaryPeriod),
