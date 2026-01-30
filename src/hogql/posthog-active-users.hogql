@@ -4,7 +4,7 @@ SELECT
 FROM events
 WHERE person.properties.email IS NOT NULL
   {{DATE_FILTER}}
-  {{GRIDSTATUS_FILTER}}
+  {{USER_FILTER}}
 GROUP BY period
 ORDER BY period {{ORDER_DIRECTION}}
 

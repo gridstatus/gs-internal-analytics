@@ -35,6 +35,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
 
 export function UsersView() {
+  const { timezone } = useFilter();
   const [domainFilter, setDomainFilter] = useState<string>('');
   const [debouncedDomainFilter] = useDebouncedValue(domainFilter, 300);
 
@@ -60,16 +61,12 @@ export function UsersView() {
     parseAsStringEnum(['week', 'month', 'year']).withDefault('month')
   );
 
-  const { filterInternal, filterFree, timezone } = useFilter();
   const url = useApiUrl('/api/users', {
-    filterInternal,
-    filterFree,
-    timezone,
     domainSearch: debouncedDomainFilter || undefined,
     timestampType: timestampType !== 'created_at' ? timestampType : undefined,
     newUsersPeriod: newUsersPeriod !== 'month' ? newUsersPeriod : undefined,
   });
-  const { data, loading, error } = useApiData<UsersResponse>(url, [filterInternal, filterFree, timezone, debouncedDomainFilter, timestampType, newUsersPeriod]);
+  const { data, loading, error } = useApiData<UsersResponse>(url, [url, debouncedDomainFilter, timestampType, newUsersPeriod]);
 
   if (loading) {
     return (

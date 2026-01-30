@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { renderSqlTemplate } from '@/lib/queries';
 
 export async function GET(request: Request) {
@@ -8,8 +8,6 @@ export async function GET(request: Request) {
   return withRequestContext(searchParams, async () => {
     const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
-    const filterInternal = getFilterInternal(searchParams);
-    const filterFree = getFilterFree(searchParams);
 
     try {
     // If ID provided, get single org with users
@@ -135,7 +133,7 @@ export async function GET(request: Request) {
     }
 
     // Search organizations
-    const searchSql = renderSqlTemplate('organizations-search.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
+    const searchSql = renderSqlTemplate('organizations-search.sql', { usernamePrefix: 'u.' });
     const orgs = await query<{
       id: string;
       name: string;

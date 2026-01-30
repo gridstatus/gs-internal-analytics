@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { formatMonthUtc, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatMonthUtc, jsonError, withRequestContext } from '@/lib/api-helpers';
 import { DateTime } from 'luxon';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterInternal = getFilterInternal(searchParams);
-      const filterFree = getFilterFree(searchParams);
-    
     // Get top domains for different time periods
     const domainSearch = searchParams.get('domainSearch') || '';
     const timestampType = searchParams.get('timestampType') || 'created_at'; // 'created_at' or 'last_active_at'
@@ -24,14 +21,11 @@ export async function GET(request: Request) {
         domainFilter = `AND SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
       }
       
-      // Render template with all placeholders
-      // Note: Context keys must match SQL placeholder names (uppercase with underscores)
+      // Render template with all placeholders (filters from request context)
       const sql = renderSqlTemplate('top-domains.sql', { 
-        filterInternal, 
-        filterFree, 
         days, 
-        timestamp_field: timestampField,  // Use snake_case to match {{TIMESTAMP_FIELD}}
-        domain_filter: domainFilter      // Use snake_case to match {{DOMAIN_FILTER}}
+        timestamp_field: timestampField,
+        domain_filter: domainFilter
       });
       return query<{ domain: string; user_count: string }>(sql);
     };
@@ -39,31 +33,29 @@ export async function GET(request: Request) {
     // Load and render hourly registrations SQL template for different day offsets
     const getHourlyRegistrationsSql = (daysOffset: number) => {
       return renderSqlTemplate('hourly-registrations.sql', { 
-        filterInternal, 
-        filterFree, 
-        days_offset: daysOffset  // Use snake_case to match {{DAYS_OFFSET}}
+        days_offset: daysOffset
       });
     };
 
     // Use period-specific query for combined chart (single query with cumulative calc in DB)
     // When period is 'month', reuse this data for monthlyData too
     const periodUserCountsPromise = newUsersPeriod === 'month' 
-      ? getMonthlyUserCounts(filterInternal, filterFree)
-      : getUserCountsByPeriod(newUsersPeriod, filterInternal, filterFree);
+      ? getMonthlyUserCounts()
+      : getUserCountsByPeriod(newUsersPeriod);
 
     // Still need monthly data for metrics and table (reuse when period is 'month')
     const monthlyUserCountsPromise = newUsersPeriod === 'month'
       ? periodUserCountsPromise
-      : getMonthlyUserCounts(filterInternal, filterFree);
+      : getMonthlyUserCounts();
 
     const [periodUserCounts, userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
       periodUserCountsPromise,
       monthlyUserCountsPromise,
-      getMonthlyCorpMetrics(filterInternal, filterFree),
-      getUsersToday(filterInternal, filterFree),
-      getMonthlyNewUsersComparison(filterInternal, filterFree),
-      getLast30DaysUsers(filterInternal, filterFree),
-      getTotalUsersCount(filterInternal, filterFree),
+      getMonthlyCorpMetrics(),
+      getUsersToday(),
+      getMonthlyNewUsersComparison(),
+      getLast30DaysUsers(),
+      getTotalUsersCount(),
       getTopDomains(1),
       getTopDomains(7),
       getTopDomains(30),

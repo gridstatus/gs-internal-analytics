@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ValidTimezone, sanitizeTimezone } from '@/lib/timezones';
+import { createContext, useContext, ReactNode } from 'react';
+import { ValidTimezone } from '@/lib/timezones';
+import { useFilterStore } from '@/stores/filterStore';
 
 interface FilterContextType {
   filterInternal: boolean;
@@ -15,52 +16,24 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filterInternal, setFilterInternal] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('filterInternal');
-      if (saved !== null) return saved === 'true';
-      const legacy = localStorage.getItem('filterGridstatus');
-      if (legacy !== null) return legacy === 'true';
-    }
-    return true; // Default to filtering
-  });
-
-  const [filterFree, setFilterFree] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('filterFree');
-      return saved !== null ? saved === 'true' : true;
-    }
-    return true; // Default to filtering
-  });
-
-  const [timezone, setTimezone] = useState<ValidTimezone>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('timezone');
-      return sanitizeTimezone(saved);
-    }
-    return 'UTC';
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('filterInternal', String(filterInternal));
-    }
-  }, [filterInternal]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('filterFree', String(filterFree));
-    }
-  }, [filterFree]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('timezone', timezone);
-    }
-  }, [timezone]);
+  const filterInternal = useFilterStore((s) => s.filterInternal);
+  const setFilterInternal = useFilterStore((s) => s.setFilterInternal);
+  const filterFree = useFilterStore((s) => s.filterFree);
+  const setFilterFree = useFilterStore((s) => s.setFilterFree);
+  const timezone = useFilterStore((s) => s.timezone);
+  const setTimezone = useFilterStore((s) => s.setTimezone);
 
   return (
-    <FilterContext.Provider value={{ filterInternal, setFilterInternal, filterFree, setFilterFree, timezone, setTimezone }}>
+    <FilterContext.Provider
+      value={{
+        filterInternal,
+        setFilterInternal,
+        filterFree,
+        setFilterFree,
+        timezone,
+        setTimezone,
+      }}
+    >
       {children}
     </FilterContext.Provider>
   );

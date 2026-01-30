@@ -41,9 +41,8 @@ export function CorporateTeamsView() {
     { name: 'corp_domains', ref: corpDomainsChartRef },
   ];
 
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const url = useApiUrl('/api/users/corporate-teams', { filterInternal, filterFree, timezone });
-  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/users/corporate-teams', {});
+  const { data, loading, error } = useApiData<CorporateTeamsResponse>(url, [url]);
 
   if (loading) {
     return (

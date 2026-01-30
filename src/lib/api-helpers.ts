@@ -72,15 +72,15 @@ export function formatDateOnly(date: Date | null | undefined): string | null {
 }
 
 /**
- * Wraps an API route handler with request context that sets timezone.
- * The timezone is read from searchParams and sanitized to prevent SQL injection.
- * 
+ * Wraps an API route handler with request context (timezone, filterInternal, filterFree).
+ * Values are read from searchParams so query functions can use them without being passed explicitly.
+ *
  * Usage:
  * ```
  * export async function GET(request: Request) {
  *   const { searchParams } = new URL(request.url);
  *   return withRequestContext(searchParams, async () => {
- *     // your handler code here
+ *     // your handler code here; filters come from context
  *   });
  * }
  * ```
@@ -90,6 +90,8 @@ export async function withRequestContext<T>(
   handler: () => Promise<T>
 ): Promise<T> {
   const timezone = sanitizeTimezone(searchParams.get('timezone'));
-  return requestContext.run({ timezone }, handler);
+  const filterInternal = getFilterInternal(searchParams);
+  const filterFree = getFilterFree(searchParams);
+  return requestContext.run({ timezone, filterInternal, filterFree }, handler);
 }
 

@@ -1,23 +1,20 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { renderSqlTemplate } from '@/lib/queries';
-import { formatDateOnly, getFilterInternal, getFilterFree, jsonError, withRequestContext } from '@/lib/api-helpers';
+import { formatDateOnly, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterInternal = getFilterInternal(searchParams);
-      const filterFree = getFilterFree(searchParams);
-
-    // Get summary stats (filtered)
+    // Get summary stats (filters from request context)
     const [chartStats, dashboardStats] = await Promise.all([
-      query<{ total: string; users: string }>(renderSqlTemplate('chart-stats.sql', { filterInternal, filterFree })),
-      query<{ total: string; users: string }>(renderSqlTemplate('dashboard-stats.sql', { filterInternal, filterFree })),
+      query<{ total: string; users: string }>(renderSqlTemplate('chart-stats.sql', {})),
+      query<{ total: string; users: string }>(renderSqlTemplate('dashboard-stats.sql', {})),
     ]);
 
     // Get user breakdown for charts/dashboards
-    const chartsDashboardsSql = renderSqlTemplate('charts-dashboards-by-user.sql', { filterInternal, filterFree });
+    const chartsDashboardsSql = renderSqlTemplate('charts-dashboards-by-user.sql', {});
     const userBreakdown = await query<{
       user_id: number;
       username: string;

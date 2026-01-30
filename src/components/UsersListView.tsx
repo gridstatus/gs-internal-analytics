@@ -22,12 +22,11 @@ import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
 
 export function UsersListView() {
+  const { timezone } = useFilter();
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
-  const { filterInternal, filterFree, timezone } = useFilter();
-
-  const url = useApiUrl('/api/users-list', { search: debouncedSearch || undefined, filterInternal, filterFree, timezone });
-  const { data, loading } = useApiData<UsersListResponse>(url, [debouncedSearch, filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/users-list', { search: debouncedSearch || undefined });
+  const { data, loading } = useApiData<UsersListResponse>(url, [url, debouncedSearch]);
   const users = data?.users ?? [];
 
   const columns: Column<UsersListItem>[] = [

@@ -25,9 +25,8 @@ import { DataTable, Column } from './DataTable';
 export function TopRegistrationsView() {
   const [activeTab, setActiveTab] = useState<string | null>('day');
 
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const url = useApiUrl('/api/top-registrations', { filterInternal, filterFree, timezone });
-  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/top-registrations', {});
+  const { data, loading, error } = useApiData<TopRegistrationsResponse>(url, [url]);
 
   // Initialize active tab from data on first load
   useEffect(() => {

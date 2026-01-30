@@ -16,7 +16,6 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
-import { useFilter } from '@/contexts/FilterContext';
 import { ApiUsageResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -34,9 +33,8 @@ export function ApiUsageView() {
     { name: 'unique_api_users', ref: usersChartRef },
   ];
 
-  const { filterInternal, filterFree } = useFilter();
-  const url = useApiUrl('/api/api-usage', { filterInternal, filterFree });
-  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [filterInternal, filterFree]);
+  const url = useApiUrl('/api/api-usage', {});
+  const { data, loading, error } = useApiData<ApiUsageResponse>(url, [url]);
 
   if (loading) {
     return (

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserActivities, getNewUsersLast3Months } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
-import { withRequestContext, getFilterInternal, getFilterFree } from '@/lib/api-helpers';
+import { withRequestContext } from '@/lib/api-helpers';
 
 function formatMonth(date: Date): string {
   const year = date.getUTCFullYear();
@@ -13,12 +13,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterInternal = getFilterInternal(searchParams);
-      const filterFree = getFilterFree(searchParams);
-
       const [activities, newUsers] = await Promise.all([
-      getUserActivities(filterInternal, filterFree),
-      getNewUsersLast3Months(filterInternal, filterFree),
+      getUserActivities(),
+      getNewUsersLast3Months(),
     ]);
 
     return NextResponse.json({

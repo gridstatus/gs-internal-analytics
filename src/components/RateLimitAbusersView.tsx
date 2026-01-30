@@ -47,9 +47,8 @@ interface RateLimitAbusersResponse {
 export function RateLimitAbusersView() {
   const [search, setSearch] = useState('');
   const [days, setDays] = useState('1');
-  const { timezone } = useFilter();
-  const url = useApiUrl('/api/rate-limit-abusers', { days, timezone });
-  const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [days, timezone]);
+  const url = useApiUrl('/api/rate-limit-abusers', { days });
+  const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [url]);
 
   if (loading) {
     return (

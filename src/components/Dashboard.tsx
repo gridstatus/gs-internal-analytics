@@ -19,11 +19,11 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
-import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
 import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { useApiUrl } from '@/hooks/useApiUrl';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
   user_registered: 'User Registered',
@@ -59,12 +59,10 @@ export function Dashboard() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const activitiesUrl = `/api/activities?filterInternal=${filterInternal}&filterFree=${filterFree}&timezone=${timezone}`;
-  const { data, loading, error } = useApiData<ActivitiesResponse>(activitiesUrl, [activitiesUrl, filterInternal, filterFree, timezone]);
-
-  const activeUsersUrl = `/api/domains?filterInternal=${filterInternal}&filterFree=${filterFree}&timezone=${timezone}`;
-  const { data: activeUsersData, loading: activeUsersLoading, error: activeUsersError } = useApiData<ActiveUsersResponse>(activeUsersUrl, [activeUsersUrl, filterInternal, filterFree, timezone]);
+  const activitiesUrl = useApiUrl('/api/activities', {});
+  const activeUsersUrl = useApiUrl('/api/domains', {});
+  const { data, loading, error } = useApiData<ActivitiesResponse>(activitiesUrl, [activitiesUrl]);
+  const { data: activeUsersData, loading: activeUsersLoading, error: activeUsersError } = useApiData<ActiveUsersResponse>(activeUsersUrl, [activeUsersUrl]);
 
   // Group activities by type and filter by search
   const activitiesByType = useMemo(() => {

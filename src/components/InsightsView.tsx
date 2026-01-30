@@ -72,16 +72,12 @@ export function InsightsView() {
     { name: 'posts', ref: postsChartRef },
   ];
 
-  const { filterInternal, filterFree, timezone } = useFilter();
   const url = useApiUrl('/api/insights', {
-    filterInternal,
-    filterFree,
-    timezone,
     timeFilter: timeFilter ?? '24h',
     chartPeriod: chartPeriod !== 'month' ? chartPeriod : undefined,
     summaryPeriod: summaryPeriod !== 'all' ? summaryPeriod : undefined,
   });
-  const { data, loading, error } = useApiData<InsightsResponse>(url, [filterInternal, filterFree, timezone, timeFilter, chartPeriod, summaryPeriod]);
+  const { data, loading, error } = useApiData<InsightsResponse>(url, [url, timeFilter, chartPeriod, summaryPeriod]);
 
   if (loading) {
     return (

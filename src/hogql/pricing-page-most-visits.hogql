@@ -12,7 +12,7 @@ FROM (
     AND timestamp >= now() - INTERVAL {{DAYS}} DAY
     AND event != '$identify'
     AND event != '$set'
-    {{GRIDSTATUS_FILTER}}
+    {{USER_FILTER}}
   GROUP BY email, minute
 )
 GROUP BY email

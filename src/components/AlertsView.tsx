@@ -14,7 +14,6 @@ import {
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
-import { useFilter } from '@/contexts/FilterContext';
 import { AlertsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -24,9 +23,8 @@ import { ErrorDisplay } from './ErrorDisplay';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const url = useApiUrl('/api/alerts', { filterInternal, filterFree, timezone });
-  const { data, loading, error } = useApiData<AlertsResponse>(url, [filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/alerts', {});
+  const { data, loading, error } = useApiData<AlertsResponse>(url, [url]);
 
   if (loading) {
     return (

@@ -23,7 +23,8 @@
     "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.15.0"
+    "recharts": "^2.15.0",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",

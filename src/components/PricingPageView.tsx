@@ -42,9 +42,8 @@ interface PricingPageResponse {
 
 export function PricingPageView() {
   const [search, setSearch] = useState('');
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const url = useApiUrl('/api/pricing-page', { filterInternal, filterFree, timezone });
-  const { data, loading, error } = useApiData<PricingPageResponse>(url, [filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/pricing-page', {});
+  const { data, loading, error } = useApiData<PricingPageResponse>(url, [url]);
 
   if (loading) {
     return (

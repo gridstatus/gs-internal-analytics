@@ -15,12 +15,13 @@ const pool = new Pool({
 });
 
 /**
- * Request-scoped context for storing timezone and other request-level settings.
- * This allows the query function to read the timezone without threading it through
- * every function call.
+ * Request-scoped context for storing timezone and filter settings.
+ * Set by withRequestContext(); read by renderSqlTemplate/renderHogqlTemplate and formatDateOnly.
  */
 export interface RequestContext {
   timezone?: string;
+  filterInternal?: boolean;
+  filterFree?: boolean;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

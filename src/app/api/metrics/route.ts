@@ -8,14 +8,14 @@ import {
   loadRenderedHogql,
 } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
-import { withRequestContext, getFilterInternal, getFilterFree } from '@/lib/api-helpers';
+import { withRequestContext } from '@/lib/api-helpers';
 
 interface PosthogMau {
   month: string;
   mau: number;
 }
 
-async function fetchPosthogMaus(filterInternal: boolean = true, filterFree: boolean = true): Promise<Map<string, number>> {
+async function fetchPosthogMaus(): Promise<Map<string, number>> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -24,10 +24,7 @@ async function fetchPosthogMaus(filterInternal: boolean = true, filterFree: bool
     return new Map();
   }
 
-  const hogql = loadRenderedHogql('posthog-mau.hogql', {
-    filterInternal,
-    filterFree,
-  });
+  const hogql = loadRenderedHogql('posthog-mau.hogql', {});
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
   const payload = {
@@ -74,18 +71,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const filterInternal = getFilterInternal(searchParams);
-      const filterFree = getFilterFree(searchParams);
-    
-    // Run all queries in parallel
+    // Run all queries in parallel (filters from request context)
     const [userCounts, apiUsage, corpMetrics, domainDistribution, domainSummaryResult, posthogMaus] =
       await Promise.all([
-        getMonthlyUserCounts(filterInternal, filterFree),
-        getMonthlyApiUsage(filterInternal, filterFree),
-        getMonthlyCorpMetrics(filterInternal, filterFree),
-        getDomainDistribution(filterInternal, filterFree),
-        getDomainSummary(filterInternal, filterFree),
-        fetchPosthogMaus(filterInternal, filterFree),
+        getMonthlyUserCounts(),
+        getMonthlyApiUsage(),
+        getMonthlyCorpMetrics(),
+        getDomainDistribution(),
+        getDomainSummary(),
+        fetchPosthogMaus(),
       ]);
 
     // Create lookup maps for efficient merging

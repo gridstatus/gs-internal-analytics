@@ -24,9 +24,8 @@ import { DataTable, Column } from './DataTable';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
-  const { filterInternal, filterFree, timezone } = useFilter();
-  const url = useApiUrl('/api/domains', { filterInternal, filterFree, timezone });
-  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [filterInternal, filterFree, timezone]);
+  const url = useApiUrl('/api/domains', {});
+  const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url]);
 
   if (loading) {
     return (

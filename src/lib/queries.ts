@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { query } from './db';
+import { query, requestContext } from './db';
 
 const sqlDir = join(process.cwd(), 'src/sql');
 const hogqlDir = join(process.cwd(), 'src/hogql');
@@ -43,18 +43,21 @@ export function loadHogql(filename: string): string {
 
 export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext): string {
   let rendered = hogql;
-  
-  // Handle GRIDSTATUS_FILTER (concatenation of optional internal + optional free clause)
-  const internalClause = context.filterInternal ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" : '';
-  const freeClauses = context.filterFree
+  const store = requestContext.getStore();
+  const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
+  const filterFree = context.filterFree ?? store?.filterFree ?? true;
+
+  // Handle USER_FILTER (same placeholder name as SQL; HogQL uses person.properties.email)
+  const internalClause = filterInternal ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" : '';
+  const freeClauses = filterFree
     ? FREE_EMAIL_DOMAINS.map(d => `AND NOT person.properties.email LIKE '%@${d}'`).join('\n  ')
     : '';
-  const gridstatusFilter = [internalClause, freeClauses].filter(Boolean).join('\n  ');
-  if (gridstatusFilter) {
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, gridstatusFilter);
+  const userFilter = [internalClause, freeClauses].filter(Boolean).join('\n  ');
+  if (userFilter) {
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
   } else {
-    rendered = rendered.replace(/\s+\{\{GRIDSTATUS_FILTER\}\}/g, '');
-    rendered = rendered.replace(/\{\{GRIDSTATUS_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\s+\{\{USER_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
   }
   
   // Handle LIMIT placeholder
@@ -124,13 +127,17 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
       : '';
   }
 
+  const store = requestContext.getStore();
+  const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
+  const filterFree = context.filterFree ?? store?.filterFree ?? true;
+
   // Handle USER_FILTER (two separate AND clauses: optional internal + optional free)
   const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
   const domainExpr = `SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1)`;
-  const internalClause = context.filterInternal
+  const internalClause = filterInternal
     ? `AND ${domainExpr} NOT IN ('gridstatus.io')\n  AND ${usernameRef} != 'kmax12+dev@gmail.com'`
     : '';
-  const freeClause = context.filterFree
+  const freeClause = filterFree
     ? `AND ${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
     : '';
   const userFilter = [internalClause, freeClause].filter(Boolean).join('\n  ');
@@ -242,33 +249,33 @@ export interface DomainSummary {
   users_on_teams: number;
 }
 
-export async function getMonthlyUserCounts(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('monthly-user-counts.sql', { filterInternal, filterFree });
+export async function getMonthlyUserCounts(): Promise<MonthlyUserCount[]> {
+  const sql = renderSqlTemplate('monthly-user-counts.sql', {});
   return query<MonthlyUserCount>(sql);
 }
 
-export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('user-counts-by-period.sql', { filterInternal, filterFree, period });
+export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year'): Promise<MonthlyUserCount[]> {
+  const sql = renderSqlTemplate('user-counts-by-period.sql', { period });
   return query<MonthlyUserCount>(sql);
 }
 
-export async function getMonthlyApiUsage(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyApiUsage[]> {
-  const sql = renderSqlTemplate('monthly-api-usage.sql', { filterInternal, filterFree });
+export async function getMonthlyApiUsage(): Promise<MonthlyApiUsage[]> {
+  const sql = renderSqlTemplate('monthly-api-usage.sql', {});
   return query<MonthlyApiUsage>(sql);
 }
 
-export async function getMonthlyCorpMetrics(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyCorpMetric[]> {
-  const sql = renderSqlTemplate('monthly-corp-metrics.sql', { filterInternal, filterFree });
+export async function getMonthlyCorpMetrics(): Promise<MonthlyCorpMetric[]> {
+  const sql = renderSqlTemplate('monthly-corp-metrics.sql', {});
   return query<MonthlyCorpMetric>(sql);
 }
 
-export async function getDomainDistribution(filterInternal: boolean = true, filterFree: boolean = true): Promise<DomainDistribution[]> {
-  const sql = renderSqlTemplate('domain-distribution.sql', { filterInternal, filterFree });
+export async function getDomainDistribution(): Promise<DomainDistribution[]> {
+  const sql = renderSqlTemplate('domain-distribution.sql', {});
   return query<DomainDistribution>(sql);
 }
 
-export async function getDomainSummary(filterInternal: boolean = true, filterFree: boolean = true): Promise<DomainSummary[]> {
-  const sql = renderSqlTemplate('domain-summary.sql', { filterInternal, filterFree });
+export async function getDomainSummary(): Promise<DomainSummary[]> {
+  const sql = renderSqlTemplate('domain-summary.sql', {});
   return query<DomainSummary>(sql);
 }
 
@@ -280,8 +287,8 @@ export interface ActiveUsers {
   total_users: number;
 }
 
-export async function getActiveUsers(filterInternal: boolean = true, filterFree: boolean = true): Promise<ActiveUsers[]> {
-  const sql = renderSqlTemplate('active-users.sql', { filterInternal, filterFree });
+export async function getActiveUsers(): Promise<ActiveUsers[]> {
+  const sql = renderSqlTemplate('active-users.sql', {});
   return query<ActiveUsers>(sql);
 }
 
@@ -294,8 +301,8 @@ export interface ActiveUsersByDomain {
   total_users: number;
 }
 
-export async function getActiveUsersByDomain(filterInternal: boolean = true, filterFree: boolean = true): Promise<ActiveUsersByDomain[]> {
-  const sql = renderSqlTemplate('active-users-by-domain.sql', { filterInternal, filterFree });
+export async function getActiveUsersByDomain(): Promise<ActiveUsersByDomain[]> {
+  const sql = renderSqlTemplate('active-users-by-domain.sql', {});
   return query<ActiveUsersByDomain>(sql);
 }
 
@@ -342,23 +349,22 @@ export interface TopInsightsPost {
 }
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
-// The filterInternal/filterFree params are kept for API consistency but not used for posts.
-export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsPosts[]> {
-  let sql = renderSqlTemplate('monthly-insights-posts.sql', { filterInternal, filterFree });
+export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsPosts[]> {
+  let sql = renderSqlTemplate('monthly-insights-posts.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsPosts>(sql);
 }
 
-export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsViews[]> {
-  let sql = renderSqlTemplate('monthly-insights-views.sql', { filterInternal, filterFree });
+export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsViews[]> {
+  let sql = renderSqlTemplate('monthly-insights-views.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsViews>(sql);
 }
 
-export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month', filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyInsightsReactions[]> {
-  let sql = renderSqlTemplate('monthly-insights-reactions.sql', { filterInternal, filterFree });
+export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsReactions[]> {
+  let sql = renderSqlTemplate('monthly-insights-reactions.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsReactions>(sql);
@@ -366,16 +372,16 @@ export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'mont
 
 // Get total unique logged-in users who have visited insights (any view source)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
-export async function getTotalUniqueVisitors(filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
+export async function getTotalUniqueVisitors(): Promise<number> {
+  const sql = renderSqlTemplate('total-unique-visitors.sql', { usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
 // Get total unique logged-in users who have visited the homefeed (/insights)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
-export async function getTotalUniqueHomefeedVisitors(filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.' });
+export async function getTotalUniqueHomefeedVisitors(): Promise<number> {
+  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -383,7 +389,7 @@ export async function getTotalUniqueHomefeedVisitors(filterInternal: boolean = t
 // Summary KPI queries with period support (1d, 7d, 30d, all)
 // These are independent queries for summary metrics, not derived from chart data
 
-export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -392,12 +398,12 @@ export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'al
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-unique-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-unique-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -406,12 +412,12 @@ export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | '
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -420,12 +426,12 @@ export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-engagements.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-engagements.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -434,12 +440,12 @@ export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all',
     dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-impressions.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-impressions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
 
-export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all'): Promise<number> {
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
@@ -448,7 +454,7 @@ export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all', f
     dateFilter = `AND r.created_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-reactions.sql', { filterInternal, filterFree, usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = renderSqlTemplate('summary-reactions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -768,7 +774,7 @@ export interface MostEngagedUser {
   total_engagement_score: number;
 }
 
-export async function getMostEngagedUsers(filterInternal: boolean = true, filterFree: boolean = true, days: number | null = null): Promise<MostEngagedUser[]> {
+export async function getMostEngagedUsers(days: number | null = null): Promise<MostEngagedUser[]> {
   // Build time filter conditions
   let timeFilterReactions = '';
   let timeFilterViews = '';
@@ -789,8 +795,6 @@ export async function getMostEngagedUsers(filterInternal: boolean = true, filter
   }
   
   const sql = renderSqlTemplate('top-engaged-users.sql', { 
-    filterInternal, 
-    filterFree, 
     usernamePrefix: 'u.',
     time_filter_reactions: timeFilterReactions,
     time_filter_views: timeFilterViews,
@@ -800,8 +804,7 @@ export async function getMostEngagedUsers(filterInternal: boolean = true, filter
 }
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
-// The filterInternal/filterFree params are kept for API consistency but not used for posts.
-export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filterInternal: boolean = true, filterFree: boolean = true): Promise<TopInsightsPost[]> {
+export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m'): Promise<TopInsightsPost[]> {
   // Apply time filter if provided
   let timeFilterClause = '';
   if (timeFilter) {
@@ -835,7 +838,7 @@ export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m', filt
     timeFilterClause = "AND p.created_at >= '2025-10-01'";
   }
   
-  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause, filterInternal: true, filterFree: true });
+  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause });
   return query<TopInsightsPost>(sql);
 }
 
@@ -847,8 +850,8 @@ export interface UserActivity {
   activity_detail: string | null;
 }
 
-export async function getUserActivities(filterInternal: boolean = true, filterFree: boolean = true): Promise<UserActivity[]> {
-  const sql = renderSqlTemplate('user-activities.sql', { filterInternal, filterFree });
+export async function getUserActivities(): Promise<UserActivity[]> {
+  const sql = renderSqlTemplate('user-activities.sql', {});
   return query<UserActivity>(sql);
 }
 
@@ -857,8 +860,8 @@ export interface NewUsersLast3Months {
   new_users: number;
 }
 
-export async function getNewUsersLast3Months(filterInternal: boolean = true, filterFree: boolean = true): Promise<NewUsersLast3Months[]> {
-  const sql = renderSqlTemplate('last-3-months-new-users.sql', { filterInternal, filterFree });
+export async function getNewUsersLast3Months(): Promise<NewUsersLast3Months[]> {
+  const sql = renderSqlTemplate('last-3-months-new-users.sql', {});
   return query<NewUsersLast3Months>(sql);
 }
 
@@ -868,8 +871,8 @@ export interface TopRegistration {
   registration_count: number;
 }
 
-export async function getTopRegistrations(filterInternal: boolean = true, filterFree: boolean = true): Promise<TopRegistration[]> {
-  const sql = renderSqlTemplate('top-registrations.sql', { filterInternal, filterFree });
+export async function getTopRegistrations(): Promise<TopRegistration[]> {
+  const sql = renderSqlTemplate('top-registrations.sql', {});
   return query<TopRegistration>(sql);
 }
 
@@ -889,8 +892,8 @@ export interface MonthlyNewUsers {
   last_year_month_same_time: number;
 }
 
-export async function getMonthlyNewUsersComparison(filterInternal: boolean = true, filterFree: boolean = true): Promise<MonthlyNewUsers[]> {
-  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', { filterInternal, filterFree });
+export async function getMonthlyNewUsersComparison(): Promise<MonthlyNewUsers[]> {
+  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', {});
   return query<MonthlyNewUsers>(sql);
 }
 
@@ -903,18 +906,18 @@ export interface TotalUsersCount {
   total_users: string;
 }
 
-export async function getTotalUsersCount(filterInternal: boolean = true, filterFree: boolean = true): Promise<TotalUsersCount[]> {
-  const sql = renderSqlTemplate('total-users-count.sql', { filterInternal, filterFree });
+export async function getTotalUsersCount(): Promise<TotalUsersCount[]> {
+  const sql = renderSqlTemplate('total-users-count.sql', {});
   return query<TotalUsersCount>(sql);
 }
 
-export async function getLast30DaysUsers(filterInternal: boolean = true, filterFree: boolean = true): Promise<Last30DaysUsers[]> {
-  const sql = renderSqlTemplate('last-30-days-users.sql', { filterInternal, filterFree });
+export async function getLast30DaysUsers(): Promise<Last30DaysUsers[]> {
+  const sql = renderSqlTemplate('last-30-days-users.sql', {});
   return query<Last30DaysUsers>(sql);
 }
 
-export async function getUsersToday(filterInternal: boolean = true, filterFree: boolean = true): Promise<UsersToday[]> {
-  const sql = renderSqlTemplate('users-today.sql', { filterInternal, filterFree });
+export async function getUsersToday(): Promise<UsersToday[]> {
+  const sql = renderSqlTemplate('users-today.sql', {});
   return query<UsersToday>(sql);
 }
 
@@ -925,7 +928,7 @@ export interface PricingPageVisitCount {
 }
 
 // Get visit counts for pricing page by period (1d, 7d, 30d)
-export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', filterInternal: boolean = true, filterFree: boolean = true): Promise<number> {
+export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d'): Promise<number> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -937,8 +940,6 @@ export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', fil
   const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
 
   const hogql = loadRenderedHogql('pricing-page-visit-counts.hogql', {
-    filterInternal,
-    filterFree,
     days,
   });
 
@@ -976,7 +977,7 @@ export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d', fil
 }
 
 // Get users with most visits to pricing page for a period
-export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limit: number = 50, filterInternal: boolean = true, filterFree: boolean = true): Promise<PricingPageVisitCount[]> {
+export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limit: number = 50): Promise<PricingPageVisitCount[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 
@@ -988,8 +989,6 @@ export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limi
   const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
 
   const hogql = loadRenderedHogql('pricing-page-most-visits.hogql', {
-    filterInternal,
-    filterFree,
     days,
     limit,
   });
