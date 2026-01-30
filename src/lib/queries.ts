@@ -782,8 +782,8 @@ export async function getMostEngagedUsers(days: number | null = null): Promise<M
   
   if (days !== null) {
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    cutoffDate.setHours(0, 0, 0, 0);
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - days);
+    cutoffDate.setUTCHours(0, 0, 0, 0);
     const cutoffDateStr = cutoffDate.toISOString();
     
     // reactions table uses created_at
