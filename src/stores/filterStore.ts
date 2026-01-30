@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, type StorageValue } from 'zustand/middleware';
-import { ValidTimezone, sanitizeTimezone } from '@/lib/timezones';
+import { DEFAULT_TIMEZONE, ValidTimezone, sanitizeTimezone } from '@/lib/timezones';
 
 function getInitialFilterInternal(): boolean {
   if (typeof window === 'undefined') return true;
@@ -20,7 +20,7 @@ function getInitialFilterFree(): boolean {
 }
 
 function getInitialTimezone(): ValidTimezone {
-  if (typeof window === 'undefined') return 'UTC';
+  if (typeof window === 'undefined') return DEFAULT_TIMEZONE;
   return sanitizeTimezone(localStorage.getItem('timezone'));
 }
 
@@ -73,7 +73,7 @@ export const useFilterStore = create<FilterState>()(
       setFilterInternal: (value) => set({ filterInternal: value }),
       filterFree: true,
       setFilterFree: (value) => set({ filterFree: value }),
-      timezone: 'UTC',
+      timezone: DEFAULT_TIMEZONE,
       setTimezone: (value) => set({ timezone: value }),
     }),
     {

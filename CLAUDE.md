@@ -34,6 +34,7 @@ This internal app must never be indexed by search engines. The following protect
 **IMPORTANT**: Never remove or modify these settings.
 1. **Robots Meta Tag** (`src/app/layout.tsx`)
 2. **robots.txt File** (`src/app/robots.txt/route.ts`):
+
 ## Database
 - Schema: `api_server` or `insights`
 - Key tables: `users`, `api_key_usage`, `charts`, `dashboards`
@@ -61,7 +62,7 @@ PostHog is used to track user activity and provides data for anonymous users (no
 **Important**: Always use UTC methods when parsing dates from PostgreSQL (`getUTCFullYear()`, `getUTCMonth()`) - not local methods which cause timezone shift.
 
 #### Timezone Setting (User-Selectable)
-- The app supports a user-selected timezone (default `UTC`) from the sidebar.
+- The app supports a user-selected timezone (default Central / CT) from the sidebar.
 - **Do not show UTC labels** unless the user has selected UTC.
 - For UI date/time labels, format using `Intl.DateTimeFormat` with the selected timezone.
 

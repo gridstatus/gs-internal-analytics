@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage, requestContext } from './db';
-import { sanitizeTimezone } from './timezones';
+import { DEFAULT_TIMEZONE, sanitizeTimezone } from './timezones';
 import { DateTime } from 'luxon';
 
 export function getBooleanSearchParam(
@@ -64,7 +64,7 @@ export function formatMonthUtc(date: Date): string {
 export function formatDateOnly(date: Date | null | undefined): string | null {
   if (!date) return null;
   const store = requestContext.getStore();
-  const timezone = store?.timezone || 'UTC';
+  const timezone = store?.timezone || DEFAULT_TIMEZONE;
   
   return DateTime.fromJSDate(new Date(date))
     .setZone(timezone)

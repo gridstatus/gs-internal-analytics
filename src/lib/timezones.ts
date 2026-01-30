@@ -12,6 +12,9 @@ export const VALID_TIMEZONES = [
 
 export type ValidTimezone = (typeof VALID_TIMEZONES)[number]['value'];
 
+/** Default timezone when none is selected or provided. */
+export const DEFAULT_TIMEZONE: ValidTimezone = 'America/Chicago';
+
 const VALID_TIMEZONE_VALUES: Set<string> = new Set(VALID_TIMEZONES.map((t) => t.value));
 
 export function isValidTimezone(tz: string): tz is ValidTimezone {
@@ -19,13 +22,13 @@ export function isValidTimezone(tz: string): tz is ValidTimezone {
 }
 
 /**
- * Sanitize timezone input, returning UTC if invalid.
+ * Sanitize timezone input, returning default (CT) if invalid.
  * This prevents SQL injection by only allowing whitelisted values.
  */
 export function sanitizeTimezone(tz: string | null | undefined): ValidTimezone {
   if (tz && isValidTimezone(tz)) {
     return tz;
   }
-  return 'UTC';
+  return DEFAULT_TIMEZONE;
 }
 

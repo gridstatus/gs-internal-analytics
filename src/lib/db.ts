@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { AsyncLocalStorage } from 'async_hooks';
+import { DEFAULT_TIMEZONE } from './timezones';
 
 const pool = new Pool({
   user: process.env.APPLICATION_POSTGRES_USER,
@@ -29,9 +30,9 @@ export const requestContext = new AsyncLocalStorage<RequestContext>();
 export async function query<T>(sql: string, params?: unknown[]): Promise<T[]> {
   const client = await pool.connect();
   try {
-    // Read timezone from async context, default to UTC
+    // Read timezone from async context, default to CT
     const store = requestContext.getStore();
-    const timezone = store?.timezone || 'UTC';
+    const timezone = store?.timezone || DEFAULT_TIMEZONE;
     
     // Set session settings: timezone and 30-second statement timeout
     await client.query(`SET timezone TO '${timezone}'; SET statement_timeout = '30s'`);

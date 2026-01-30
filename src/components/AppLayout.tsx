@@ -9,7 +9,7 @@ import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, Ico
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
-import { VALID_TIMEZONES, ValidTimezone } from '@/lib/timezones';
+import { DEFAULT_TIMEZONE, VALID_TIMEZONES, ValidTimezone } from '@/lib/timezones';
 import { SpotlightSearch } from './SpotlightSearch';
 
 interface AppLayoutProps {
@@ -192,7 +192,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   label="Timezone"
                   size="xs"
                   value={timezone}
-                  onChange={(value) => setTimezone((value as ValidTimezone) || 'UTC')}
+                  onChange={(value) => setTimezone((value as ValidTimezone) || DEFAULT_TIMEZONE)}
                   data={VALID_TIMEZONES}
                   allowDeselect={false}
                 />
