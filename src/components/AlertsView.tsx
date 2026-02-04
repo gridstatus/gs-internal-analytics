@@ -103,7 +103,7 @@ export function AlertsView() {
                 leftSection={<IconSearch size={16} />}
                 value={search}
                 onChange={(e) => setSearch(e.currentTarget.value)}
-                style={{ width: 300 }}
+                style={{ width: '100%', maxWidth: 300 }}
               />
             </Group>
             <DataTable

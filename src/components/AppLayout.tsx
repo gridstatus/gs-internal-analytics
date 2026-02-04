@@ -177,7 +177,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             breakpoint: 'sm',
             collapsed: { mobile: !opened }
           }}
-          padding="md"
+          padding={{ base: 'xs', sm: 'md' }}
         >
           <AppShell.Header hiddenFrom="sm">
             <Group h="100%" px="md" justify="space-between">
@@ -186,14 +186,13 @@ export function AppLayout({ children }: AppLayoutProps) {
               <UserButton />
             </Group>
           </AppShell.Header>
-          <AppShell.Navbar p="xs">
-            <Stack style={{ height: '100%' }} gap="xs">
-              <Group mb="xs" justify="space-between" visibleFrom="sm">
-                <Title order={4}>Analytics</Title>
-                <UserButton />
-              </Group>
-              
-              <ScrollArea style={{ flex: 1 }}>
+          <AppShell.Navbar p="xs" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Group mb="xs" justify="space-between" visibleFrom="sm" style={{ flexShrink: 0 }}>
+              <Title order={4}>Analytics</Title>
+              <UserButton />
+            </Group>
+            <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6}>
+              <Stack gap="xs" py="xs">
                 <Stack gap={2}>
                   <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
                     Overview
@@ -337,13 +336,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                 </Stack>
-              </ScrollArea>
 
-              <ActiveQueriesWidget />
-              
-              <Divider mt="xs" />
-              <Stack gap={4} mt="xs">
-                <Text size="sm" fw={500}>Settings</Text>
+                <ActiveQueriesWidget />
+                <Divider mt="xs" />
+                <Stack gap={4} mt="xs" pb="md">
+                  <Text size="sm" fw={500}>Settings</Text>
                 <Switch
                   label="Filter Internal"
                   checked={filterInternal}
@@ -375,12 +372,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                     fullWidth
                   />
                 </div>
+                </Stack>
               </Stack>
-            </Stack>
+            </ScrollArea>
           </AppShell.Navbar>
 
-          <AppShell.Main>
-            {children}
+          <AppShell.Main style={{ minWidth: 0, overflow: 'auto' }}>
+            <Box data-main-content style={{ minWidth: 0 }}>{children}</Box>
           </AppShell.Main>
         </AppShell>
         <SpotlightSearch opened={spotlightOpened} onClose={closeSpotlight} />

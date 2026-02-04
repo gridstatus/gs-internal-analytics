@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Table, Group, Text } from '@mantine/core';
+import { Table, Group, Text, ScrollArea } from '@mantine/core';
 import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 
 export interface Column<T> {
@@ -99,8 +99,9 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <Table striped={striped} highlightOnHover={highlightOnHover}>
-      <Table.Thead>
+    <ScrollArea type="scroll" style={{ overflowX: 'auto' }}>
+      <Table striped={striped} highlightOnHover={highlightOnHover}>
+        <Table.Thead>
         <Table.Tr>
           {columns.map((column) => {
             const isSortable = column.sortable !== false;
@@ -154,7 +155,8 @@ export function DataTable<T extends Record<string, any>>({
           ))
         )}
       </Table.Tbody>
-    </Table>
+      </Table>
+    </ScrollArea>
   );
 }
 

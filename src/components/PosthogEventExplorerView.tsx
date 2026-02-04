@@ -91,7 +91,7 @@ export function PosthogEventExplorerView() {
             leftSection={<IconSearch size={16} />}
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value || null)}
-            style={{ minWidth: 260 }}
+            style={{ width: '100%', maxWidth: 320 }}
           />
           <SegmentedControl
             value={String(days)}
