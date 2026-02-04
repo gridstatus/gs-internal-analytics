@@ -1,0 +1,11 @@
+-- Event names and unique user count per event from the last N days. {{DATE_FILTER}} is applied. Excludes $identify and $set.
+SELECT
+  event,
+  COUNT(DISTINCT person_id) AS unique_users
+FROM events
+WHERE 1=1
+  {{DATE_FILTER}}
+  AND event != '$identify'
+  AND event != '$set'
+GROUP BY event
+ORDER BY event

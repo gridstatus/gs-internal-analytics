@@ -1,0 +1,8 @@
+-- Recent occurrences of a single event with timestamp and person email. {{EVENT_NAME}} and {{LIMIT}}.
+SELECT
+  timestamp,
+  person.properties.email AS email
+FROM events
+WHERE event = '{{EVENT_NAME}}'
+ORDER BY timestamp DESC
+LIMIT {{LIMIT}}

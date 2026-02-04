@@ -32,6 +32,8 @@ function toHumanReadableLabel(key: string): string {
     'posts': 'Posts',
     'hits': 'Hits',
     'teams': 'Teams',
+    'count': 'Event count',
+    'uniqueUsers': 'Unique users',
   };
   
   if (specialCases[key]) {

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -22,6 +22,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure();
   const [spotlightOpened, { open: openSpotlight, close: closeSpotlight }] = useDisclosure(false);
+
+  const navLinkStyles = { root: { paddingTop: 4, paddingBottom: 4 } };
 
   // Keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
   useEffect(() => {
@@ -68,16 +70,16 @@ export function AppLayout({ children }: AppLayoutProps) {
               <UserButton />
             </Group>
           </AppShell.Header>
-          <AppShell.Navbar p="md">
-            <Stack style={{ height: '100%' }}>
-              <Group mb="md" justify="space-between" visibleFrom="sm">
+          <AppShell.Navbar p="xs">
+            <Stack style={{ height: '100%' }} gap="xs">
+              <Group mb="xs" justify="space-between" visibleFrom="sm">
                 <Title order={4}>Analytics</Title>
                 <UserButton />
               </Group>
               
               <ScrollArea style={{ flex: 1 }}>
-                <Stack>
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb="xs">
+                <Stack gap={2}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
                     Overview
                   </Text>
                   <NavLink
@@ -87,6 +89,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconDashboard size={16} />}
                     active={pathname === '/'}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -95,10 +98,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconUserPlus size={16} />}
                     active={pathname === '/users'}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
-                    Users and Orgs
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+                    Account Management
                   </Text>
                   <NavLink
                     component={Link}
@@ -107,6 +111,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconUserSearch size={16} />}
                     active={pathname?.startsWith('/users-list')}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -115,9 +120,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconBuilding size={16} />}
                     active={pathname?.startsWith('/organizations')}
                     onClick={close}
+                    styles={navLinkStyles}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/subscriptions"
+                    label="Subscriptions"
+                    leftSection={<IconReceipt size={16} />}
+                    active={pathname?.startsWith('/subscriptions')}
+                    onClick={close}
+                    styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
                     Product Features
                   </Text>
                   <NavLink
@@ -127,6 +142,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconBulb size={16} />}
                     active={pathname?.startsWith('/insights')}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -135,6 +151,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconChartBar size={16} />}
                     active={pathname === '/charts-dashboards'}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -143,9 +160,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconBell size={16} />}
                     active={pathname === '/alerts'}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={{ base: 'xs', sm: 'md' }} mb="xs">
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
                     Go-to-market
                   </Text>
                   <NavLink
@@ -155,6 +173,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconWorld size={16} />}
                     active={pathname?.startsWith('/domains')}
                     onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -163,6 +182,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconCurrencyDollar size={16} />}
                     active={pathname === '/pricing-page'}
                     onClick={close}
+                    styles={navLinkStyles}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/plans"
+                    label="Plans"
+                    leftSection={<IconPackage size={16} />}
+                    active={pathname?.startsWith('/plans')}
+                    onClick={close}
+                    styles={navLinkStyles}
                   />
                   <NavLink
                     component={Link}
@@ -171,12 +200,26 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconAlertTriangle size={16} />}
                     active={pathname === '/rate-limit-abusers'}
                     onClick={close}
+                    styles={navLinkStyles}
+                  />
+
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+                    PostHog
+                  </Text>
+                  <NavLink
+                    component={Link}
+                    href="/posthog-event-explorer"
+                    label="Event Explorer"
+                    leftSection={<IconListSearch size={16} />}
+                    active={pathname?.startsWith('/posthog-event-explorer')}
+                    onClick={close}
+                    styles={navLinkStyles}
                   />
                 </Stack>
               </ScrollArea>
               
-              <Divider mt={{ base: 'xs', sm: 'md' }} />
-              <Stack gap="xs" mt={{ base: 'xs', sm: 'md' }}>
+              <Divider mt="xs" />
+              <Stack gap={4} mt="xs">
                 <Text size="sm" fw={500}>Settings</Text>
                 <Switch
                   label="Filter Internal"

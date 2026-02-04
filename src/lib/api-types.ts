@@ -141,6 +141,16 @@ export interface PosthogActiveUsersResponse {
   periodType: 'day' | 'week' | 'month';
 }
 
+export interface PosthogEventExplorerEvent {
+  event: string;
+  uniqueUsers: number;
+}
+
+export interface PosthogEventExplorerResponse {
+  events: PosthogEventExplorerEvent[];
+  days: number;
+}
+
 export interface MonthlyInsightData {
   month: string;
   posts: number;
@@ -221,6 +231,104 @@ export interface OrganizationListItem {
 
 export interface OrganizationsResponse {
   organizations: OrganizationListItem[];
+}
+
+export interface PlanListItem {
+  id: number;
+  planName: string;
+}
+
+export interface PlansResponse {
+  plans: PlanListItem[];
+}
+
+export interface PlanDetail {
+  id: number;
+  planName: string;
+  apiRowsReturnedLimit: number | null;
+  apiRequestsLimit: number | null;
+  apiRowsPerResponseLimit: number | null;
+  alertsLimit: number | null;
+  dashboardsLimit: number | null;
+  downloadsLimit: number | null;
+  entitlements: string[] | null;
+  perSecondApiRateLimit: number | null;
+  perMinuteApiRateLimit: number | null;
+  perHourApiRateLimit: number | null;
+  chartsLimit: number | null;
+}
+
+export interface SubscriptionListItem {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  planId: number | null;
+  startDate: string;
+  status: string;
+  organizationId: string | null;
+  organizationName: string | null;
+  stripeSubscriptionId: string | null;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string | null;
+  createdAt: string | null;
+}
+
+export interface PlanDetailResponse {
+  plan: PlanDetail;
+  subscriptions: SubscriptionListItem[];
+}
+
+export interface SubscriptionListRowItem {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  planId: number | null;
+  planName: string | null;
+  startDate: string;
+  status: string;
+  organizationId: string | null;
+  organizationName: string | null;
+  stripeSubscriptionId: string | null;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string | null;
+  createdAt: string | null;
+}
+
+export interface SubscriptionsResponse {
+  subscriptions: SubscriptionListRowItem[];
+}
+
+export interface SubscriptionDetail {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  planId: number | null;
+  planName: string | null;
+  startDate: string;
+  status: string;
+  cancelAtPeriodEnd: boolean | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  stripeSubscriptionId: string | null;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string | null;
+  createdAt: string | null;
+  enforceApiUsageLimit: boolean;
+  apiRowsReturnedLimitOverride: number | null;
+  apiRequestsLimitOverride: number | null;
+  apiRowsPerResponseLimitOverride: number | null;
+  alertsLimitOverride: number | null;
+  dashboardsLimitOverride: number | null;
+  downloadsLimitOverride: number | null;
+  entitlementOverrides: string[] | null;
+  perSecondApiRateLimitOverride: number | null;
+  perMinuteApiRateLimitOverride: number | null;
+  perHourApiRateLimitOverride: number | null;
+  chartsLimitOverride: number | null;
+}
+
+export interface SubscriptionDetailResponse {
+  subscription: SubscriptionDetail;
 }
 
 export interface UsersListItem {

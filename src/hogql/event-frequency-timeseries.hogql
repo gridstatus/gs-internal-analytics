@@ -1,0 +1,9 @@
+-- Event count per period for a single event. {{EVENT_NAME}} is the event name; {{DATE_FUNCTION}} and {{DATE_FILTER}} define the period and range.
+SELECT
+  {{DATE_FUNCTION}} AS period,
+  COUNT(*) AS count
+FROM events
+WHERE event = '{{EVENT_NAME}}'
+  {{DATE_FILTER}}
+GROUP BY period
+ORDER BY period ASC
