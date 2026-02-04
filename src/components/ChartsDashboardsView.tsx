@@ -27,49 +27,15 @@ export function ChartsDashboardsView() {
   const url = useApiUrl('/api/charts-dashboards', {});
   const { data, loading, error } = useApiData<ChartsDashboardsResponse>(url, [url]);
 
-  if (loading) {
-    return (
-      <Container fluid py="xl">
-        <Stack gap="md">
-          <Skeleton height={50} width={300} />
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} height={100} />
-            ))}
-          </SimpleGrid>
-          <Skeleton height={400} />
-        </Stack>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const filteredUsers = data.users
+  const filteredUsers = data?.users
     .filter(
       (user) =>
         user.username.toLowerCase().includes(search.toLowerCase()) ||
         user.domain.toLowerCase().includes(search.toLowerCase())
     )
-    .slice(0, 100);
+    .slice(0, 100) ?? [];
 
-  const columns: Column<typeof filteredUsers[0]>[] = [
+  const columns: Column<ChartsDashboardsResponse['users'][0]>[] = [
     {
       id: 'user',
       header: 'User',
@@ -118,52 +84,66 @@ export function ChartsDashboardsView() {
     <Container fluid py="xl">
       <Title order={1} mb="xl">Charts & Dashboards</Title>
 
-      {/* Summary Metrics */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
-        <MetricCard
-          title="Total Charts"
-          value={data.summary.totalCharts}
-          subtitle={`${data.summary.chartUsers} users`}
-        />
-        <MetricCard
-          title="Total Dashboards"
-          value={data.summary.totalDashboards}
-          subtitle={`${data.summary.dashboardUsers} users`}
-        />
-        <MetricCard
-          title="Chart Users"
-          value={data.summary.chartUsers}
-        />
-        <MetricCard
-          title="Dashboard Users"
-          value={data.summary.dashboardUsers}
-        />
-      </SimpleGrid>
-
-      {/* Users table */}
-      <Paper shadow="sm" p="md" radius="md" withBorder>
-        <Group justify="space-between" mb="md">
-          <Text fw={600} size="lg">
-            Users Creating Charts/Dashboards
-          </Text>
-          <TextInput
-            placeholder="Search by email or domain..."
-            leftSection={<IconSearch size={16} />}
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            style={{ width: 300 }}
-          />
-        </Group>
-        <DataTable
-          data={filteredUsers}
-          columns={columns}
-          keyField="username"
-          defaultSort={{ column: 'chartCount', direction: 'desc' }}
-        />
-        <Text size="xs" c="dimmed" mt="md">
-          Showing up to 100 users, sorted by total charts + dashboards.
-        </Text>
-      </Paper>
+      {loading ? (
+        <Stack gap="md">
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} height={100} />
+            ))}
+          </SimpleGrid>
+          <Skeleton height={400} />
+        </Stack>
+      ) : error ? (
+        <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
+          {error}
+        </Alert>
+      ) : data ? (
+        <>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
+            <MetricCard
+              title="Total Charts"
+              value={data.summary.totalCharts}
+              subtitle={`${data.summary.chartUsers} users`}
+            />
+            <MetricCard
+              title="Total Dashboards"
+              value={data.summary.totalDashboards}
+              subtitle={`${data.summary.dashboardUsers} users`}
+            />
+            <MetricCard
+              title="Chart Users"
+              value={data.summary.chartUsers}
+            />
+            <MetricCard
+              title="Dashboard Users"
+              value={data.summary.dashboardUsers}
+            />
+          </SimpleGrid>
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                Users Creating Charts/Dashboards
+              </Text>
+              <TextInput
+                placeholder="Search by email or domain..."
+                leftSection={<IconSearch size={16} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                style={{ width: 300 }}
+              />
+            </Group>
+            <DataTable
+              data={filteredUsers}
+              columns={columns}
+              keyField="username"
+              defaultSort={{ column: 'chartCount', direction: 'desc' }}
+            />
+            <Text size="xs" c="dimmed" mt="md">
+              Showing up to 100 users, sorted by total charts + dashboards.
+            </Text>
+          </Paper>
+        </>
+      ) : null}
     </Container>
   );
 }

@@ -27,40 +27,11 @@ export function DomainsView() {
   const url = useApiUrl('/api/domains', {});
   const { data, loading, error } = useApiData<ActiveUsersResponse>(url, [url]);
 
-  if (loading) {
-    return (
-      <Container fluid py="xl">
-        <Stack gap="md">
-          <Skeleton height={50} width={300} />
-          <Skeleton height={400} />
-        </Stack>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const filteredData = data.byDomain
+  const filteredData = data?.byDomain
     .filter((row) => row.domain.toLowerCase().includes(search.toLowerCase()))
-    .slice(0, 100);
+    .slice(0, 100) ?? [];
 
-  const columns: Column<typeof filteredData[0]>[] = [
+  const columns: Column<ActiveUsersResponse['byDomain'][0]>[] = [
     {
       id: 'domain',
       header: 'Domain',
@@ -113,30 +84,39 @@ export function DomainsView() {
     <Container fluid py="xl">
       <Title order={1} mb="xl">Domains</Title>
 
-      {/* Domain breakdown table */}
-      <Paper shadow="sm" p="md" radius="md" withBorder>
-        <Group justify="space-between" mb="md">
-          <Text fw={600} size="lg">
-            Active Users by Domain
-          </Text>
-          <TextInput
-            placeholder="Search domains..."
-            leftSection={<IconSearch size={16} />}
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            style={{ width: 250 }}
+      {loading ? (
+        <Stack gap="md">
+          <Skeleton height={400} />
+        </Stack>
+      ) : error ? (
+        <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
+          {error}
+        </Alert>
+      ) : data ? (
+        <Paper shadow="sm" p="md" radius="md" withBorder>
+          <Group justify="space-between" mb="md">
+            <Text fw={600} size="lg">
+              Active Users by Domain
+            </Text>
+            <TextInput
+              placeholder="Search domains..."
+              leftSection={<IconSearch size={16} />}
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              style={{ width: 250 }}
+            />
+          </Group>
+          <DataTable
+            data={filteredData}
+            columns={columns}
+            keyField="domain"
+            defaultSort={{ column: 'totalUsers', direction: 'desc' }}
           />
-        </Group>
-        <DataTable
-          data={filteredData}
-          columns={columns}
-          keyField="domain"
-          defaultSort={{ column: 'totalUsers', direction: 'desc' }}
-        />
-        <Text size="xs" c="dimmed" mt="md">
-          Showing up to 100 domains.
-        </Text>
-      </Paper>
+          <Text size="xs" c="dimmed" mt="md">
+            Showing up to 100 domains.
+          </Text>
+        </Paper>
+      ) : null}
     </Container>
   );
 }

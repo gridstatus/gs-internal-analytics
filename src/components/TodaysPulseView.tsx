@@ -43,13 +43,13 @@ export function TodaysPulseView() {
   const [daysOffset] = useQueryState('days_offset', { defaultValue: '0' });
   const [referrersUserType, setReferrersUserType] = useQueryState('referrers_user_type', { defaultValue: 'all' });
 
-  const pulseUrl = useApiUrl('/api/todays-pulse', {});
-  const referrersUrl = useApiUrl('/api/referrers', {
+  const pulseUrl = useApiUrl('/api/posthog/todays-pulse', {});
+  const referrersUrl = useApiUrl('/api/posthog/referrers', {
     days,
     ...(referrersUserType !== 'all' && { user_type: referrersUserType }),
   });
-  const mostPageviewsUrl = useApiUrl('/api/most-pageviews', { days_offset: daysOffset });
-  const mostViewedPagesUrl = useApiUrl('/api/most-viewed-pages', { days });
+  const mostPageviewsUrl = useApiUrl('/api/posthog/most-pageviews', { days_offset: daysOffset });
+  const mostViewedPagesUrl = useApiUrl('/api/posthog/most-viewed-pages', { days });
 
   const { data: pulseData, loading: pulseLoading, error: pulseError } = useApiData<TodaysPulseResponse>(pulseUrl, [pulseUrl]);
   const { data: referrersData, loading: referrersLoading, error: referrersError } = useApiData<ReferrersResponse>(referrersUrl, [referrersUrl]);

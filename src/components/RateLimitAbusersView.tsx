@@ -47,7 +47,7 @@ interface RateLimitAbusersResponse {
 export function RateLimitAbusersView() {
   const [search, setSearch] = useState('');
   const [days, setDays] = useState('1');
-  const url = useApiUrl('/api/rate-limit-abusers', { days });
+  const url = useApiUrl('/api/posthog/rate-limit-abusers', { days });
   const { data, loading, error } = useApiData<RateLimitAbusersResponse>(url, [url]);
 
   if (loading) {

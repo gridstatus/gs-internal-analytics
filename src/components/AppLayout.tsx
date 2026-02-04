@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
+import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt, IconChartLine } from '@tabler/icons-react';
@@ -10,7 +10,123 @@ import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
 import { DEFAULT_TIMEZONE, VALID_TIMEZONES, ValidTimezone } from '@/lib/timezones';
+import { useActiveQueriesStore } from '@/stores/activeQueriesStore';
 import { SpotlightSearch } from './SpotlightSearch';
+
+function formatQueryDisplayUrl(url: string): string {
+  try {
+    const path = url.startsWith('http') ? new URL(url).pathname : url.split('?')[0];
+    return path || url;
+  } catch {
+    return url.split('?')[0] || url;
+  }
+}
+
+function ActiveQueriesWidget() {
+  const activeQueries = useActiveQueriesStore((s) => s.activeQueries);
+  const dbQueries = activeQueries.filter((q) => q.source === 'db');
+  const posthogQueries = activeQueries.filter((q) => q.source === 'posthog');
+  const dbCount = dbQueries.length;
+  const posthogCount = posthogQueries.length;
+  const count = activeQueries.length;
+
+  return (
+    <HoverCard width={320} position="right-start" withArrow shadow="md" openDelay={200} closeDelay={150}>
+      <HoverCard.Target>
+        <Box
+          p="xs"
+          style={{
+            borderRadius: 4,
+            border: '1px solid var(--mantine-color-default-border)',
+            cursor: 'pointer',
+            minHeight: 30,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Text size="xs" component="span">
+            <Text span size="xs" c="dimmed">Queries: </Text>
+            <Text span size="xs" c={dbCount > 0 ? 'teal' : 'dimmed'}>
+              {dbCount} DB
+            </Text>
+            <Text span size="xs" c="dimmed">, </Text>
+            <Text span size="xs" c={posthogCount > 0 ? 'violet' : 'dimmed'}>
+              {posthogCount} PostHog
+            </Text>
+          </Text>
+        </Box>
+      </HoverCard.Target>
+        <HoverCard.Dropdown>
+          <Stack gap="md">
+            <Group justify="space-between">
+              <Text size="sm" fw={600}>
+                Active requests
+              </Text>
+              <Badge size="sm" variant="light" color="gray">
+                {count} total
+              </Badge>
+            </Group>
+            {count === 0 ? (
+              <Text size="xs" c="dimmed" py="xs">
+                No requests in flight
+              </Text>
+            ) : (
+              <ScrollArea.Autosize mah={240} type="scroll" scrollbarSize={6}>
+                <Stack gap="md">
+                  {dbQueries.length > 0 && (
+                    <Stack gap={4}>
+                      <Group gap={6}>
+                        <Badge size="xs" variant="dot" color="teal">
+                          DB
+                        </Badge>
+                        <Text size="xs" c="dimmed">
+                          {dbQueries.length} {dbQueries.length === 1 ? 'query' : 'queries'}
+                        </Text>
+                      </Group>
+                      {dbQueries.map((q) => (
+                        <Text
+                          key={q.id}
+                          size="xs"
+                          component="div"
+                          style={{ wordBreak: 'break-all' }}
+                          c="dimmed"
+                        >
+                          {formatQueryDisplayUrl(q.url)}
+                        </Text>
+                      ))}
+                    </Stack>
+                  )}
+                  {posthogQueries.length > 0 && (
+                    <Stack gap={4}>
+                      <Group gap={6}>
+                        <Badge size="xs" variant="dot" color="violet">
+                          PostHog
+                        </Badge>
+                        <Text size="xs" c="dimmed">
+                          {posthogQueries.length} {posthogQueries.length === 1 ? 'query' : 'queries'}
+                        </Text>
+                      </Group>
+                      {posthogQueries.map((q) => (
+                        <Text
+                          key={q.id}
+                          size="xs"
+                          component="div"
+                          style={{ wordBreak: 'break-all' }}
+                          c="dimmed"
+                        >
+                          {formatQueryDisplayUrl(q.url)}
+                        </Text>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
+              </ScrollArea.Autosize>
+            )}
+          </Stack>
+        </HoverCard.Dropdown>
+    </HoverCard>
+  );
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -171,6 +287,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                     onClick={close}
                     styles={navLinkStyles}
                   />
+                  <NavLink
+                    component={Link}
+                    href="/posthog-event-explorer"
+                    label="Event Explorer"
+                    leftSection={<IconListSearch size={16} />}
+                    active={pathname?.startsWith('/posthog-event-explorer')}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
                   
                   <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
                     Go-to-market
@@ -211,21 +336,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                     onClick={close}
                     styles={navLinkStyles}
                   />
-
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
-                    PostHog
-                  </Text>
-                  <NavLink
-                    component={Link}
-                    href="/posthog-event-explorer"
-                    label="Event Explorer"
-                    leftSection={<IconListSearch size={16} />}
-                    active={pathname?.startsWith('/posthog-event-explorer')}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
                 </Stack>
               </ScrollArea>
+
+              <ActiveQueriesWidget />
               
               <Divider mt="xs" />
               <Stack gap={4} mt="xs">

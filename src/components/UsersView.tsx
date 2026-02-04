@@ -69,78 +69,6 @@ export function UsersView() {
   });
   const { data, loading, error } = useApiData<UsersResponse>(url, [url, debouncedDomainFilter, timestampType, newUsersPeriod]);
 
-  if (loading) {
-    return (
-      <Container fluid py="xl">
-        <Stack gap="md">
-          <Skeleton height={50} width={300} />
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-            {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} height={100} />
-            ))}
-          </SimpleGrid>
-          <Skeleton height={350} />
-        </Stack>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid py="xl">
-        <ErrorDisplay error={error} />
-      </Container>
-    );
-  }
-
-  if (!data || data.monthlyData.length === 0) {
-    return (
-      <Container fluid py="xl">
-        <Alert title="No data" color="yellow">
-          No user registration data available.
-        </Alert>
-      </Container>
-    );
-  }
-
-  const latestMetric = data.monthlyData[data.monthlyData.length - 1];
-  const previousMetric =
-    data.monthlyData.length > 1
-      ? data.monthlyData[data.monthlyData.length - 2]
-      : null;
-
-  // Format month for display (e.g., "Jan 2026")
-  const formatMonth = (monthStr: string) => {
-    return DateTime.fromISO(monthStr, { zone: 'utc' }).toFormat('MMM yyyy');
-  };
-
-  // Calculate last year's month for display
-  const formatLastYearMonth = () => {
-    return DateTime.fromISO(latestMetric.month, { zone: 'utc' })
-      .minus({ years: 1 })
-      .toFormat('MMM yyyy');
-  };
-  const lastYearMonthLabel = formatLastYearMonth();
-  const currentMonthLabel = formatMonth(latestMetric.month);
-
-  const calculateTrend = (current: number, previous: number | undefined) => {
-    if (previous === undefined || previous === 0) return undefined;
-    return Math.round(((current - previous) / previous) * 100);
-  };
-
-  // Get last 12 months for the table
-  const recentMonths = data.monthlyData.slice(-12).reverse();
-
-  // Format today's date for display (e.g., "Jan 15, 2026")
-  const formatTodayDate = () => {
-    return DateTime.now().setZone(timezone).toLocaleString(DateTime.DATE_MED);
-  };
-  const todayDateLabel = formatTodayDate();
-
-  // Get last 30 days data from API (accurate calculation from database)
-  const last30Days = data.last30DaysUsers?.last30Days ?? 0;
-  const previous30Days = data.last30DaysUsers?.previous30Days ?? 0;
-
   return (
     <Container fluid py="xl">
       <Group justify="space-between" mb="xl">
@@ -166,6 +94,42 @@ export function UsersView() {
         </Group>
       </Group>
 
+      {loading ? (
+        <Stack gap="md">
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} height={100} />
+            ))}
+          </SimpleGrid>
+          <Skeleton height={350} />
+        </Stack>
+      ) : error ? (
+        <ErrorDisplay error={error} />
+      ) : !data || data.monthlyData.length === 0 ? (
+        <Alert title="No data" color="yellow">
+          No user registration data available.
+        </Alert>
+      ) : (() => {
+        const latestMetric = data.monthlyData[data.monthlyData.length - 1];
+        const previousMetric =
+          data.monthlyData.length > 1
+            ? data.monthlyData[data.monthlyData.length - 2]
+            : null;
+        const formatMonth = (monthStr: string) =>
+          DateTime.fromISO(monthStr, { zone: 'utc' }).toFormat('MMM yyyy');
+        const formatLastYearMonth = () =>
+          DateTime.fromISO(latestMetric.month, { zone: 'utc' })
+            .minus({ years: 1 })
+            .toFormat('MMM yyyy');
+        const lastYearMonthLabel = formatLastYearMonth();
+        const currentMonthLabel = formatMonth(latestMetric.month);
+        const recentMonths = data.monthlyData.slice(-12).reverse();
+        const todayDateLabel = DateTime.now().setZone(timezone).toLocaleString(DateTime.DATE_MED);
+        const last30Days = data.last30DaysUsers?.last30Days ?? 0;
+        const previous30Days = data.last30DaysUsers?.previous30Days ?? 0;
+
+        return (
+          <>
       {/* Summary Metrics */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md" mb="xl">
         <MetricCard
@@ -576,6 +540,9 @@ export function UsersView() {
           keyField="month"
         />
       </Paper>
+          </>
+        );
+      })()}
     </Container>
   );
 }

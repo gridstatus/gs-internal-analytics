@@ -14,7 +14,7 @@ import {
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
-import { AlertsResponse } from '@/lib/api-types';
+import { AlertsResponse, AlertUserRow } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
@@ -26,35 +26,7 @@ export function AlertsView() {
   const url = useApiUrl('/api/alerts', {});
   const { data, loading, error } = useApiData<AlertsResponse>(url, [url]);
 
-  if (loading) {
-    return (
-      <Container fluid py="xl">
-        <Stack gap="md">
-          <Skeleton height={50} width={300} />
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 2 }} spacing="md">
-            {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} height={100} />
-            ))}
-          </SimpleGrid>
-          <Skeleton height={400} />
-        </Stack>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid py="xl">
-        <ErrorDisplay error={error} />
-      </Container>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const filteredUsers = data.users
+  const filteredUsers = (data?.users ?? [])
     .filter(
       (user) =>
         user.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,7 +34,7 @@ export function AlertsView() {
     )
     .slice(0, 100);
 
-  const columns: Column<typeof filteredUsers[0]>[] = [
+  const columns: Column<AlertUserRow>[] = [
     {
       id: 'user',
       header: 'User',
@@ -97,44 +69,56 @@ export function AlertsView() {
     <Container fluid py="xl">
       <Title order={1} mb="xl">Alerts</Title>
 
-      {/* Summary Metrics */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 2 }} spacing="md" mb="xl">
-        <MetricCard
-          title="Total Alerts"
-          value={data.summary.totalAlerts}
-          subtitle={`${data.summary.alertUsers} users`}
-        />
-        <MetricCard
-          title="Alert Users"
-          value={data.summary.alertUsers}
-        />
-      </SimpleGrid>
-
-      {/* Users table */}
-      <Paper shadow="sm" p="md" radius="md" withBorder>
-        <Group justify="space-between" mb="md">
-          <Text fw={600} size="lg">
-            Users Creating Alerts
-          </Text>
-          <TextInput
-            placeholder="Search by email or domain..."
-            leftSection={<IconSearch size={16} />}
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            style={{ width: 300 }}
-          />
-        </Group>
-        <DataTable
-          data={filteredUsers}
-          columns={columns}
-          keyField="userId"
-          defaultSort={{ column: 'alertCount', direction: 'desc' }}
-          emptyMessage="No alerts found"
-        />
-        <Text size="xs" c="dimmed" mt="md">
-          Showing up to 100 users, sorted by alert count.
-        </Text>
-      </Paper>
+      {loading ? (
+        <Stack gap="md">
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 2 }} spacing="md">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} height={100} />
+            ))}
+          </SimpleGrid>
+          <Skeleton height={400} />
+        </Stack>
+      ) : error ? (
+        <ErrorDisplay error={error} />
+      ) : data ? (
+        <>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 2 }} spacing="md" mb="xl">
+            <MetricCard
+              title="Total Alerts"
+              value={data.summary.totalAlerts}
+              subtitle={`${data.summary.alertUsers} users`}
+            />
+            <MetricCard
+              title="Alert Users"
+              value={data.summary.alertUsers}
+            />
+          </SimpleGrid>
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Text fw={600} size="lg">
+                Users Creating Alerts
+              </Text>
+              <TextInput
+                placeholder="Search by email or domain..."
+                leftSection={<IconSearch size={16} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                style={{ width: 300 }}
+              />
+            </Group>
+            <DataTable
+              data={filteredUsers}
+              columns={columns}
+              keyField="userId"
+              defaultSort={{ column: 'alertCount', direction: 'desc' }}
+              emptyMessage="No alerts found"
+            />
+            <Text size="xs" c="dimmed" mt="md">
+              Showing up to 100 users, sorted by alert count.
+            </Text>
+          </Paper>
+        </>
+      ) : null}
     </Container>
   );
 }

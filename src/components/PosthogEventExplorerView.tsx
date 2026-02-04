@@ -71,32 +71,6 @@ export function PosthogEventExplorerView() {
   const eventsByGroup = useMemo(() => groupEventsByPrefix(filteredEvents), [filteredEvents]);
   const groupKeys = useMemo(() => sortedGroupKeys(eventsByGroup), [eventsByGroup]);
 
-  if (loading) {
-    return (
-      <Container fluid py="xl">
-        <Stack gap="md">
-          <Skeleton height={50} width={300} />
-          <Skeleton height={56} />
-          <Skeleton height={400} />
-        </Stack>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
   const events = data?.events ?? [];
   const hasSearch = search.trim().length > 0;
 
@@ -130,6 +104,13 @@ export function PosthogEventExplorerView() {
           />
         </Group>
 
+        {loading ? (
+          <Skeleton height={400} />
+        ) : error ? (
+          <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
+            {error}
+          </Alert>
+        ) : (
         <Paper shadow="sm" withBorder p="md">
           <Stack gap="xs">
             <Text size="sm" fw={500} c="dimmed">
@@ -182,6 +163,7 @@ export function PosthogEventExplorerView() {
             )}
           </Stack>
         </Paper>
+        )}
       </Stack>
     </Container>
   );

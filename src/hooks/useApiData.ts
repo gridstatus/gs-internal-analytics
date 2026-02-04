@@ -1,9 +1,12 @@
-import { useEffect, useState, type DependencyList } from 'react';
+import { useEffect, useRef, useState, type DependencyList } from 'react';
+import { useActiveQueriesStore } from '@/stores/activeQueriesStore';
 
 export function useApiData<T>(url: string | null, deps: DependencyList = [url]) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(Boolean(url));
   const [error, setError] = useState<string | null>(null);
+  // Ref for this effect run's query id; only unregister if it's still the current run (avoids double-unregister and wrong-id unregister when deps change)
+  const currentQueryIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!url) {
@@ -13,6 +16,8 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
 
     const controller = new AbortController();
     let isActive = true;
+    const queryId = useActiveQueriesStore.getState().registerQuery(url);
+    currentQueryIdRef.current = queryId;
 
     const fetchData = async () => {
       setLoading(true);
@@ -44,6 +49,10 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
         if (isActive) {
           setLoading(false);
         }
+        if (currentQueryIdRef.current === queryId) {
+          currentQueryIdRef.current = null;
+          useActiveQueriesStore.getState().unregisterQuery(queryId);
+        }
       }
     };
 
@@ -52,6 +61,10 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
     return () => {
       isActive = false;
       controller.abort();
+      if (currentQueryIdRef.current === queryId) {
+        currentQueryIdRef.current = null;
+        useActiveQueriesStore.getState().unregisterQuery(queryId);
+      }
     };
   }, deps);
 

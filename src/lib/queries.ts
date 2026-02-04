@@ -206,9 +206,10 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
     // Note: Empty strings are valid for non-filter placeholders (e.g. empty domainFilter removes the AND line)
     if (!isEmpty) {
       const stringValue = String(value);
-      // Don't escape SQL clauses (they already contain properly formatted SQL)
-      const isSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue);
-      const escapedValue = isSqlClause ? stringValue : stringValue.replace(/'/g, "''");
+      // Don't escape SQL clauses: AND-prefixed placeholders get full clauses; or value looks like SQL (AND/OR/WHERE/.../comparison)
+      const isClausePlaceholder = AND_PREFIXED_PLACEHOLDERS.includes(placeholderName);
+      const looksLikeSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue) || /\w+\s*(>=|<=|=|<|>)\s*['"]/.test(stringValue);
+      const escapedValue = (isClausePlaceholder || looksLikeSqlClause) ? stringValue : stringValue.replace(/'/g, "''");
       rendered = rendered.replace(new RegExp(`\\{\\{${placeholderName}\\}\\}`, 'g'), escapedValue);
     } else {
       // If value is undefined, null, or empty: remove the placeholder (for optional filters)
