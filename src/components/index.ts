@@ -11,5 +11,6 @@ export { PlansView } from './PlansView';
 export { SubscriptionsView } from './SubscriptionsView';
 export { UsersListView } from './UsersListView';
 export { UserHoverCard } from './UserHoverCard';
+export { InfoHoverIcon } from './InfoHoverIcon';
 export { DataTable } from './DataTable';
 export type { Column, DataTableProps } from './DataTable';

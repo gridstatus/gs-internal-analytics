@@ -11,7 +11,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-      const days = Math.min(90, Math.max(1, parseInt(searchParams.get('days') || '7', 10) || 7));
       const userType = searchParams.get('user_type') || 'all';
       const userTypeFilter =
         userType === 'logged_in'
@@ -20,12 +19,29 @@ export async function GET(request: Request) {
             ? "(person.properties.email IS NULL OR person.properties.email = '')"
             : '';
 
-      const dateFilter = `timestamp >= now() - INTERVAL ${days} DAY`;
+      const dateFilter7 = 'timestamp >= now() - INTERVAL 7 DAY';
+      const dateFilter30 = 'timestamp >= now() - INTERVAL 30 DAY';
       const todayFilter = `timestamp >= toStartOfDay(now())`;
+      const sameTimeOfDayFilter =
+        "timestamp < toStartOfDay(timestamp) + toIntervalSecond(dateDiff('second', toStartOfDay(now()), now()))";
 
-      const [mainResults, todayResults] = await Promise.all([
+      // Order matters: [0]=7-day, [1]=30-day, [2]=today. 7- and 30-day use different DATE_FILTER so totals differ.
+      const [main7Results, main30Results, todayResults] = await Promise.all([
         runPosthogQuery(
-          loadRenderedHogql('top-referrers-entry-path.hogql', { dateFilter, limit: 100, userTypeFilter })
+          loadRenderedHogql('top-referrers-entry-path.hogql', {
+            dateFilter: dateFilter7,
+            limit: 100,
+            userTypeFilter,
+            sameTimeOfDayFilter,
+          })
+        ),
+        runPosthogQuery(
+          loadRenderedHogql('top-referrers-entry-path.hogql', {
+            dateFilter: dateFilter30,
+            limit: 100,
+            userTypeFilter,
+            sameTimeOfDayFilter,
+          })
         ),
         runPosthogQuery(
           loadRenderedHogql('top-referrers-entry-path.hogql', { dateFilter: todayFilter, limit: 500, userTypeFilter })
@@ -36,22 +52,32 @@ export async function GET(request: Request) {
       (todayResults as [string, string, number][]).forEach(([d, p, n]) => {
         todayMap.set(rowKey(String(d ?? ''), String(p ?? '')), Number(n ?? 0));
       });
+      const total30Map = new Map<string, number>();
+      (main30Results as [string, string, number][]).forEach(([d, p, n]) => {
+        total30Map.set(rowKey(String(d ?? ''), String(p ?? '')), Number(n ?? 0));
+      });
 
-      const referrers = (mainResults as [string, string, number][]).map(
+      const referrers = (main7Results as [string, string, number][]).map(
         ([referringDomain, entryPathname, uniqueUsers]) => {
           const key = rowKey(String(referringDomain ?? ''), String(entryPathname ?? ''));
-          const total = Number(uniqueUsers ?? 0);
-          const avg = days > 0 ? total / days : 0;
+          const total7 = Number(uniqueUsers ?? 0);
+          const total30 = total30Map.get(key) ?? 0;
+          const avg7 = total7 / 7;
+          const avg30 = total30 / 30;
           const today = todayMap.get(key) ?? 0;
-          const vsAvgChange =
-            avg !== 0 ? Math.round(((today - avg) / avg) * 1000) / 10 : (today > 0 ? 100 : null);
+          const vsAvg7Change =
+            avg7 !== 0 ? Math.round(((today - avg7) / avg7) * 1000) / 10 : (today > 0 ? 100 : null);
+          const vsAvg30Change =
+            avg30 !== 0 ? Math.round(((today - avg30) / avg30) * 1000) / 10 : (today > 0 ? 100 : null);
           return {
             referringDomain: String(referringDomain ?? ''),
             entryPathname: String(entryPathname ?? ''),
-            uniqueUsers: total,
-            uniqueUsersAvg: Math.round(avg * 10) / 10,
+            uniqueUsers: total7,
+            uniqueUsersAvg: Math.round(avg7 * 10) / 10,
+            uniqueUsersAvg30: Math.round(avg30 * 10) / 10,
             uniqueUsersToday: today,
-            vsAvgChange: vsAvgChange === null ? null : vsAvgChange,
+            vsAvg7Change: vsAvg7Change === null ? null : vsAvg7Change,
+            vsAvg30Change: vsAvg30Change === null ? null : vsAvg30Change,
           };
         }
       );

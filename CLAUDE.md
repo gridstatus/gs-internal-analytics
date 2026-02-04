@@ -195,6 +195,7 @@ Use `renderSqlTemplate(filename, context)` to load and render SQL templates. Thi
 - **Focus on information density via smart layout** - achieve density through efficient layout design rather than small fonts or minimal padding
 - **Provide date range options** when viewing data: 24h, 7d, 30d, 90d (use `SegmentedControl`)
 - **Format numbers with commas** - Use `.toLocaleString()` when displaying numbers in the UI (e.g., `value.toLocaleString()`)
+- **Info hover** - Use `InfoHoverIcon` (tooltip to the right of card/section titles) when extra context helps (e.g. how a metric is computed).
 
 ### Data Fetching
 Use the `useApiData` hook for fetching data in view components. It handles loading, error states, and request cancellation.

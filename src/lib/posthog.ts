@@ -26,7 +26,7 @@ type PosthogErrorParsed = { throttled: boolean; serverError: boolean; message: s
 
 function parsePosthogErrorBody(status: number, bodyText: string): PosthogErrorParsed {
   try {
-    const data = JSON.parse(bodyText) as { type?: string; code?: string; detail?: string };
+    const data = JSON.parse(bodyText) as { type?: string; code?: string };
     const throttled =
       data?.type === 'throttled_error' ||
       data?.code === 'throttled' ||
@@ -37,9 +37,7 @@ function parsePosthogErrorBody(status: number, bodyText: string): PosthogErrorPa
       (status >= 500 && status < 600);
     const message = throttled
       ? POSTHOG_THROTTLED_MESSAGE
-      : serverError
-        ? POSTHOG_SERVER_ERROR_MESSAGE
-        : (data?.detail || bodyText || `PostHog API error: ${status}`);
+      : (bodyText || (status >= 500 && status < 600 ? POSTHOG_SERVER_ERROR_MESSAGE : `PostHog API error: ${status}`));
     return {
       throttled: Boolean(throttled),
       serverError: Boolean(serverError),
@@ -52,9 +50,7 @@ function parsePosthogErrorBody(status: number, bodyText: string): PosthogErrorPa
       message:
         status === 429
           ? POSTHOG_THROTTLED_MESSAGE
-          : status >= 500 && status < 600
-            ? POSTHOG_SERVER_ERROR_MESSAGE
-            : (bodyText || `PostHog API error: ${status}`),
+          : (bodyText || (status >= 500 && status < 600 ? POSTHOG_SERVER_ERROR_MESSAGE : `PostHog API error: ${status}`)),
     };
   }
 }

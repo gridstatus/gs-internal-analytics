@@ -38,6 +38,8 @@ interface HogqlTemplateContext {
   userTypeFilter?: string;
   /** Period expression for grouping (e.g. toDate(timestamp), toStartOfWeek(timestamp), toStartOfMonth(timestamp)) */
   periodSelect?: string;
+  /** When set, restricts each day to "midnight to current time" for fair same-time-of-day comparison */
+  sameTimeOfDayFilter?: string;
 }
 
 export function loadSql(filename: string): string {
@@ -133,6 +135,14 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
   // Handle PERIOD_SELECT: expression for time grouping (e.g. toDate(timestamp))
   if (context.periodSelect !== undefined) {
     rendered = rendered.replace(/\{\{PERIOD_SELECT\}\}/g, context.periodSelect);
+  }
+
+  // Handle SAME_TIME_OF_DAY_FILTER: include only events before (that day's start + elapsed time today)
+  if (context.sameTimeOfDayFilter) {
+    rendered = rendered.replace(/\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, context.sameTimeOfDayFilter);
+  } else {
+    rendered = rendered.replace(/\s+AND\s+\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, '');
   }
 
   return rendered;

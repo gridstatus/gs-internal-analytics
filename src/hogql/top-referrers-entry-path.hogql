@@ -1,4 +1,4 @@
--- Unique users per (referring domain, entry pathname) from $pageview. Excludes self-referrals and direct. USER_TYPE_FILTER = logged-in, anon, or empty for all. USER_FILTER, DATE_FILTER, LIMIT applied.
+-- Unique users per (referring domain, entry pathname) from $pageview. Excludes self-referrals and direct. USER_TYPE_FILTER = logged-in, anon, or empty for all. USER_FILTER, DATE_FILTER, LIMIT applied. SAME_TIME_OF_DAY_FILTER optional; when set restricts each day to midnight–current time for fair comparison.
 SELECT
   COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') AS referring_domain,
   COALESCE(properties.$initial_pathname, properties.$pathname, '/') AS entry_pathname,
@@ -10,6 +10,7 @@ WHERE event = '$pageview'
   AND COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') != '$direct'
   AND COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') != 'Direct'
   AND {{DATE_FILTER}}
+  AND {{SAME_TIME_OF_DAY_FILTER}}
   AND {{USER_FILTER}}
 GROUP BY referring_domain, entry_pathname
 ORDER BY unique_users DESC

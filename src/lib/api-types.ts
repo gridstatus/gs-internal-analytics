@@ -161,8 +161,10 @@ export interface ReferrerRow {
   entryPathname: string;
   uniqueUsers: number;
   uniqueUsersAvg: number;
+  uniqueUsersAvg30: number;
   uniqueUsersToday: number;
-  vsAvgChange: number | null;
+  vsAvg7Change: number | null;
+  vsAvg30Change: number | null;
 }
 
 export interface ReferrersResponse {
@@ -186,8 +188,10 @@ export interface MostViewedPageRow {
   pathname: string;
   views: number;
   viewsAvg: number;
+  viewsAvg30: number;
   viewsToday: number;
-  vsAvgChange: number | null;
+  vsAvg7Change: number | null;
+  vsAvg30Change: number | null;
 }
 
 export interface MostViewedPagesResponse {

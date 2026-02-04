@@ -26,6 +26,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useQueryState } from 'nuqs';
 import { UserHoverCard } from './UserHoverCard';
+import { InfoHoverIcon } from './InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
 import type {
   TodaysPulseResponse,
@@ -101,9 +102,12 @@ export function TodaysPulseView() {
       {pulseData?.hourlyPulse && pulseData.hourlyPulse.length > 0 && (
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" mb="xl">
           <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              Unique active users per hour
-            </Text>
+            <Group gap="xs" mb="md" wrap="nowrap">
+              <Text fw={600} size="lg">
+                Unique active users per hour
+              </Text>
+              <InfoHoverIcon tooltip="Yesterday and previous week are aligned by hour of day so the comparison with today is fair." />
+            </Group>
             <Box>
               <CompositeChart
                 h={300}
@@ -128,9 +132,12 @@ export function TodaysPulseView() {
             </Box>
           </Paper>
           <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              Cumulative unique active users by hour
-            </Text>
+            <Group gap="xs" mb="md" wrap="nowrap">
+              <Text fw={600} size="lg">
+                Cumulative unique active users by hour
+              </Text>
+              <InfoHoverIcon tooltip="Yesterday and previous week are aligned by hour of day so the comparison with today is fair." />
+            </Group>
             <Box>
               <CompositeChart
                 h={300}
@@ -168,9 +175,12 @@ export function TodaysPulseView() {
       {/* Top referrers - full width, scrollable */}
       <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
         <Group justify="space-between" mb="md" wrap="wrap">
-          <Text fw={600} size="lg">
-            Top referrers by entry path / referrer
-          </Text>
+          <Group gap="xs" wrap="nowrap">
+            <Text fw={600} size="lg">
+              Top referrers by entry path / referrer
+            </Text>
+            <InfoHoverIcon tooltip="The 7- and 30-day averages are limited to the same time window each day (midnight to current time) so the comparison with today is fair." />
+          </Group>
           <Group wrap="nowrap" gap="sm">
             <Select
               data={[
@@ -193,10 +203,10 @@ export function TodaysPulseView() {
           </Group>
         </Group>
         <ScrollArea h={400}>
-          <ReferrersTable data={referrersData?.referrers ?? []} search={referrersSearchDebounced} days={days} />
+          <ReferrersTable data={referrersData?.referrers ?? []} search={referrersSearchDebounced} />
         </ScrollArea>
         <Text size="xs" c="dimmed" mt="sm">
-          Top 100. Avg = unique users per day over last {days} days. vs avg % = (Today − avg) / avg. Excludes self-referrals and direct.
+          Top 100. Averages use same time window each day. % = (Today − avg) / avg. Excludes self-referrals and direct.
         </Text>
       </Paper>
 
@@ -225,9 +235,12 @@ export function TodaysPulseView() {
 
         <Paper shadow="sm" p="md" radius="md" withBorder>
           <Group justify="space-between" mb="md" wrap="wrap">
-            <Text fw={600} size="lg">
-              Pages with most views by logged-in users
-            </Text>
+            <Group gap="xs" wrap="nowrap">
+              <Text fw={600} size="lg">
+                Pages with most views by logged-in users
+              </Text>
+              <InfoHoverIcon tooltip="The 7- and 30-day averages are limited to the same time window each day (midnight to current time) so the comparison with today is fair." />
+            </Group>
             <TextInput
               placeholder="Search path..."
               leftSection={<IconSearch size={16} />}
@@ -237,10 +250,10 @@ export function TodaysPulseView() {
             />
           </Group>
           <ScrollArea h={400}>
-            <MostViewedPagesTable data={pagesData?.pages ?? []} search={pagesSearchDebounced} days={days} />
+            <MostViewedPagesTable data={pagesData?.pages ?? []} search={pagesSearchDebounced} />
           </ScrollArea>
           <Text size="xs" c="dimmed" mt="sm">
-            Top 100. Avg = views per day over last {days} days. vs avg % = (Today − avg) / avg.
+            Top 100. Averages use same time window each day. % = (Today − avg) / avg.
           </Text>
         </Paper>
       </SimpleGrid>
@@ -248,7 +261,20 @@ export function TodaysPulseView() {
   );
 }
 
-function ReferrersTable({ data, search, days }: { data: ReferrerRow[]; search: string; days: string }) {
+function avgWithPct(value: number, pct: number | null) {
+  const valStr = value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  if (pct === null) return valStr;
+  return (
+    <>
+      {valStr}{' '}
+      <Text span c={pct >= 0 ? 'green.7' : 'red.7'} fw={500} size="sm">
+        ({pct >= 0 ? '+' : ''}{pct}%)
+      </Text>
+    </>
+  );
+}
+
+function ReferrersTable({ data, search }: { data: ReferrerRow[]; search: string }) {
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     const list = !s ? data : data.filter(
@@ -285,18 +311,19 @@ function ReferrersTable({ data, search, days }: { data: ReferrerRow[]; search: s
       sortValue: (r) => r.entryPathname.toLowerCase(),
     },
     { id: 'uniqueUsersToday', header: 'Today', align: 'right', render: (r) => r.uniqueUsersToday.toLocaleString(), sortValue: (r) => r.uniqueUsersToday },
-    { id: 'uniqueUsersAvg', header: `${days}-day avg`, align: 'right', render: (r) => r.uniqueUsersAvg.toLocaleString(undefined, { maximumFractionDigits: 1 }), sortValue: (r) => r.uniqueUsersAvg },
     {
-      id: 'vsAvgChange',
-      header: 'vs avg %',
+      id: 'uniqueUsersAvg',
+      header: '7-day avg',
       align: 'right',
-      render: (r) =>
-        r.vsAvgChange === null ? '—' : (
-          <Text span c={r.vsAvgChange >= 0 ? 'green.7' : 'red.7'} fw={500}>
-            {r.vsAvgChange >= 0 ? '+' : ''}{r.vsAvgChange}%
-          </Text>
-        ),
-      sortValue: (r) => r.vsAvgChange ?? -Infinity,
+      render: (r) => avgWithPct(r.uniqueUsersAvg, r.vsAvg7Change),
+      sortValue: (r) => r.uniqueUsersAvg,
+    },
+    {
+      id: 'uniqueUsersAvg30',
+      header: '30-day avg',
+      align: 'right',
+      render: (r) => avgWithPct(r.uniqueUsersAvg30, r.vsAvg30Change),
+      sortValue: (r) => r.uniqueUsersAvg30,
     },
   ];
 
@@ -345,7 +372,7 @@ function MostActiveUsersTable({ data, search }: { data: MostActiveUsersRow[]; se
   );
 }
 
-function MostViewedPagesTable({ data, search, days }: { data: MostViewedPageRow[]; search: string; days: string }) {
+function MostViewedPagesTable({ data, search }: { data: MostViewedPageRow[]; search: string }) {
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     if (!s) return data;
@@ -366,18 +393,19 @@ function MostViewedPagesTable({ data, search, days }: { data: MostViewedPageRow[
       sortValue: (r) => r.pathname.toLowerCase(),
     },
     { id: 'viewsToday', header: 'Today', align: 'right', render: (r) => r.viewsToday.toLocaleString(), sortValue: (r) => r.viewsToday },
-    { id: 'viewsAvg', header: `${days}-day avg`, align: 'right', render: (r) => r.viewsAvg.toLocaleString(undefined, { maximumFractionDigits: 1 }), sortValue: (r) => r.viewsAvg },
     {
-      id: 'vsAvgChange',
-      header: 'vs avg %',
+      id: 'viewsAvg',
+      header: '7-day avg',
       align: 'right',
-      render: (r) =>
-        r.vsAvgChange === null ? '—' : (
-          <Text span c={r.vsAvgChange >= 0 ? 'green.7' : 'red.7'} fw={500}>
-            {r.vsAvgChange >= 0 ? '+' : ''}{r.vsAvgChange}%
-          </Text>
-        ),
-      sortValue: (r) => r.vsAvgChange ?? -Infinity,
+      render: (r) => avgWithPct(r.viewsAvg, r.vsAvg7Change),
+      sortValue: (r) => r.viewsAvg,
+    },
+    {
+      id: 'viewsAvg30',
+      header: '30-day avg',
+      align: 'right',
+      render: (r) => avgWithPct(r.viewsAvg30, r.vsAvg30Change),
+      sortValue: (r) => r.viewsAvg30,
     },
   ];
 
