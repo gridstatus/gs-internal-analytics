@@ -4,9 +4,8 @@ WITH user_data AS (
     DATE_TRUNC('month', created_at) AS month,
     COUNT(*) AS new_users
   FROM api_server.users
-  WHERE 1=1
-    AND created_at >= NOW() - INTERVAL '3 months'
-    {{USER_FILTER}}
+  WHERE created_at >= NOW() - INTERVAL '3 months'
+    AND {{USER_FILTER}}
   GROUP BY DATE_TRUNC('month', created_at)
 )
 SELECT

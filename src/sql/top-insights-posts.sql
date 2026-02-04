@@ -27,7 +27,7 @@ LEFT JOIN insights.post_views pv ON p.id = pv.post_id
 LEFT JOIN insights.reactions r ON p.id = r.post_id
 LEFT JOIN insights.saved_posts sp ON p.id = sp.post_id
 WHERE p.status = 'PUBLISHED'
-  {{TIMEFILTER}}
+  AND {{TIMEFILTER}}
 GROUP BY p.id, p.content, p.created_at, p.updated_at, p.author_id, u.username
 ORDER BY engagement_rate DESC, view_count DESC
 LIMIT 100;

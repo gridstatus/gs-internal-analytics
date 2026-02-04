@@ -31,6 +31,12 @@ interface HogqlTemplateContext {
   orderDirection?: string;
   email?: string;
   eventName?: string;
+  /** Domain for email filter (e.g. "acme.com"); used to replace {{DOMAIN_LIKE}} with %@domain */
+  domain?: string;
+  /** Clause for user type: logged-in (email set), anon (email null/empty), or empty for all users */
+  userTypeFilter?: string;
+  /** Period expression for grouping (e.g. toDate(timestamp), toStartOfWeek(timestamp), toStartOfMonth(timestamp)) */
+  periodSelect?: string;
 }
 
 export function loadSql(filename: string): string {
@@ -48,16 +54,24 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
   const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
   const filterFree = context.filterFree ?? store?.filterFree ?? true;
 
+  // Handle LOGGED_IN_USER_FILTER — always expands to the logged-in user check (AND is in the template)
+  rendered = rendered.replace(
+    /\{\{LOGGED_IN_USER_FILTER\}\}/g,
+    "person.properties.email IS NOT NULL AND person.properties.email != ''"
+  );
+
   // Handle USER_FILTER (same placeholder name as SQL; HogQL uses person.properties.email)
-  const internalClause = filterInternal ? "AND NOT person.properties.email LIKE '%@gridstatus.io'" : '';
-  const freeClauses = filterFree
-    ? FREE_EMAIL_DOMAINS.map(d => `AND NOT person.properties.email LIKE '%@${d}'`).join('\n  ')
-    : '';
-  const userFilter = [internalClause, freeClauses].filter(Boolean).join('\n  ');
+  // Each clause is a bare expression; template provides the leading AND.
+  const internalClause = filterInternal ? "NOT person.properties.email LIKE '%@gridstatus.io'" : '';
+  const freeClauseList = filterFree
+    ? FREE_EMAIL_DOMAINS.map(d => `NOT person.properties.email LIKE '%@${d}'`)
+    : [];
+  const allUserFilterClauses = [internalClause, ...freeClauseList].filter(Boolean);
+  const userFilter = allUserFilterClauses.join('\n  AND ');
   if (userFilter) {
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
   } else {
-    rendered = rendered.replace(/\s+\{\{USER_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\s+AND\s+\{\{USER_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
   }
   
@@ -76,11 +90,11 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
     rendered = rendered.replace(/\{\{DATE_FUNCTION\}\}/g, context.dateFunction);
   }
   
-  // Handle DATE_FILTER placeholder
-  if (context.dateFilter !== undefined) {
+  // Handle DATE_FILTER placeholder (AND is in template; empty string = remove)
+  if (context.dateFilter) {
     rendered = rendered.replace(/\{\{DATE_FILTER\}\}/g, context.dateFilter);
   } else {
-    rendered = rendered.replace(/\s+\{\{DATE_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\s+AND\s+\{\{DATE_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{DATE_FILTER\}\}/g, '');
   }
   
@@ -101,6 +115,25 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
     rendered = rendered.replace(/\{\{EVENT_NAME\}\}/g, escaped);
   }
 
+  // Handle DOMAIN_LIKE placeholder: LIKE '%@domain' for filtering by email domain
+  if (context.domain !== undefined) {
+    const escaped = String(context.domain).replace(/'/g, "''");
+    rendered = rendered.replace(/\{\{DOMAIN_LIKE\}\}/g, '%@' + escaped);
+  }
+
+  // Handle USER_TYPE_FILTER: clause for logged-in, anon, or all (empty = remove)
+  if (context.userTypeFilter) {
+    rendered = rendered.replace(/\{\{USER_TYPE_FILTER\}\}/g, context.userTypeFilter);
+  } else {
+    rendered = rendered.replace(/\s+AND\s+\{\{USER_TYPE_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{USER_TYPE_FILTER\}\}/g, '');
+  }
+
+  // Handle PERIOD_SELECT: expression for time grouping (e.g. toDate(timestamp))
+  if (context.periodSelect !== undefined) {
+    rendered = rendered.replace(/\{\{PERIOD_SELECT\}\}/g, context.periodSelect);
+  }
+
   return rendered;
 }
 
@@ -116,9 +149,8 @@ export function loadRenderedHogql(filename: string, context: HogqlTemplateContex
  * - Any custom {{KEY}} placeholders - Replaced with values from context[key]
  * 
  * BEST PRACTICES to prevent SQL syntax errors:
- * - Always use "WHERE 1=1" or another base condition before using {{USER_FILTER}}
- * - Example: "WHERE 1=1\n  {{USER_FILTER}}"
- * - The template renderer will attempt to fix this, but it's safer to structure SQL correctly from the start
+ * - Use a real WHERE condition (no 1=1); add {{USER_FILTER}} and other filters as additional lines.
+ * - Put AND in the SQL template before filter placeholders (e.g. "AND {{USER_FILTER}}", "AND {{DATE_FILTER}}"); pass bare clauses (no leading AND) in context.
  */
 export function renderSqlTemplate(filename: string, context: TemplateContext): string {
   let sql = loadSql(filename);
@@ -138,22 +170,25 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
   const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
   const filterFree = context.filterFree ?? store?.filterFree ?? true;
 
-  // Handle USER_FILTER (two separate AND clauses: optional internal + optional free)
+  // Handle USER_FILTER: value is bare clauses (no leading AND); template must have "AND {{USER_FILTER}}"
   const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
   const domainExpr = `SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1)`;
   const internalClause = filterInternal
-    ? `AND ${domainExpr} NOT IN ('gridstatus.io')\n  AND ${usernameRef} != 'kmax12+dev@gmail.com'`
+    ? `${domainExpr} NOT IN ('gridstatus.io') AND ${usernameRef} != 'kmax12+dev@gmail.com'`
     : '';
   const freeClause = filterFree
-    ? `AND ${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
+    ? `${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
     : '';
-  const userFilter = [internalClause, freeClause].filter(Boolean).join('\n  ');
+  const userFilter = [internalClause, freeClause].filter(Boolean).join(' AND ');
   if (userFilter) {
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
   } else {
-    rendered = rendered.replace(/\s+\{\{USER_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\s+AND\s+\{\{USER_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
   }
+
+  // Placeholders that are written in SQL as "AND {{KEY}}" — when empty we remove the whole "AND {{KEY}}" line
+  const AND_PREFIXED_PLACEHOLDERS = ['DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER', 'DOMAIN_FILTER'];
 
   // Handle custom template variables (any {{KEY}} placeholders not already handled)
   // Process after standard placeholders to allow overrides if needed
@@ -163,21 +198,25 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
       continue;
     }
     
+    const placeholderName = key.toUpperCase();
+    const isEmpty = value === undefined || value === null || value === '';
+    
     // Replace {{KEY}} with the value (convert to string, escape single quotes for SQL safety)
-    // Note: Empty strings are valid values and should be replaced (e.g., empty domainFilter)
-    if (value !== undefined && value !== null) {
-      const placeholder = `{{${key.toUpperCase()}}}`;
+    // Note: Empty strings are valid for non-filter placeholders (e.g. empty domainFilter removes the AND line)
+    if (!isEmpty) {
       const stringValue = String(value);
       // Don't escape SQL clauses (they already contain properly formatted SQL)
-      // Detect SQL clauses by checking if they start with SQL keywords (AND/OR) or contain WHERE/JOIN/FROM
-      // This prevents double-escaping of already-formatted SQL clauses like "AND p.created_at >= '2026-01-26'"
       const isSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue);
       const escapedValue = isSqlClause ? stringValue : stringValue.replace(/'/g, "''");
-      rendered = rendered.replace(new RegExp(`\\{\\{${key.toUpperCase()}\\}\\}`, 'g'), escapedValue);
+      rendered = rendered.replace(new RegExp(`\\{\\{${placeholderName}\\}\\}`, 'g'), escapedValue);
     } else {
-      // If value is undefined or null, remove the placeholder (for optional filters)
-      const placeholder = `{{${key.toUpperCase()}}}`;
-      rendered = rendered.replace(new RegExp(`\\s*\\{\\{${key.toUpperCase()}\\}\\}`, 'g'), '');
+      // If value is undefined, null, or empty: remove the placeholder (for optional filters)
+      // If template uses "AND {{KEY}}", remove the whole "AND {{KEY}}" line so we don't leave stray AND
+      if (AND_PREFIXED_PLACEHOLDERS.includes(placeholderName)) {
+        rendered = rendered.replace(new RegExp(`\\s+AND\\s+\\{\\{${placeholderName}\\}\\}`, 'g'), '');
+      } else {
+        rendered = rendered.replace(new RegExp(`\\s*\\{\\{${placeholderName}\\}\\}`, 'g'), '');
+      }
     }
   }
   
@@ -205,7 +244,7 @@ export function renderSqlTemplate(filename: string, context: TemplateContext): s
     const uniquePlaceholders = [...new Set(remainingPlaceholders)];
     // Filter out known optional placeholders that can be empty strings
     const requiredPlaceholders = uniquePlaceholders.filter(
-      p => !['DOMAIN_FILTER', 'TIME_FILTER', 'DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES'].includes(p.replace(/[{}]/g, ''))
+      p => !['DOMAIN_FILTER', 'TIME_FILTER', 'DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER'].includes(p.replace(/[{}]/g, ''))
     );
     
     if (requiredPlaceholders.length > 0) {
@@ -400,9 +439,9 @@ export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'al
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+    dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
   const sql = renderSqlTemplate('summary-unique-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
@@ -414,9 +453,9 @@ export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | '
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+    dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
   const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
@@ -428,9 +467,9 @@ export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all')
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+    dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
   const sql = renderSqlTemplate('summary-engagements.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
@@ -442,9 +481,9 @@ export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all')
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `pv.viewed_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND pv.viewed_at >= '2025-10-01'`;
+    dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
   const sql = renderSqlTemplate('summary-impressions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
@@ -456,9 +495,9 @@ export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all'): 
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND r.created_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `r.created_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND r.created_at >= '2025-10-01'`;
+    dateFilter = `r.created_at >= '2025-10-01'`;
   }
   
   const sql = renderSqlTemplate('summary-reactions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
@@ -470,17 +509,16 @@ export async function getSummaryPosts(period: '1d' | '7d' | '30d' | 'all'): Prom
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND p.created_at >= NOW() - INTERVAL '${days} days'`;
+    dateFilter = `p.created_at >= NOW() - INTERVAL '${days} days'`;
   } else {
-    dateFilter = `AND p.created_at >= '2025-10-01'`;
+    dateFilter = `p.created_at >= '2025-10-01'`;
   }
   
   let sql = `
     SELECT COUNT(*) AS total
     FROM insights.posts p
-    WHERE 1=1
-      AND p.status = 'PUBLISHED'
-      ${dateFilter}
+    WHERE p.status = 'PUBLISHED'
+      AND ${dateFilter}
   `;
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
@@ -504,10 +542,10 @@ export async function fetchPosthogAnonymousUsers(period: 'day' | 'week' | 'month
   
   if (period === 'day') {
     dateFunction = 'toStartOfDay(timestamp)';
-    dateFilter = "AND timestamp >= now() - INTERVAL 2 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 2 YEAR";
   } else if (period === 'week') {
     dateFunction = 'toStartOfWeek(timestamp)';
-    dateFilter = "AND timestamp >= now() - INTERVAL 3 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 3 YEAR";
   } else {
     dateFunction = 'toStartOfMonth(timestamp)';
     dateFilter = '';
@@ -586,9 +624,9 @@ export async function getSummaryAnonymousVisitors(period: '1d' | '7d' | '30d' | 
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND timestamp >= now() - INTERVAL ${days} DAY`;
+    dateFilter = `timestamp >= now() - INTERVAL ${days} DAY`;
   } else {
-    dateFilter = "AND timestamp >= '2025-10-01'";
+    dateFilter = "timestamp >= '2025-10-01'";
   }
 
   const hogql = loadRenderedHogql('anonymous-visitors-summary.hogql', {
@@ -641,9 +679,9 @@ export async function getSummaryAnonymousHomefeedVisitors(period: '1d' | '7d' | 
   let dateFilter = '';
   if (period !== 'all') {
     const days = period === '1d' ? 1 : period === '7d' ? 7 : 30;
-    dateFilter = `AND timestamp >= now() - INTERVAL ${days} DAY`;
+    dateFilter = `timestamp >= now() - INTERVAL ${days} DAY`;
   } else {
-    dateFilter = "AND timestamp >= '2025-10-01'";
+    dateFilter = "timestamp >= '2025-10-01'";
   }
 
   const hogql = loadRenderedHogql('anonymous-homefeed-visitors-summary.hogql', {
@@ -699,10 +737,10 @@ export async function fetchPosthogAnonymousHomefeedVisitors(period: 'day' | 'wee
   
   if (period === 'day') {
     dateFunction = 'toStartOfDay(timestamp)';
-    dateFilter = "AND timestamp >= now() - INTERVAL 2 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 2 YEAR";
   } else if (period === 'week') {
     dateFunction = 'toStartOfWeek(timestamp)';
-    dateFilter = "AND timestamp >= now() - INTERVAL 3 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 3 YEAR";
   } else {
     dateFunction = 'toStartOfMonth(timestamp)';
     dateFilter = '';
@@ -794,11 +832,11 @@ export async function getMostEngagedUsers(days: number | null = null): Promise<M
     const cutoffDateStr = cutoffDate.toISOString();
     
     // reactions table uses created_at
-    timeFilterReactions = `AND r.created_at >= '${cutoffDateStr}'`;
+    timeFilterReactions = `r.created_at >= '${cutoffDateStr}'`;
     // post_views table uses viewed_at
-    timeFilterViews = `AND pv.viewed_at >= '${cutoffDateStr}'`;
+    timeFilterViews = `pv.viewed_at >= '${cutoffDateStr}'`;
     // saved_posts table uses created_at
-    timeFilterSaves = `AND sp.created_at >= '${cutoffDateStr}'`;
+    timeFilterSaves = `sp.created_at >= '${cutoffDateStr}'`;
   }
   
   const sql = renderSqlTemplate('top-engaged-users.sql', { 
@@ -839,10 +877,10 @@ export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m'): Pro
     const seconds = String(cutoffDate.getUTCSeconds()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     
-    timeFilterClause = `AND p.created_at >= '${dateStr}'`;
+    timeFilterClause = `p.created_at >= '${dateStr}'`;
   } else {
     // Default: show all posts from Oct 2025 onwards
-    timeFilterClause = "AND p.created_at >= '2025-10-01'";
+    timeFilterClause = "p.created_at >= '2025-10-01'";
   }
   
   const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause });

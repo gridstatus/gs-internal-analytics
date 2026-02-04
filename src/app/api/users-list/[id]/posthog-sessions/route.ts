@@ -23,7 +23,7 @@ async function fetchSessionCount(email: string, days: number | 'all'): Promise<n
 
   const dateFilter = days === 'all' 
     ? '' 
-    : `AND timestamp >= now() - INTERVAL ${days} DAY`;
+    : `timestamp >= now() - INTERVAL ${days} DAY`;
 
   const hogql = loadRenderedHogql('user-session-counts.hogql', {
     email,

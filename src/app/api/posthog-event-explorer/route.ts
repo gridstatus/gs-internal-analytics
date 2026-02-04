@@ -18,7 +18,7 @@ async function fetchUniqueEvents(days: number): Promise<EventWithUniqueUsers[]> 
     return [];
   }
 
-  const dateFilter = `AND timestamp >= now() - INTERVAL ${days} DAY`;
+  const dateFilter = `timestamp >= now() - INTERVAL ${days} DAY`;
   const hogql = loadRenderedHogql('unique-events.hogql', { dateFilter });
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;

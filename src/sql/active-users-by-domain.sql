@@ -4,9 +4,8 @@ WITH user_domains AS (
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
     last_active_at
   FROM api_server.users
-  WHERE 1=1
-    AND last_active_at IS NOT NULL
-    {{USER_FILTER}}
+  WHERE last_active_at IS NOT NULL
+    AND {{USER_FILTER}}
 )
 SELECT
   domain,

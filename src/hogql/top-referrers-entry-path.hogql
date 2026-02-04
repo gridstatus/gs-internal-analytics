@@ -1,0 +1,16 @@
+-- Unique users per (referring domain, entry pathname) from $pageview. Excludes self-referrals and direct. USER_TYPE_FILTER = logged-in, anon, or empty for all. USER_FILTER, DATE_FILTER, LIMIT applied.
+SELECT
+  COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') AS referring_domain,
+  COALESCE(properties.$initial_pathname, properties.$pathname, '/') AS entry_pathname,
+  COUNT(DISTINCT person_id) AS unique_users
+FROM events
+WHERE event = '$pageview'
+  AND {{USER_TYPE_FILTER}}
+  AND COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') != 'www.gridstatus.io'
+  AND COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') != '$direct'
+  AND COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') != 'Direct'
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY referring_domain, entry_pathname
+ORDER BY unique_users DESC
+LIMIT {{LIMIT}}

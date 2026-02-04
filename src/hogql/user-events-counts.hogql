@@ -3,7 +3,7 @@ SELECT
   COUNT(*) as count
 FROM events
 WHERE person.properties.email = '{{EMAIL}}'
-  {{DATE_FILTER}}
+  AND {{DATE_FILTER}}
   AND event != '$identify'
   AND event != '$set'
 GROUP BY event

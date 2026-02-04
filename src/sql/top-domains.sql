@@ -3,11 +3,10 @@ SELECT
   SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
   COUNT(*) AS user_count
 FROM api_server.users
-WHERE 1=1
-  AND {{TIMESTAMP_FIELD}} IS NOT NULL
+WHERE {{TIMESTAMP_FIELD}} IS NOT NULL
   AND {{TIMESTAMP_FIELD}} >= NOW() - INTERVAL '{{DAYS}} days'
-  {{USER_FILTER}}
-  {{DOMAIN_FILTER}}
+  AND {{USER_FILTER}}
+  AND {{DOMAIN_FILTER}}
 GROUP BY SUBSTRING(username FROM POSITION('@' IN username) + 1)
 ORDER BY user_count DESC
 LIMIT 20;

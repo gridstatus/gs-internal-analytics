@@ -13,14 +13,14 @@ last_30_days_count AS (
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM last_30_days_start)
     AND created_at < NOW()
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 previous_30_days_count AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM previous_30_days_start)
     AND created_at < (SELECT end_time FROM previous_30_days_end)
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 )
 SELECT 
   (SELECT count FROM last_30_days_count)::text AS last_30_days,

@@ -42,16 +42,18 @@ export async function GET(request: Request) {
         WHERE uo.user_id = $1
       `, [id]);
 
-      // Get charts, dashboards, and alerts count
+      // Get charts, dashboards, alerts, and insights engagements (feed_expanded + detail) count
       const stats = await query<{
         chart_count: string;
         dashboard_count: string;
         alert_count: string;
+        insights_engagements_count: string;
       }>(`
         SELECT
           (SELECT COUNT(*) FROM api_server.charts WHERE user_id = $1) as chart_count,
           (SELECT COUNT(*) FROM api_server.dashboards WHERE user_id = $1) as dashboard_count,
-          (SELECT COUNT(*) FROM api_server.alerts WHERE user_id = $1) as alert_count
+          (SELECT COUNT(*) FROM api_server.alerts WHERE user_id = $1) as alert_count,
+          (SELECT COUNT(*) FROM insights.post_views WHERE user_id = $1 AND view_source IN ('feed_expanded', 'detail')) as insights_engagements_count
       `, [id]);
 
       // Get actual charts with names
@@ -187,6 +189,7 @@ export async function GET(request: Request) {
           alertCount: Number(stats[0]?.alert_count || 0),
           apiRequests30d: Number(apiUsage[0]?.request_count || 0),
           apiRows30d: Number(apiUsage[0]?.rows_returned || 0),
+          insightsEngagements: Number(stats[0]?.insights_engagements_count || 0),
         },
         charts: charts.map(c => ({
           id: c.id,

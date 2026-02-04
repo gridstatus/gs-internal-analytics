@@ -9,18 +9,18 @@ function getPeriodConfig(period: 'day' | 'week' | 'month') {
   if (period === 'day') {
     return {
       dateFunction: 'toStartOfDay(timestamp)',
-      dateFilter: "AND timestamp >= now() - INTERVAL 2 YEAR",
+      dateFilter: "timestamp >= now() - INTERVAL 2 YEAR",
     };
   }
   if (period === 'week') {
     return {
       dateFunction: 'toStartOfWeek(timestamp)',
-      dateFilter: "AND timestamp >= now() - INTERVAL 3 YEAR",
+      dateFilter: "timestamp >= now() - INTERVAL 3 YEAR",
     };
   }
   return {
     dateFunction: 'toStartOfMonth(timestamp)',
-    dateFilter: "AND timestamp >= now() - INTERVAL 5 YEAR",
+    dateFilter: "timestamp >= now() - INTERVAL 5 YEAR",
   };
 }
 

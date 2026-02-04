@@ -10,7 +10,7 @@ FROM (
     AND timestamp >= now() - INTERVAL {{DAYS}} DAY
     AND event != '$identify'
     AND event != '$set'
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
   GROUP BY email, minute
 )
 

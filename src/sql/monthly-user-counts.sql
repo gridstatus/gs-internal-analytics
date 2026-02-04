@@ -11,8 +11,8 @@ WITH user_data AS (
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users
-  WHERE 1=1
-    {{USER_FILTER}}
+  WHERE id IS NOT NULL
+    AND {{USER_FILTER}}
 )
 SELECT
   DATE_TRUNC('month', created_at) AS month,

@@ -22,35 +22,35 @@ current_month_all AS (
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM current_month_start)
     AND created_at < (SELECT end_time FROM current_month_end)
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 previous_month_all AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM previous_month_start)
     AND created_at < (SELECT start_time FROM current_month_start)
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 previous_month_same_time AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM previous_month_start)
     AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 last_year_month_all AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM last_year_month_start)
     AND created_at < (SELECT end_time FROM last_year_month_end)
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 last_year_month_same_time AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM last_year_month_start)
     AND created_at < (SELECT start_time FROM last_year_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 )
 SELECT 
   (SELECT count FROM current_month_all) as current_month_all,

@@ -10,7 +10,7 @@ FROM api_server.organizations o
 LEFT JOIN api_server.user_organizations uo ON uo.organization_id = o.id
 LEFT JOIN api_server.users u ON u.id = uo.user_id
 WHERE o.name ILIKE $1
-  {{USER_FILTER}}
+  AND {{USER_FILTER}}
 GROUP BY o.id, o.name, o.created_at
 ORDER BY COUNT(uo.user_id) DESC
 LIMIT 100

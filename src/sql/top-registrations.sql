@@ -9,9 +9,8 @@ WITH user_data AS (
       ELSE FALSE
     END AS is_corporate_domain
   FROM api_server.users
-  WHERE 1=1
-    AND created_at IS NOT NULL
-    {{USER_FILTER}}
+  WHERE created_at IS NOT NULL
+    AND {{USER_FILTER}}
 ),
 daily_registrations AS (
   SELECT

@@ -4,6 +4,6 @@ SELECT
   COUNT(*) AS count
 FROM events
 WHERE event = '{{EVENT_NAME}}'
-  {{DATE_FILTER}}
+  AND {{DATE_FILTER}}
 GROUP BY period
 ORDER BY period ASC

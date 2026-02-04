@@ -59,6 +59,15 @@ export async function GET(request: Request) {
         WHERE uo.organization_id = $1
       `, [id]);
 
+      const domains = await query<{ domain: string }>(`
+        SELECT DISTINCT SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) AS domain
+        FROM api_server.users u
+        JOIN api_server.user_organizations uo ON uo.user_id = u.id
+        WHERE uo.organization_id = $1
+          AND u.username LIKE '%@%'
+        ORDER BY domain
+      `, [id]);
+
       // Get potential additions: users who share a domain with org members but aren't in the org
       const potentialAdditions = await query<{
         id: number;
@@ -104,6 +113,7 @@ export async function GET(request: Request) {
           createdAt: org.created_at,
           updatedAt: org.updated_at,
         },
+        domains: domains.map(d => d.domain),
         users: users.map(u => ({
           id: u.id,
           username: u.username,

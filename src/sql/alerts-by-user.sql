@@ -7,9 +7,8 @@ SELECT
   MAX(a.created_at) AS last_alert_created
 FROM api_server.users u
 LEFT JOIN api_server.alerts a ON a.user_id = u.id
-WHERE 1=1
-  AND a.id IS NOT NULL
-  {{USER_FILTER}}
+WHERE a.id IS NOT NULL
+  AND {{USER_FILTER}}
 GROUP BY u.id, u.username
 ORDER BY COUNT(DISTINCT a.id) DESC;
 

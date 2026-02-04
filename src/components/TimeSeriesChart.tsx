@@ -4,6 +4,7 @@ import { forwardRef } from 'react';
 import { Paper, Text, Box } from '@mantine/core';
 import { CompositeChart, BarChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
+import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
 import { DateTime } from 'luxon';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,7 +200,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
                 series={series}
                 curveType="linear"
                 withLegend
-                legendProps={{ verticalAlign: 'bottom', height: 40 }}
+                legendProps={DEFAULT_CHART_LEGEND_PROPS}
                 xAxisProps={xAxisProps}
                 yAxisProps={{ 
                   domain: [0, yAxisMax],
@@ -238,7 +239,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
                 tickFormatter: (value: number) => value.toLocaleString()
               }}
               withLegend={stacked && stackedSeries.length > 0}
-              legendProps={stacked && stackedSeries.length > 0 ? { verticalAlign: 'bottom', height: 40 } : undefined}
+              legendProps={stacked && stackedSeries.length > 0 ? DEFAULT_CHART_LEGEND_PROPS : undefined}
             />
           </Box>
         </Paper>
@@ -270,7 +271,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             series={series}
             curveType="linear"
             withLegend
-            legendProps={{ verticalAlign: 'bottom', height: 40 }}
+            legendProps={DEFAULT_CHART_LEGEND_PROPS}
             xAxisProps={xAxisProps}
             yAxisProps={{ 
               domain: [0, 'auto'],

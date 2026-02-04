@@ -77,6 +77,7 @@ PostHog is used to track user activity and provides data for anonymous users (no
 - Use Mantine color tokens (e.g., `blue.6`, `teal.6`, `violet.6`)
 - **Always show periods with 0 values**: Generate all periods in the time range in SQL and fill missing data with 0
 - **Use human-readable legend labels**: Always provide a `label` property for chart series (e.g., `label: 'New Users'` for a series named `newUsers`, or `label: 'Trend'` for trendlines). This makes legends more user-friendly.
+- **Chart legend placement**: Use the shared default for all charts with legends: `legendProps={DEFAULT_CHART_LEGEND_PROPS}` from `@/lib/chart-defaults`. 
 
 **Example file:** `src/components/TimeSeriesChart.tsx`
 
@@ -140,9 +141,9 @@ Use `renderSqlTemplate(filename, context)` to load and render SQL templates. Thi
   **Usage**: Always use `{{USER_FILTER}}` in SQL files. Content is built from request-context `filterInternal` and `filterFree` (and `usernamePrefix` for the column reference). Keeping internal and free as separate clauses keeps the generated SQL aligned with the two sidebar toggles.
 
 - **Common Custom Placeholder Patterns** (passed via context - follow these naming conventions):
-  - **Filter clauses** (complete SQL filter clauses): Use `{{[TYPE]_FILTER}}` suffix
-    - `{{DATE_FILTER}}` - Date filter clause (e.g., `"AND pv.viewed_at >= NOW() - INTERVAL '7 days'"`)
-    - `{{TIME_FILTER}}` - Time filter clause (e.g., `"AND p.created_at >= '2025-01-01'"`)
+  - **Filter clauses**: Put **AND in the SQL template** (e.g. `AND {{DATE_FILTER}}`); pass **bare clauses** (no leading AND) in context. Use `{{[TYPE]_FILTER}}` suffix.
+    - `{{DATE_FILTER}}` - Date filter (e.g. pass `pv.viewed_at >= NOW() - INTERVAL '7 days'`)
+    - `{{TIME_FILTER}}` - Time filter (e.g. pass `p.created_at >= '2025-01-01'`)
     - `{{TIME_FILTER_REACTIONS}}` - Time filter for reactions table
     - `{{TIME_FILTER_VIEWS}}` - Time filter for views table
     - `{{TIME_FILTER_SAVES}}` - Time filter for saves table
@@ -164,11 +165,7 @@ Use `renderSqlTemplate(filename, context)` to load and render SQL templates. Thi
 
 - **SQL File Headers**: Each SQL file must start with a short human-readable description that precisely defines what the query does (one-to-one with the SQL, no ambiguity). Write it as prose; include any template variables in the description (e.g. "{{USER_FILTER}} is applied to restrict to correct users; {{DAYS_OFFSET}} = 0 for today, 1 for yesterday.") so there is no separate placeholder list.
 
-- **WHERE Clause Pattern**: Always use `WHERE 1=1` before filter placeholders so SQL stays valid when filters are removed:
-```sql
-WHERE 1=1
-  {{USER_FILTER}}
-```
+- **WHERE clause**: Use a real condition (no `1=1`); put `AND {{USER_FILTER}}` and `AND {{DATE_FILTER}}` etc. on following lines; the renderer strips the AND line when the value is empty.
 
 ### Tables
 - Use `DataTable` component with column definitions

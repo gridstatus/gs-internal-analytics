@@ -1,0 +1,10 @@
+-- Top pathnames by $pageview count for a single user (by email). {{EMAIL}} and {{LIMIT}} required.
+SELECT
+  COALESCE(nullIf(trim(properties.$pathname), ''), '/') AS pathname,
+  COUNT(*) AS views
+FROM events
+WHERE event = '$pageview'
+  AND person.properties.email = '{{EMAIL}}'
+GROUP BY pathname
+ORDER BY views DESC
+LIMIT {{LIMIT}}

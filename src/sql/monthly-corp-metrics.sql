@@ -4,9 +4,8 @@ WITH corp_domains AS (
     SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain,
     DATE_TRUNC('month', created_at) AS month
   FROM api_server.users
-  WHERE 1=1
-    AND created_at IS NOT NULL
-    {{USER_FILTER}}
+  WHERE created_at IS NOT NULL
+    AND {{USER_FILTER}}
 ),
 monthly_domain_counts AS (
   SELECT

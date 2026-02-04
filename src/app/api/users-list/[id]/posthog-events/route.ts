@@ -31,7 +31,7 @@ async function fetchPosthogEventsForEmail(
   // Build date filter condition
   const dateFilter = days === 'all' 
     ? '' 
-    : `AND timestamp >= now() - INTERVAL ${days} DAY`;
+    : `timestamp >= now() - INTERVAL ${days} DAY`;
 
   // Query for event counts by type
   const countsHogql = loadRenderedHogql('user-events-counts.hogql', {

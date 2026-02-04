@@ -24,12 +24,12 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
     dateFunction = 'toStartOfDay(timestamp)';
     dateFormat = 'YYYY-MM-DD';
     // For daily data, limit to last 2 years to avoid hitting PostHog query limits
-    dateFilter = "AND timestamp >= now() - INTERVAL 2 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 2 YEAR";
   } else if (period === 'week') {
     dateFunction = 'toStartOfWeek(timestamp)';
     dateFormat = 'YYYY-MM-DD';
     // For weekly data, limit to last 3 years
-    dateFilter = "AND timestamp >= now() - INTERVAL 3 YEAR";
+    dateFilter = "timestamp >= now() - INTERVAL 3 YEAR";
   } else {
     dateFunction = 'toStartOfMonth(timestamp)';
     dateFormat = 'YYYY-MM';

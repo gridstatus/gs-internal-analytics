@@ -1,0 +1,13 @@
+-- Page views and session count per logged-in user for a single day. DATE_FILTER, USER_FILTER, LIMIT applied.
+SELECT
+  person.properties.email AS email,
+  COUNT(*) AS page_views,
+  COUNT(DISTINCT $session_id) AS sessions
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY person.properties.email
+ORDER BY page_views DESC
+LIMIT {{LIMIT}}

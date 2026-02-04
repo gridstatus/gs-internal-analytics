@@ -2,8 +2,7 @@
 SELECT COUNT(*) AS total
 FROM insights.post_views pv
 JOIN api_server.users u ON pv.user_id = u.id
-WHERE 1=1
-  AND pv.view_source IN ('feed_expanded', 'detail')
-  {{DATE_FILTER}}
-  {{USER_FILTER}}
+WHERE pv.view_source IN ('feed_expanded', 'detail')
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
 

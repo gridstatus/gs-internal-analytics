@@ -8,7 +8,7 @@ SELECT
   properties.$browser as browser
 FROM events
 WHERE person.properties.email = '{{EMAIL}}'
-  {{DATE_FILTER}}
+  AND {{DATE_FILTER}}
   AND event != '$identify'
   AND event != '$set'
 ORDER BY timestamp DESC

@@ -2,6 +2,6 @@ SELECT
   COUNT(DISTINCT $session_id) as session_count
 FROM events
 WHERE person.properties.email = '{{EMAIL}}'
-  {{DATE_FILTER}}
+  AND {{DATE_FILTER}}
   AND $session_id IS NOT NULL
 

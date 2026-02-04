@@ -3,8 +3,7 @@ SELECT
   event,
   COUNT(DISTINCT person_id) AS unique_users
 FROM events
-WHERE 1=1
-  {{DATE_FILTER}}
+WHERE {{DATE_FILTER}}
   AND event != '$identify'
   AND event != '$set'
 GROUP BY event

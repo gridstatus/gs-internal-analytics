@@ -1,12 +1,13 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
+import { useDebouncedValue } from '@mantine/hooks';
 import {
   Container,
   Title,
   Paper,
-  Table,
   Text,
   Group,
   SimpleGrid,
@@ -15,12 +16,14 @@ import {
   Stack,
   Anchor,
   Badge,
+  TextInput,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from '@/components/DataTable';
+import type { MostActiveUsersRow, MostActiveUsersResponse } from '@/lib/api-types';
 import Link from 'next/link';
 
 interface DomainUser {
@@ -58,6 +61,36 @@ export default function DomainDetailPage() {
 
   const url = domain ? `/api/domains/${encodeURIComponent(domain)}` : null;
   const { data, loading, error } = useApiData<DomainData>(url, [domain]);
+
+  const posthogActiveUrl = domain ? `/api/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month` : null;
+  const { data: posthogActiveData, loading: posthogActiveLoading } = useApiData<{ data: Array<{ month: string; activeUsers: number }> }>(posthogActiveUrl, [domain]);
+
+  const mostActiveUrl = domain ? `/api/domains/${encodeURIComponent(domain)}/most-active-users?days=30` : null;
+  const { data: mostActiveData, loading: mostActiveLoading } = useApiData<MostActiveUsersResponse>(mostActiveUrl, [domain]);
+
+  const [mostActiveSearch, setMostActiveSearch] = useState('');
+  const [mostActiveSearchDebounced] = useDebouncedValue(mostActiveSearch, 300);
+  const mostActiveFiltered = useMemo(() => {
+    const s = mostActiveSearchDebounced.toLowerCase();
+    if (!s) return mostActiveData?.rows ?? [];
+    return (mostActiveData?.rows ?? []).filter((r) => r.email.toLowerCase().includes(s));
+  }, [mostActiveData?.rows, mostActiveSearchDebounced]);
+
+  const mostActiveColumns: Column<MostActiveUsersRow>[] = [
+    {
+      id: 'user',
+      header: 'User',
+      render: (row) => {
+        if (row.userId) {
+          return <UserHoverCard userId={row.userId} userName={row.email} />;
+        }
+        return <Text size="sm">{row.email}</Text>;
+      },
+      sortValue: (row) => row.email.toLowerCase(),
+    },
+    { id: 'pageViews', header: 'Page views', align: 'right', render: (row) => row.pageViews.toLocaleString(), sortValue: (row) => row.pageViews },
+    { id: 'sessions', header: 'Sessions', align: 'right', render: (row) => row.sessions.toLocaleString(), sortValue: (row) => row.sessions },
+  ];
 
   if (loading) {
     return (
@@ -133,20 +166,92 @@ export default function DomainDetailPage() {
         />
       </SimpleGrid>
 
-      {/* Monthly Registrations Chart */}
-      {data.monthlyRegistrations.length > 0 && (
-        <TimeSeriesChart
-          title="Monthly User Registrations"
-          subtitle="New users registered each month"
-          data={data.monthlyRegistrations.map(m => ({
-            month: new Date(m.month).toISOString().slice(0, 7),
-            users: m.userCount,
-          }))}
-          dataKey="users"
-          color="blue.6"
-          chartType="bar"
-        />
-      )}
+      {/* Monthly Registrations & PostHog Active users side by side */}
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" mb="xl">
+        {data.monthlyRegistrations.length > 0 ? (
+          <TimeSeriesChart
+            title="Monthly User Registrations"
+            subtitle="New users registered each month"
+            data={data.monthlyRegistrations.map(m => ({
+              month: new Date(m.month).toISOString().slice(0, 7),
+              users: m.userCount,
+            }))}
+            dataKey="users"
+            color="blue.6"
+            chartType="bar"
+          />
+        ) : (
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="xs">Monthly User Registrations</Text>
+            <Text c="dimmed" size="sm">No registration data</Text>
+          </Paper>
+        )}
+        {posthogActiveLoading ? (
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="xs">Active users by month (PostHog)</Text>
+            <Stack align="center" py="xl">
+              <Loader />
+            </Stack>
+          </Paper>
+        ) : posthogActiveData?.data && posthogActiveData.data.length > 0 ? (
+          <TimeSeriesChart
+            title="Active users by month (PostHog)"
+            subtitle="Distinct users with at least one event per month"
+            data={posthogActiveData.data.map((r) => ({
+              month: r.month,
+              activeUsers: r.activeUsers,
+            }))}
+            dataKey="activeUsers"
+            color="teal.6"
+            chartType="bar"
+          />
+        ) : (
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="xs">Active users by month (PostHog)</Text>
+            <Text c="dimmed" size="sm">No PostHog data</Text>
+          </Paper>
+        )}
+      </SimpleGrid>
+
+      {/* Most active users (PostHog: page views & sessions, last 30 days) */}
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
+        <Group justify="space-between" mb="md">
+          <Stack gap={2}>
+            <Text fw={600} size="lg">
+              Most active users (last 30 days)
+            </Text>
+            <Text size="sm" c="dimmed">
+              By page views and sessions from PostHog
+            </Text>
+          </Stack>
+          <TextInput
+            placeholder="Search by email"
+            leftSection={<IconSearch size={16} />}
+            value={mostActiveSearch}
+            onChange={(e) => setMostActiveSearch(e.currentTarget.value)}
+            size="sm"
+            style={{ maxWidth: 260 }}
+          />
+        </Group>
+        {mostActiveLoading ? (
+          <Stack align="center" py="xl">
+            <Loader />
+          </Stack>
+        ) : (
+          <>
+            <DataTable
+              data={mostActiveFiltered}
+              columns={mostActiveColumns}
+              keyField="email"
+              emptyMessage="No PostHog data for this domain."
+              defaultSort={{ column: 'pageViews', direction: 'desc' }}
+            />
+            <Text size="xs" c="dimmed" mt="sm">
+              Top 50. Add ?days=N to the URL to use a different range.
+            </Text>
+          </>
+        )}
+      </Paper>
 
       {/* Users Table */}
       <Paper shadow="sm" p="md" radius="md" withBorder>

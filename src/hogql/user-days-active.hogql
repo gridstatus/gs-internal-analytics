@@ -1,0 +1,6 @@
+-- Count of distinct days with at least one event for a single user (by email) in the time window. {{EMAIL}} is the user email; {{DATE_FILTER}} is the bare clause (e.g. "timestamp >= now() - INTERVAL 30 DAY"); AND is in the template.
+SELECT
+  count(DISTINCT toDate(timestamp)) AS active_days
+FROM events
+WHERE person.properties.email = '{{EMAIL}}'
+  AND {{DATE_FILTER}}

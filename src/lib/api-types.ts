@@ -141,6 +141,57 @@ export interface PosthogActiveUsersResponse {
   periodType: 'day' | 'week' | 'month';
 }
 
+export interface HourlyPulseRow {
+  hour: string;
+  hourLabel?: string;
+  todayRaw: number;
+  yesterdayRaw: number;
+  lastWeekRaw: number;
+  todayCum: number;
+  yesterdayCum: number;
+  lastWeekCum: number;
+}
+
+export interface TodaysPulseResponse {
+  hourlyPulse: HourlyPulseRow[];
+}
+
+export interface ReferrerRow {
+  referringDomain: string;
+  entryPathname: string;
+  uniqueUsers: number;
+  uniqueUsersAvg: number;
+  uniqueUsersToday: number;
+  vsAvgChange: number | null;
+}
+
+export interface ReferrersResponse {
+  referrers: ReferrerRow[];
+}
+
+export interface MostActiveUsersRow {
+  email: string;
+  pageViews: number;
+  sessions: number;
+  userId: number | null;
+}
+
+export interface MostActiveUsersResponse {
+  rows: MostActiveUsersRow[];
+}
+
+export interface MostViewedPageRow {
+  pathname: string;
+  views: number;
+  viewsAvg: number;
+  viewsToday: number;
+  vsAvgChange: number | null;
+}
+
+export interface MostViewedPagesResponse {
+  pages: MostViewedPageRow[];
+}
+
 export interface PosthogEventExplorerEvent {
   event: string;
   uniqueUsers: number;

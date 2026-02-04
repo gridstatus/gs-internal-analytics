@@ -1,0 +1,13 @@
+-- Page views and session count per user for a single domain (email LIKE %@domain). Same as top-pageview-users-by-day with domain filter. {{DOMAIN_LIKE}}, {{DATE_FILTER}}, {{LIMIT}}.
+SELECT
+  person.properties.email AS email,
+  COUNT(*) AS page_views,
+  COUNT(DISTINCT $session_id) AS sessions
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND person.properties.email LIKE '{{DOMAIN_LIKE}}'
+  AND {{DATE_FILTER}}
+GROUP BY person.properties.email
+ORDER BY page_views DESC
+LIMIT {{LIMIT}}

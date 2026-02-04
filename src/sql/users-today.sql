@@ -13,35 +13,35 @@ users_today AS (
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM today_start)
     AND created_at < (SELECT start_time FROM today_start) + INTERVAL '1 day'
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 users_yesterday_all AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM yesterday_start)
     AND created_at < (SELECT start_time FROM yesterday_start) + INTERVAL '1 day'
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 users_yesterday_same_time AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM yesterday_start)
     AND created_at < (SELECT start_time FROM yesterday_start) + (NOW() - (SELECT start_time FROM today_start))
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 users_last_week_all AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM last_week_start)
     AND created_at < (SELECT start_time FROM last_week_start) + INTERVAL '1 day'
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 ),
 users_last_week_same_time AS (
   SELECT COUNT(*) as count
   FROM api_server.users
   WHERE created_at >= (SELECT start_time FROM last_week_start)
     AND created_at < (SELECT start_time FROM last_week_start) + (NOW() - (SELECT start_time FROM today_start))
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
 )
 SELECT 
   (SELECT count FROM users_today) as users_today,

@@ -4,6 +4,6 @@ SELECT
   COUNT(DISTINCT person_id) AS unique_users
 FROM events
 WHERE event = '{{EVENT_NAME}}'
-  {{DATE_FILTER}}
+  AND {{DATE_FILTER}}
 GROUP BY period
 ORDER BY period ASC

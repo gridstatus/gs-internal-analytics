@@ -19,10 +19,16 @@ import {
   SegmentedControl,
   ScrollArea,
   Button,
+  Box,
 } from '@mantine/core';
+import { CompositeChart } from '@mantine/charts';
+import { DateTime } from 'luxon';
 import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
+import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
+import { useFilter } from '@/contexts/FilterContext';
+import { useQueryState } from 'nuqs';
 import Link from 'next/link';
 
 interface User {
@@ -108,6 +114,7 @@ interface UserDetails {
     alertCount: number;
     apiRequests30d: number;
     apiRows30d: number;
+    insightsEngagements: number;
   };
   charts: Chart[];
   dashboards: Dashboard[];
@@ -162,6 +169,21 @@ interface PostHogSessionData {
   };
 }
 
+interface PostHogDaysActiveData {
+  email: string;
+  daysActive7d: number;
+  daysActive30d: number;
+  daysActive365d: number;
+}
+
+interface PostHogTopPagesData {
+  pages: Array<{ pathname: string; views: number }>;
+}
+
+interface PostHogDailyActivityData {
+  data: Array<{ day: string; sessions: number; pageViews: number }>;
+}
+
 interface ApiUsageResponse {
   data: ApiUsageData[];
 }
@@ -169,17 +191,17 @@ interface ApiUsageResponse {
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [apiUsageDays, setApiUsageDays] = useState<number>(1);
+  // const [apiUsageDays, setApiUsageDays] = useState<number>(1);
   const [posthogDays, setPosthogDays] = useState<number | 'all'>(30);
 
   // Fetch main user data
   const userUrl = id ? `/api/users-list?id=${id}` : null;
   const { data, loading, error } = useApiData<UserDetails>(userUrl, [id]);
 
-  // Fetch API usage data
-  const apiUsageUrl = id ? `/api/users-list/${id}/api-usage?days=${apiUsageDays}` : null;
-  const { data: apiUsageResponse, loading: apiUsageLoading, error: apiUsageError } = useApiData<ApiUsageResponse>(apiUsageUrl, [id, apiUsageDays]);
-  const apiUsageData = apiUsageResponse?.data || [];
+  // Fetch API usage data (commented out)
+  // const apiUsageUrl = id ? `/api/users-list/${id}/api-usage?days=${apiUsageDays}` : null;
+  // const { data: apiUsageResponse, loading: apiUsageLoading, error: apiUsageError } = useApiData<ApiUsageResponse>(apiUsageUrl, [id, apiUsageDays]);
+  // const apiUsageData = apiUsageResponse?.data || [];
 
   // Fetch PostHog events data
   const posthogUrl = id ? `/api/users-list/${id}/posthog-events?days=${posthogDays === 'all' ? 'all' : posthogDays}` : null;
@@ -188,6 +210,28 @@ export default function UserDetailPage() {
   // Fetch PostHog session counts
   const sessionsUrl = id ? `/api/users-list/${id}/posthog-sessions` : null;
   const { data: sessionsData, loading: sessionsLoading } = useApiData<PostHogSessionData>(sessionsUrl, [id]);
+
+  // Fetch PostHog days active (7d, 30d, 365d)
+  const daysActiveUrl = id ? `/api/users-list/${id}/posthog-days-active` : null;
+  const { data: daysActiveData } = useApiData<PostHogDaysActiveData>(daysActiveUrl, [id]);
+
+  // Fetch PostHog top pages (top 10)
+  const topPagesUrl = id ? `/api/users-list/${id}/posthog-top-pages` : null;
+  const { data: topPagesData, loading: topPagesLoading } = useApiData<PostHogTopPagesData>(topPagesUrl, [id]);
+
+  const [activityPeriod, setActivityPeriod] = useQueryState('activity_period', { defaultValue: 'day' });
+  const dailyActivityUrl = id
+    ? `/api/users-list/${id}/posthog-daily-activity${activityPeriod !== 'day' ? `?period=${activityPeriod}` : ''}`
+    : null;
+  const { data: dailyActivityData, loading: dailyActivityLoading } = useApiData<PostHogDailyActivityData>(dailyActivityUrl, [dailyActivityUrl]);
+  const { timezone } = useFilter();
+
+  const daysSinceSignup = data?.user.createdAt
+    ? Math.floor(
+        (Date.now() - new Date(data.user.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -251,11 +295,15 @@ export default function UserDetailPage() {
         <Stack gap={4}>
           <Title order={1}>
             {data.user.username}
+            {(data.user.firstName || data.user.lastName) && (
+              <> · {[data.user.firstName, data.user.lastName].filter(Boolean).join(' ')}</>
+            )}
           </Title>
           <Text size="sm" c="dimmed">
             Last active: {data.user.lastActiveAt
               ? new Date(data.user.lastActiveAt).toLocaleDateString()
               : 'Never'}
+            {daysSinceSignup !== null && ` • ${daysSinceSignup.toLocaleString()} days since sign up`}
           </Text>
         </Stack>
         <Group gap="md">
@@ -277,8 +325,28 @@ export default function UserDetailPage() {
         </Group>
       </Group>
 
+      {/* PostHog days active (last 7, 30, 365 days) */}
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="md">
+        <MetricCard
+          title="Days active (7d)"
+          value={daysActiveData?.daysActive7d ?? '—'}
+        />
+        <MetricCard
+          title="Days active (30d)"
+          value={daysActiveData?.daysActive30d ?? '—'}
+        />
+        <MetricCard
+          title="Days active (365d)"
+          value={daysActiveData?.daysActive365d ?? '—'}
+        />
+      </SimpleGrid>
+
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
+        <MetricCard
+          title="Insights engagements"
+          value={data.stats.insightsEngagements}
+        />
         <MetricCard
           title="Charts"
           value={data.stats.chartCount}
@@ -370,6 +438,66 @@ export default function UserDetailPage() {
                   </Group>
                 ))}
               </Stack>
+            )}
+          </Paper>
+
+          {/* PostHog Sessions */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Sessions (PostHog)
+            </Text>
+            {sessionsLoading ? (
+              <Stack align="center" py="md">
+                <Loader size="sm" />
+              </Stack>
+            ) : sessionsData ? (
+              <Stack gap="xs">
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 24h</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last1d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 7d</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last7d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Last 30d</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last30d.toLocaleString()}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">All Time</Text>
+                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.allTime.toLocaleString()}</Text>
+                </Group>
+              </Stack>
+            ) : (
+              <Text c="dimmed" size="sm">Unable to load session data</Text>
+            )}
+          </Paper>
+
+          {/* Top pages (PostHog) */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Top pages
+            </Text>
+            {topPagesLoading ? (
+              <Stack align="center" py="md">
+                <Loader size="sm" />
+              </Stack>
+            ) : topPagesData?.pages && topPagesData.pages.length > 0 ? (
+              <Stack gap="xs">
+                {topPagesData.pages.map((p, i) => (
+                  <Group key={i} justify="space-between" wrap="nowrap">
+                    <Text size="sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }} title={p.pathname}>
+                      {p.pathname}
+                    </Text>
+                    <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
+                      {p.views.toLocaleString()}
+                    </Text>
+                  </Group>
+                ))}
+              </Stack>
+            ) : (
+              <Text c="dimmed" size="sm">No page view data</Text>
             )}
           </Paper>
 
@@ -510,43 +638,77 @@ export default function UserDetailPage() {
               </ScrollArea>
             )}
           </Paper>
-
-          {/* PostHog Sessions */}
-          <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              Sessions (PostHog)
-            </Text>
-            {sessionsLoading ? (
-              <Stack align="center" py="md">
-                <Loader size="sm" />
-              </Stack>
-            ) : sessionsData ? (
-              <Stack gap="xs">
-                <Group justify="space-between">
-                  <Text size="sm" c="dimmed">Last 24h</Text>
-                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last1d.toLocaleString()}</Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm" c="dimmed">Last 7d</Text>
-                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last7d.toLocaleString()}</Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm" c="dimmed">Last 30d</Text>
-                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.last30d.toLocaleString()}</Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm" c="dimmed">All Time</Text>
-                  <Text size="sm" fw={500}>{sessionsData.sessionCounts.allTime.toLocaleString()}</Text>
-                </Group>
-              </Stack>
-            ) : (
-              <Text c="dimmed" size="sm">Unable to load session data</Text>
-            )}
-          </Paper>
         </Stack>
 
         {/* Right Main Content - 2 columns */}
         <SimpleGrid cols={1} spacing="md" style={{ gridColumn: 'span 2' }}>
+          {/* Sessions & page views */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Group justify="space-between" mb="md" wrap="wrap">
+              <Text fw={600} size="lg">
+                Sessions & page views
+                {activityPeriod === 'day' && ' (last 30 days)'}
+                {activityPeriod === 'week' && ' (last year)'}
+                {activityPeriod === 'month' && ' (all time)'}
+              </Text>
+              <SegmentedControl
+                value={activityPeriod}
+                onChange={(v) => setActivityPeriod(v as 'day' | 'week' | 'month')}
+                data={[
+                  { label: 'Day', value: 'day' },
+                  { label: 'Week', value: 'week' },
+                  { label: 'Month', value: 'month' },
+                ]}
+              />
+            </Group>
+            {dailyActivityLoading ? (
+              <Stack align="center" py="xl">
+                <Loader />
+              </Stack>
+            ) : dailyActivityData?.data?.length ? (
+              (() => {
+                const chartData = dailyActivityData.data.map((row) => {
+                  const dt = DateTime.fromISO(row.day, { zone: 'utc' }).setZone(timezone);
+                  const label =
+                    activityPeriod === 'month'
+                      ? dt.toLocaleString({ month: 'short', year: 'numeric' })
+                      : activityPeriod === 'week'
+                        ? `Week of ${dt.toLocaleString({ month: 'short', day: 'numeric' })}`
+                        : dt.toLocaleString({ month: 'short', day: 'numeric' });
+                  return { ...row, label };
+                });
+                return (
+                  <Stack gap="xl">
+                    <Box>
+                      <Text size="sm" fw={500} c="dimmed" mb="xs">Sessions</Text>
+                      <CompositeChart
+                        h={220}
+                        data={chartData}
+                        dataKey="label"
+                        series={[{ name: 'sessions', type: 'line', color: 'blue.6', label: 'Sessions' }]}
+                        curveType="linear"
+                        yAxisProps={{ domain: [0, 'auto'], tickFormatter: (v: number) => v.toLocaleString() }}
+                      />
+                    </Box>
+                    <Box>
+                      <Text size="sm" fw={500} c="dimmed" mb="xs">Page views</Text>
+                      <CompositeChart
+                        h={220}
+                        data={chartData}
+                        dataKey="label"
+                        series={[{ name: 'pageViews', type: 'line', color: 'teal.6', label: 'Page views' }]}
+                        curveType="linear"
+                        yAxisProps={{ domain: [0, 'auto'], tickFormatter: (v: number) => v.toLocaleString() }}
+                      />
+                    </Box>
+                  </Stack>
+                );
+              })()
+            ) : (
+              <Text c="dimmed" size="sm">No activity data</Text>
+            )}
+          </Paper>
+
           {/* PostHog Events */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Group justify="space-between" mb="md">
@@ -658,7 +820,7 @@ export default function UserDetailPage() {
             )}
           </Paper>
 
-          {/* API Usage */}
+          {/* API Usage - commented out
           <Stack gap="md">
             <Group justify="space-between">
               <Text fw={600} size="lg">
@@ -711,6 +873,7 @@ export default function UserDetailPage() {
               </SimpleGrid>
             )}
           </Stack>
+          */}
         </SimpleGrid>
       </SimpleGrid>
 

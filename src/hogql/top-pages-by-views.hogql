@@ -1,0 +1,12 @@
+-- View count per pathname from $pageview for logged-in users. DATE_FILTER, USER_FILTER, LIMIT applied. Empty pathname normalized to '/'.
+SELECT
+  COALESCE(nullIf(trim(properties.$pathname), ''), '/') AS pathname,
+  COUNT(*) AS views
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY pathname
+ORDER BY views DESC
+LIMIT {{LIMIT}}

@@ -2,8 +2,8 @@
 WITH corp_users AS (
   SELECT SUBSTRING(username FROM POSITION('@' IN username) + 1) AS domain
   FROM api_server.users
-  WHERE 1=1
-    {{USER_FILTER}}
+  WHERE id IS NOT NULL
+    AND {{USER_FILTER}}
 ),
 domain_counts AS (
   SELECT domain, COUNT(*) AS user_count

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt, IconChartLine } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -88,6 +88,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                     label="Home"
                     leftSection={<IconDashboard size={16} />}
                     active={pathname === '/'}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/todays-pulse"
+                    label="Today's Pulse"
+                    leftSection={<IconChartLine size={16} />}
+                    active={pathname === '/todays-pulse'}
                     onClick={close}
                     styles={navLinkStyles}
                   />

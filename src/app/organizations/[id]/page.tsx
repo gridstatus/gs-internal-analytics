@@ -52,6 +52,7 @@ interface PotentialAddition {
 
 interface OrganizationDetails {
   organization: Organization;
+  domains: string[];
   users: User[];
   potentialAdditions: PotentialAddition[];
   stats: {
@@ -187,6 +188,29 @@ export default function OrganizationDetailPage() {
             <Table.Tr>
               <Table.Td fw={600}>Updated</Table.Td>
               <Table.Td>{new Date(data.organization.updatedAt).toLocaleString()}</Table.Td>
+            </Table.Tr>
+            <Table.Tr>
+              <Table.Td fw={600}>Domains</Table.Td>
+              <Table.Td>
+                {data.domains && data.domains.length > 0 ? (
+                  <Group gap="xs">
+                    {data.domains.map((domain) => (
+                      <Anchor
+                        key={domain}
+                        component={Link}
+                        href={`/domains/${encodeURIComponent(domain)}`}
+                        size="sm"
+                      >
+                        {domain}
+                      </Anchor>
+                    ))}
+                  </Group>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    No email domains
+                  </Text>
+                )}
+              </Table.Td>
             </Table.Tr>
           </Table.Tbody>
         </Table>

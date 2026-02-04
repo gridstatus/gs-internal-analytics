@@ -2,8 +2,8 @@ SELECT
   toStartOfMonth(timestamp) AS month,
   COUNT(DISTINCT person_id) AS mau
 FROM events
-WHERE person.properties.email IS NOT NULL
-  {{USER_FILTER}}
+WHERE {{LOGGED_IN_USER_FILTER}}
+  AND {{USER_FILTER}}
 GROUP BY month
 ORDER BY month ASC
 

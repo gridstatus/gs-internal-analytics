@@ -2,7 +2,7 @@
 SELECT COUNT(*) AS total
 FROM insights.reactions r
 JOIN api_server.users u ON r.user_id = u.id
-WHERE 1=1
-  {{DATE_FILTER}}
-  {{USER_FILTER}}
+WHERE r.id IS NOT NULL
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
 

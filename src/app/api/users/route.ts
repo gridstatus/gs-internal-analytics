@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       // Add domain filter if provided
       let domainFilter = '';
       if (domainSearch) {
-        domainFilter = `AND SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
+        domainFilter = `SUBSTRING(username FROM POSITION('@' IN username) + 1) ILIKE '%${domainSearch.replace(/'/g, "''")}%'`;
       }
       
       // Render template with all placeholders (filters from request context)

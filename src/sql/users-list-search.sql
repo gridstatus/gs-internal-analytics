@@ -22,7 +22,7 @@ WHERE (
   OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM 1 FOR POSITION('@' IN u.username) - 1) ILIKE $1)
   OR (POSITION('@' IN u.username) > 0 AND SUBSTRING(u.username FROM POSITION('@' IN u.username) + 1) ILIKE $1)
 )
-  {{USER_FILTER}}
+  AND {{USER_FILTER}}
 ORDER BY u.last_active_at DESC NULLS LAST
 LIMIT 100
 

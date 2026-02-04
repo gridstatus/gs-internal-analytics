@@ -1,0 +1,10 @@
+-- Unique logged-in users per hour for a single day window. DATE_FILTER and USER_FILTER are applied in WHERE.
+SELECT
+  toStartOfHour(timestamp) AS hour,
+  COUNT(DISTINCT person_id) AS active_users
+FROM events
+WHERE {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY hour
+ORDER BY hour ASC

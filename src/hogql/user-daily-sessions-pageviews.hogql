@@ -1,0 +1,10 @@
+-- Sessions and page views per period for a single user (by email). {{EMAIL}}, {{DATE_FILTER}}, {{PERIOD_SELECT}} required.
+SELECT
+  {{PERIOD_SELECT}} AS day,
+  count(DISTINCT $session_id) AS sessions,
+  countIf(event = '$pageview') AS page_views
+FROM events
+WHERE person.properties.email = '{{EMAIL}}'
+  AND {{DATE_FILTER}}
+GROUP BY day
+ORDER BY day

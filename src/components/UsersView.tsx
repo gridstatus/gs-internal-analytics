@@ -26,6 +26,7 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { CompositeChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
+import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
 import { ErrorDisplay } from './ErrorDisplay';
 import Link from 'next/link';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
@@ -377,7 +378,7 @@ export function UsersView() {
                   series={series}
                   curveType="linear"
                   withLegend
-                  legendProps={{ verticalAlign: 'bottom', height: 40 }}
+                  legendProps={DEFAULT_CHART_LEGEND_PROPS}
                   yAxisProps={{ 
                     domain: [0, 'auto'],
                     tickFormatter: (value: number) => value.toLocaleString()

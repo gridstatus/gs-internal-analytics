@@ -17,7 +17,7 @@ counts AS (
   FROM api_server.users
   WHERE created_at >= DATE_TRUNC('day', NOW() - INTERVAL '{{DAYS_OFFSET}} days')
     AND created_at < DATE_TRUNC('day', NOW() - INTERVAL '{{DAYS_OFFSET}} days') + INTERVAL '1 day'
-    {{USER_FILTER}}
+    AND {{USER_FILTER}}
   GROUP BY 1
 )
 SELECT h.hour, COALESCE(c.new_users, 0) AS new_users
