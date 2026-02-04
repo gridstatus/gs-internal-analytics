@@ -2,12 +2,16 @@ import { Pool } from 'pg';
 import { AsyncLocalStorage } from 'async_hooks';
 import { DEFAULT_TIMEZONE } from './timezones';
 
+/** Max concurrent DB queries; excess wait for a connection. */
+const DB_MAX_CONCURRENT = 2;
+
 const pool = new Pool({
   user: process.env.APPLICATION_POSTGRES_USER,
   password: process.env.APPLICATION_POSTGRES_PASSWORD,
   host: process.env.APPLICATION_POSTGRES_HOST,
   database: process.env.APPLICATION_POSTGRES_DATABASE,
   port: 5432,
+  max: DB_MAX_CONCURRENT,
   ssl: {
     rejectUnauthorized: false,
   },

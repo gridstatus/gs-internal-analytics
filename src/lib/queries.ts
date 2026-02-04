@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { query, requestContext } from './db';
+import { posthogFetchWithRetry } from './posthog';
 
 const sqlDir = join(process.cwd(), 'src/sql');
 const hogqlDir = join(process.cwd(), 'src/hogql');
@@ -565,21 +566,7 @@ export async function fetchPosthogAnonymousUsers(period: 'day' | 'week' | 'month
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog anonymous users API error:', response.status, errorText);
-    return [];
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {
@@ -641,21 +628,7 @@ export async function getSummaryAnonymousVisitors(period: '1d' | '7d' | '30d' | 
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog anonymous visitors summary API error:', response.status, errorText);
-    return 0;
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {
@@ -696,21 +669,7 @@ export async function getSummaryAnonymousHomefeedVisitors(period: '1d' | '7d' | 
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog anonymous homefeed visitors summary API error:', response.status, errorText);
-    return 0;
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {
@@ -760,21 +719,7 @@ export async function fetchPosthogAnonymousHomefeedVisitors(period: 'day' | 'wee
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog anonymous homefeed visitors API error:', response.status, errorText);
-    return [];
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {
@@ -996,21 +941,7 @@ export async function getPricingPageVisitCounts(period: '1d' | '7d' | '30d'): Pr
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog pricing page visit counts API error:', response.status, errorText);
-    return 0;
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {
@@ -1046,21 +977,7 @@ export async function getPricingPageMostVisits(period: '1d' | '7d' | '30d', limi
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog pricing page most visits API error:', response.status, errorText);
-    return [];
-  }
-
+  const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
   const data = await response.json();
   
   if (data.warnings) {

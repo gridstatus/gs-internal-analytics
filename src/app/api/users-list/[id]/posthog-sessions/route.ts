@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface SessionCounts {
   last1d: number;
@@ -37,24 +38,10 @@ async function fetchSessionCount(email: string, days: number | 'all'): Promise<n
     },
   };
 
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const headers = { Authorization: `Bearer ${apiKey}` };
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PostHog API error:', errorText);
-      return 0;
-    }
-
+    const response = await posthogFetchWithRetry(url, payload, headers);
     const data = await response.json();
     const results = data.results || [];
     
@@ -64,6 +51,7 @@ async function fetchSessionCount(email: string, days: number | 'all'): Promise<n
     return 0;
   } catch (error) {
     console.error('Error fetching PostHog session count:', error);
+    if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) throw error;
     return 0;
   }
 }
@@ -110,6 +98,9 @@ export async function GET(
       });
     } catch (error) {
       console.error('Error fetching PostHog sessions:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return NextResponse.json(
         { error: getErrorMessage(error) },
         { status: 500 }

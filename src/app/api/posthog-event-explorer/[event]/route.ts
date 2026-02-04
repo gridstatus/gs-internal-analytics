@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
 import { query } from '@/lib/db';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 const DEFAULT_OCCURRENCES_LIMIT = 100;
 
@@ -38,19 +39,11 @@ async function runPosthogQuery(
   hogql: string
 ): Promise<unknown[][]> {
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ query: { kind: 'HogQLQuery', query: hogql } }),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    console.error('PostHog API error:', response.status, text);
-    return [];
-  }
+  const response = await posthogFetchWithRetry(
+    url,
+    { query: { kind: 'HogQLQuery', query: hogql } },
+    { Authorization: `Bearer ${apiKey}` }
+  );
   const data = await response.json();
   return data.results || [];
 }
@@ -142,6 +135,9 @@ export async function GET(
       });
     } catch (error) {
       console.error('Error fetching event detail:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return jsonError(error);
     }
   });

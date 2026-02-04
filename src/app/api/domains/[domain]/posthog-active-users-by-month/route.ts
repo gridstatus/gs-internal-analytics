@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface MonthRow {
   month: string;
@@ -30,23 +31,9 @@ export async function GET(
       });
 
       const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          query: { kind: 'HogQLQuery', query: hogql },
-        }),
+      const response = await posthogFetchWithRetry(url, { query: { kind: 'HogQLQuery', query: hogql } }, {
+        Authorization: `Bearer ${apiKey}`,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('PostHog API error:', errorText);
-        return NextResponse.json({ data: [] });
-      }
-
       const body = await response.json();
       const results = (body.results || []) as [string, number][];
       const data: MonthRow[] = results.map(([month, activeUsers]) => ({
@@ -57,6 +44,9 @@ export async function GET(
       return NextResponse.json({ data });
     } catch (error) {
       console.error('Error fetching PostHog active users by month:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return NextResponse.json(
         { error: getErrorMessage(error) },
         { status: 500 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 const DEFAULT_DAYS = 7;
 
@@ -29,30 +30,21 @@ async function fetchUniqueEvents(days: number): Promise<EventWithUniqueUsers[]> 
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog API error:', response.status, errorText);
+  try {
+    const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
+    const data = await response.json();
+    if (data.warnings) {
+      console.warn('PostHog query warnings:', data.warnings);
+    }
+    const results: [string, number][] = data.results || [];
+    return results
+      .filter((row) => row[0])
+      .map(([event, uniqueUsers]) => ({ event, uniqueUsers: Number(uniqueUsers) ?? 0 }));
+  } catch (error) {
+    if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) throw error;
+    console.error('PostHog API error:', error);
     return [];
   }
-
-  const data = await response.json();
-  if (data.warnings) {
-    console.warn('PostHog query warnings:', data.warnings);
-  }
-
-  const results: [string, number][] = data.results || [];
-  return results
-    .filter((row) => row[0])
-    .map(([event, uniqueUsers]) => ({ event, uniqueUsers: Number(uniqueUsers) ?? 0 }));
 }
 
 export async function GET(request: Request) {
@@ -70,6 +62,9 @@ export async function GET(request: Request) {
       });
     } catch (error) {
       console.error('Error fetching PostHog unique events:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return jsonError(error);
     }
   });

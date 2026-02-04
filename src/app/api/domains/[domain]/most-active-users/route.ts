@@ -13,8 +13,10 @@ export async function GET(
     try {
       const { domain } = await params;
       const decodedDomain = decodeURIComponent(domain);
-      const days = Math.min(365, Math.max(1, parseInt(searchParams.get('days') || '30', 10) || 30));
-      const dateFilter = `timestamp >= now() - INTERVAL ${days} DAY`;
+      const daysParam = searchParams.get('days') || '30';
+      const allTime = daysParam === 'all' || daysParam === 'all_time';
+      const daysNum = daysParam === '7' ? 7 : daysParam === '365' ? 365 : 30;
+      const dateFilter = allTime ? '' : `timestamp >= now() - INTERVAL ${daysNum} DAY`;
 
       const hogql = loadRenderedHogql('domain-top-pageview-users.hogql', {
         domain: decodedDomain,
@@ -23,10 +25,11 @@ export async function GET(
       });
       const results = await runPosthogQuery(hogql);
 
-      const rows = (results as [string, number, number][]).map(([email, page_views, sessions]) => ({
+      const rows = (results as [string, number, number, number][]).map(([email, page_views, sessions, days_active]) => ({
         email: String(email ?? ''),
         pageViews: Number(page_views ?? 0),
         sessions: Number(sessions ?? 0),
+        daysActive: Number(days_active ?? 0),
       }));
 
       const emails = rows.map((r) => r.email).filter(Boolean);
@@ -36,6 +39,7 @@ export async function GET(
         email: r.email,
         pageViews: r.pageViews,
         sessions: r.sessions,
+        daysActive: r.daysActive,
         userId: emailToUserId.get(r.email) ?? null,
       }));
 

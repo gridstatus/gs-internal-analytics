@@ -62,11 +62,38 @@ function parsePosthogErrorBody(status: number, bodyText: string): PosthogErrorPa
 const POSTHOG_RETRY_DELAY_MS = 2000;
 const POSTHOG_MAX_ATTEMPTS = 2;
 
-/**
- * Run a single PostHog query request with optional retry on throttle or server error.
- * Throws PostHogThrottledError / PostHogServerError (after retries); throws Error on other failures.
- */
-export async function posthogFetchWithRetry(
+/** Max concurrent PostHog API requests; excess wait for a slot. */
+const POSTHOG_MAX_CONCURRENT = 3;
+
+function createSemaphore(n: number) {
+  let inUse = 0;
+  const waiters: Array<() => void> = [];
+  return {
+    acquire(): Promise<void> {
+      if (inUse < n) {
+        inUse++;
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        waiters.push(() => {
+          inUse++;
+          resolve();
+        });
+      });
+    },
+    release(): void {
+      inUse--;
+      if (waiters.length > 0) {
+        const next = waiters.shift();
+        if (next) next();
+      }
+    },
+  };
+}
+
+const posthogSemaphore = createSemaphore(POSTHOG_MAX_CONCURRENT);
+
+async function doPosthogFetchWithRetry(
   url: string,
   body: { query: { kind: string; query: string } },
   headers: Record<string, string>
@@ -99,6 +126,23 @@ export async function posthogFetchWithRetry(
 }
 
 /**
+ * Run a single PostHog query request with optional retry on throttle or server error.
+ * Respects POSTHOG_MAX_CONCURRENT; throws PostHogThrottledError / PostHogServerError (after retries); throws Error on other failures.
+ */
+export async function posthogFetchWithRetry(
+  url: string,
+  body: { query: { kind: string; query: string } },
+  headers: Record<string, string>
+): Promise<Response> {
+  await posthogSemaphore.acquire();
+  try {
+    return await doPosthogFetchWithRetry(url, body, headers);
+  } finally {
+    posthogSemaphore.release();
+  }
+}
+
+/**
  * Execute a HogQL query against the PostHog API.
  * Returns an empty array if credentials are missing.
  * Throws PostHogThrottledError when throttled (after retry); throws Error on other API errors.
@@ -115,18 +159,6 @@ export async function runPosthogQuery(hogql: string): Promise<unknown[][]> {
   );
   const data = await response.json();
   return data.results || [];
-}
-
-/**
- * Parse a non-ok PostHog response to detect throttle/server error and get a user-friendly message.
- * Use in routes that perform their own fetch to PostHog.
- * Return throttled/serverError so route can return 503 with message.
- */
-export function parsePosthogErrorResponse(
-  status: number,
-  bodyText: string
-): { throttled: boolean; serverError: boolean; message: string } {
-  return parsePosthogErrorBody(status, bodyText);
 }
 
 /**

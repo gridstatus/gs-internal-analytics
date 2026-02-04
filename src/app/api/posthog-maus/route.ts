@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promise<{ period: string; activeUsers: number }[]> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
@@ -51,22 +52,9 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('PostHog API error:', response.status, errorText);
-    return [];
-  }
-
-  const data = await response.json();
+  try {
+    const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
+    const data = await response.json();
   
   // Log warnings or limits if present
   if (data.warnings) {
@@ -107,6 +95,11 @@ async function fetchPosthogActiveUsers(period: 'day' | 'week' | 'month'): Promis
       activeUsers,
     };
   });
+  } catch (error) {
+    if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) throw error;
+    console.error('PostHog API error:', error);
+    return [];
+  }
 }
 
 export async function GET(request: Request) {
@@ -144,6 +137,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
       console.error('Error fetching PostHog Active Users:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return jsonError(error);
     }
   });

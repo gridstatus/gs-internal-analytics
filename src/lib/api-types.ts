@@ -173,6 +173,8 @@ export interface MostActiveUsersRow {
   email: string;
   pageViews: number;
   sessions: number;
+  /** Distinct days with activity in the range; only present when range is multiple days (e.g. domain most-active-users). */
+  daysActive?: number;
   userId: number | null;
 }
 

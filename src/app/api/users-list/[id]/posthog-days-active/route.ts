@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
-import { parsePosthogErrorResponse } from '@/lib/posthog';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface DaysActiveResponse {
   email: string;
@@ -27,33 +27,11 @@ async function fetchDaysActive(email: string, days: number): Promise<number> {
   });
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
-  const payload = {
-    query: {
-      kind: 'HogQLQuery',
-      query: hogql,
-    },
-  };
-
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const body = { query: { kind: 'HogQLQuery', query: hogql } };
+  const headers = { Authorization: `Bearer ${apiKey}` };
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PostHog API error:', errorText);
-      const parsed = parsePosthogErrorResponse(response.status, errorText);
-      if (parsed.throttled) throw new Error(parsed.message);
-      return 0;
-    }
-
+    const response = await posthogFetchWithRetry(url, body, headers);
     const data = await response.json();
     const results = data.results || [];
 
@@ -63,6 +41,7 @@ async function fetchDaysActive(email: string, days: number): Promise<number> {
     return 0;
   } catch (err) {
     console.error('Error fetching PostHog days active:', err);
+    if (err instanceof PostHogThrottledError || err instanceof PostHogServerError) throw err;
     return 0;
   }
 }
@@ -103,6 +82,9 @@ export async function GET(
       return NextResponse.json(body);
     } catch (error) {
       console.error('Error fetching PostHog days active:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return NextResponse.json(
         { error: getErrorMessage(error) },
         { status: 500 }

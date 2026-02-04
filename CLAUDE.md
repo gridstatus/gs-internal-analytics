@@ -44,6 +44,12 @@ This internal app must never be indexed by search engines. The following protect
 ### Corporate Domain Filtering
 All SQL queries that touch user/domain data MUST include **`{{USER_FILTER}}`**; it is filled in automatically from the current request filter state.
 
+### Precautions: Protecting the Database and External Services
+Per-backend concurrency limits protect the shared DB and PostHog API. Do not remove or bypass them.
+
+- **PostgreSQL** (`src/lib/db.ts`): Pool limited by `DB_MAX_CONCURRENT`; excess `query()` calls wait.
+- **PostHog** (`src/lib/posthog.ts`): Semaphore limited by `POSTHOG_MAX_CONCURRENT`. All PostHog requests must go through `posthogFetchWithRetry`. Do not add direct `fetch` calls to PostHog.
+
 ## PostHog Queries
 PostHog is used to track user activity and provides data for anonymous users (not tracked in PostgreSQL).
 

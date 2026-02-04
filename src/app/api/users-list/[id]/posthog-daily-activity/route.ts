@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
-import { parsePosthogErrorResponse } from '@/lib/posthog';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface DayRow {
   day: string;
@@ -104,31 +104,11 @@ export async function GET(
       });
 
       const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          query: { kind: 'HogQLQuery', query: hogql },
-        }),
+      const response = await posthogFetchWithRetry(url, { query: { kind: 'HogQLQuery', query: hogql } }, {
+        Authorization: `Bearer ${apiKey}`,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('PostHog API error:', errorText);
-        const parsed = parsePosthogErrorResponse(response.status, errorText);
-        if (parsed.throttled) {
-          return NextResponse.json({ error: parsed.message }, { status: 503 });
-        }
-        const keys = period === 'month' ? [] : keysForEmpty;
-        const data = keys.map((day) => ({ day, sessions: 0, pageViews: 0 }));
-        return NextResponse.json({ data });
-      }
-
-      const body = await response.json();
-      const results = (body.results || []) as [string, number, number][];
+      const resBody = await response.json();
+      const results = (resBody.results || []) as [string, number, number][];
       const byDay = new Map<string, { sessions: number; pageViews: number }>();
       for (const row of results) {
         const [day, sessions, pageViews] = row;
@@ -152,6 +132,9 @@ export async function GET(
       return NextResponse.json({ data });
     } catch (error) {
       console.error('Error fetching PostHog daily activity:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return NextResponse.json(
         { error: getErrorMessage(error) },
         { status: 500 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
@@ -17,6 +18,7 @@ import {
   Anchor,
   Badge,
   TextInput,
+  SegmentedControl,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
@@ -65,8 +67,14 @@ export default function DomainDetailPage() {
   const posthogActiveUrl = domain ? `/api/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month` : null;
   const { data: posthogActiveData, loading: posthogActiveLoading } = useApiData<{ data: Array<{ month: string; activeUsers: number }> }>(posthogActiveUrl, [domain]);
 
-  const mostActiveUrl = domain ? `/api/domains/${encodeURIComponent(domain)}/most-active-users?days=30` : null;
-  const { data: mostActiveData, loading: mostActiveLoading } = useApiData<MostActiveUsersResponse>(mostActiveUrl, [domain]);
+  const [mostActiveDays, setMostActiveDays] = useQueryState(
+    'days',
+    parseAsStringEnum(['7', '30', '365', 'all']).withDefault('30')
+  );
+  const mostActiveUrl = domain
+    ? `/api/domains/${encodeURIComponent(domain)}/most-active-users?days=${mostActiveDays}`
+    : null;
+  const { data: mostActiveData, loading: mostActiveLoading } = useApiData<MostActiveUsersResponse>(mostActiveUrl, [domain, mostActiveDays]);
 
   const [mostActiveSearch, setMostActiveSearch] = useState('');
   const [mostActiveSearchDebounced] = useDebouncedValue(mostActiveSearch, 300);
@@ -88,6 +96,7 @@ export default function DomainDetailPage() {
       },
       sortValue: (row) => row.email.toLowerCase(),
     },
+    { id: 'daysActive', header: 'Days active', align: 'right', render: (row) => (row.daysActive ?? 0).toLocaleString(), sortValue: (row) => row.daysActive ?? 0 },
     { id: 'pageViews', header: 'Page views', align: 'right', render: (row) => row.pageViews.toLocaleString(), sortValue: (row) => row.pageViews },
     { id: 'sessions', header: 'Sessions', align: 'right', render: (row) => row.sessions.toLocaleString(), sortValue: (row) => row.sessions },
   ];
@@ -213,25 +222,39 @@ export default function DomainDetailPage() {
         )}
       </SimpleGrid>
 
-      {/* Most active users (PostHog: page views & sessions, last 30 days) */}
+      {/* Most active users (PostHog: page views & sessions) */}
       <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Group justify="space-between" mb="md">
+        <Group justify="space-between" mb="md" wrap="wrap" gap="md">
           <Stack gap={2}>
             <Text fw={600} size="lg">
-              Most active users (last 30 days)
+              Most active users
+              {mostActiveDays === 'all' ? ' (all time)' : ` (last ${mostActiveDays} days)`}
             </Text>
             <Text size="sm" c="dimmed">
-              By page views and sessions from PostHog
+              Top 50 by page views and sessions from PostHog
             </Text>
           </Stack>
-          <TextInput
-            placeholder="Search by email"
-            leftSection={<IconSearch size={16} />}
-            value={mostActiveSearch}
-            onChange={(e) => setMostActiveSearch(e.currentTarget.value)}
-            size="sm"
-            style={{ maxWidth: 260 }}
-          />
+          <Group gap="sm">
+            <SegmentedControl
+              size="xs"
+              value={mostActiveDays}
+              onChange={(v) => setMostActiveDays((v as '7' | '30' | '365' | 'all') ?? '30')}
+              data={[
+                { label: '7d', value: '7' },
+                { label: '30d', value: '30' },
+                { label: '365d', value: '365' },
+                { label: 'All time', value: 'all' },
+              ]}
+            />
+            <TextInput
+              placeholder="Search by email"
+              leftSection={<IconSearch size={16} />}
+              value={mostActiveSearch}
+              onChange={(e) => setMostActiveSearch(e.currentTarget.value)}
+              size="sm"
+              style={{ maxWidth: 260 }}
+            />
+          </Group>
         </Group>
         {mostActiveLoading ? (
           <Stack align="center" py="xl">
@@ -244,11 +267,8 @@ export default function DomainDetailPage() {
               columns={mostActiveColumns}
               keyField="email"
               emptyMessage="No PostHog data for this domain."
-              defaultSort={{ column: 'pageViews', direction: 'desc' }}
+              defaultSort={{ column: 'daysActive', direction: 'desc' }}
             />
-            <Text size="xs" c="dimmed" mt="sm">
-              Top 50. Add ?days=N to the URL to use a different range.
-            </Text>
           </>
         )}
       </Paper>

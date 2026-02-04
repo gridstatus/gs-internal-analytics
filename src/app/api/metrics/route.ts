@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries';
 import { getErrorMessage } from '@/lib/db';
 import { withRequestContext } from '@/lib/api-helpers';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface PosthogMau {
   month: string;
@@ -34,21 +35,9 @@ async function fetchPosthogMaus(): Promise<Map<string, number>> {
     },
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    console.error('PostHog API error:', response.status);
-    return new Map();
-  }
-
-  const data = await response.json();
+  try {
+    const response = await posthogFetchWithRetry(url, payload, { Authorization: `Bearer ${apiKey}` });
+    const data = await response.json();
   const results: [string, number][] = data.results || [];
 
   const mauMap = new Map<string, number>();
@@ -59,6 +48,11 @@ async function fetchPosthogMaus(): Promise<Map<string, number>> {
   }
 
   return mauMap;
+  } catch (error) {
+    if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) throw error;
+    console.error('PostHog API error:', error);
+    return new Map();
+  }
 }
 
 function formatMonth(date: Date): string {
@@ -146,6 +140,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
       console.error('Error fetching metrics:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return NextResponse.json(
         { error: getErrorMessage(error) },
         { status: 500 }

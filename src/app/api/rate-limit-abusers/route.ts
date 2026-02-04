@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
 import { loadRenderedHogql } from '@/lib/queries';
 import { query } from '@/lib/db';
+import { posthogFetchWithRetry, PostHogThrottledError, PostHogServerError } from '@/lib/posthog';
 
 interface RateLimitUser {
   email: string;
@@ -73,32 +74,13 @@ async function fetchRateLimitAbusers(days: number = 30): Promise<{
     },
   };
 
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const headers = { Authorization: `Bearer ${apiKey}` };
 
   try {
     const [usersResponse, timeSeriesResponse] = await Promise.all([
-      fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(usersPayload),
-      }),
-      fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(timeSeriesPayload),
-      }),
+      posthogFetchWithRetry(url, usersPayload, headers),
+      posthogFetchWithRetry(url, timeSeriesPayload, headers),
     ]);
-
-    if (!usersResponse.ok || !timeSeriesResponse.ok) {
-      const usersError = !usersResponse.ok ? await usersResponse.text() : '';
-      const timeSeriesError = !timeSeriesResponse.ok ? await timeSeriesResponse.text() : '';
-      console.error('PostHog API error:', { usersError, timeSeriesError });
-      return { users: [], timeSeries: [], totalHits: 0, uniqueUsers: 0 };
-    }
-
     const usersData = await usersResponse.json();
     const timeSeriesData = await timeSeriesResponse.json();
 
@@ -138,6 +120,7 @@ async function fetchRateLimitAbusers(days: number = 30): Promise<{
     };
   } catch (error) {
     console.error('Error fetching rate limit data:', error);
+    if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) throw error;
     return { users: [], timeSeries: [], totalHits: 0, uniqueUsers: 0 };
   }
 }
@@ -152,6 +135,9 @@ export async function GET(request: Request) {
       return NextResponse.json(data);
     } catch (error) {
       console.error('Error in rate-limit-abusers API:', error);
+      if (error instanceof PostHogThrottledError || error instanceof PostHogServerError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
       return jsonError(error, 500);
     }
   });
