@@ -64,7 +64,7 @@ export default function DomainDetailPage() {
   const url = domain ? `/api/domains/${encodeURIComponent(domain)}` : null;
   const { data, loading, error } = useApiData<DomainData>(url, [domain]);
 
-  const posthogActiveUrl = domain ? `/api/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month` : null;
+  const posthogActiveUrl = domain ? `/api/posthog/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month` : null;
   const { data: posthogActiveData, loading: posthogActiveLoading } = useApiData<{ data: Array<{ month: string; activeUsers: number }> }>(posthogActiveUrl, [domain]);
 
   const [mostActiveDays, setMostActiveDays] = useQueryState(
@@ -72,7 +72,7 @@ export default function DomainDetailPage() {
     parseAsStringEnum(['7', '30', '365', 'all']).withDefault('30')
   );
   const mostActiveUrl = domain
-    ? `/api/domains/${encodeURIComponent(domain)}/most-active-users?days=${mostActiveDays}`
+    ? `/api/posthog/domains/${encodeURIComponent(domain)}/most-active-users?days=${mostActiveDays}`
     : null;
   const { data: mostActiveData, loading: mostActiveLoading } = useApiData<MostActiveUsersResponse>(mostActiveUrl, [domain, mostActiveDays]);
 
