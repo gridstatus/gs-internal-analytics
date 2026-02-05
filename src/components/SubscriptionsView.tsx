@@ -21,6 +21,7 @@ import { SubscriptionListRowItem, SubscriptionsResponse } from '@/lib/api-types'
 import { useApiData } from '@/hooks/useApiData';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function SubscriptionsView() {
   const { timezone } = useFilter();
@@ -129,6 +130,7 @@ export function SubscriptionsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Subscriptions' }]} />
       <Title order={1} mb="xl">
         Subscriptions
       </Title>

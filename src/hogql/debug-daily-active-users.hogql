@@ -1,0 +1,12 @@
+-- Per-day unique users (same time window each day) for debugging 7 vs 30 day totals. DATE_FILTER, SAME_TIME_OF_DAY_FILTER, USER_FILTER applied.
+SELECT
+  toStartOfDay(timestamp) AS day,
+  COUNT(DISTINCT person_id) AS unique_users
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{SAME_TIME_OF_DAY_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY day
+ORDER BY day ASC

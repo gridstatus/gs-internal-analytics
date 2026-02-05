@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
   user_registered: 'User Registered',
@@ -178,6 +179,7 @@ export function Dashboard() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Home' }]} />
       <Title order={1} mb="xl">User Analytics Dashboard</Title>
 
       {/* Activity Breakdown */}

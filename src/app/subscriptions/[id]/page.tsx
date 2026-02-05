@@ -15,8 +15,9 @@ import {
   Anchor,
   Badge,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { useFilter } from '@/contexts/FilterContext';
 import { DateTime } from 'luxon';
 import { SubscriptionDetailResponse } from '@/lib/api-types';
@@ -76,19 +77,12 @@ export default function SubscriptionDetailPage() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/subscriptions"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Subscriptions
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Subscriptions', href: '/subscriptions' },
+          { label: `Subscription #${sub.id}` },
+        ]}
+      />
       <Title order={1} mb="xl">
         Subscription #{sub.id}
       </Title>

@@ -28,6 +28,7 @@ import { useQueryState } from 'nuqs';
 import { UserHoverCard } from './UserHoverCard';
 import { InfoHoverIcon } from './InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 import type {
   TodaysPulseResponse,
   ReferrersResponse,
@@ -94,6 +95,7 @@ export function TodaysPulseView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: "Today's Pulse" }]} />
       <Title order={1} mb="xl">
         Today&apos;s Pulse
       </Title>

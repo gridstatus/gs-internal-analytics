@@ -20,6 +20,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function OrganizationsView() {
   const { timezone } = useFilter();
@@ -76,6 +77,7 @@ export function OrganizationsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Organizations' }]} />
       <Title order={1} mb="xl">Organizations</Title>
 
       <TextInput

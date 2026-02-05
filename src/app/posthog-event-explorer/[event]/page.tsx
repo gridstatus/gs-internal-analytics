@@ -15,8 +15,9 @@ import {
   Table,
   SimpleGrid,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { DateTime } from 'luxon';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -88,17 +89,12 @@ export default function PosthogEventDetailPage() {
   return (
     <Container fluid py="xl">
       <Stack gap="md">
-        <Anchor
-          component={Link}
-          href="/posthog-event-explorer"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Event Explorer
-        </Anchor>
-
+        <PageBreadcrumbs
+          items={[
+            { label: 'Event Explorer', href: '/posthog-event-explorer' },
+            { label: eventName },
+          ]}
+        />
         <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
           <Title order={1}>{eventName}</Title>
           <SegmentedControl

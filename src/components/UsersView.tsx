@@ -33,6 +33,7 @@ import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { DataTable, Column } from './DataTable';
 
 export function UsersView() {
@@ -71,6 +72,7 @@ export function UsersView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'User Registrations' }]} />
       <Group justify="space-between" mb="xl">
         <Title order={1}>User Registrations</Title>
         <Group>

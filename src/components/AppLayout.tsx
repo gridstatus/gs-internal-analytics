@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt, IconChartLine } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt, IconChartLine, IconDatabase } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -292,6 +292,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                     label="Event Explorer"
                     leftSection={<IconListSearch size={16} />}
                     active={pathname?.startsWith('/posthog-event-explorer')}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
+                  <NavLink
+                    component={Link}
+                    href="/datasets"
+                    label="Datasets"
+                    leftSection={<IconDatabase size={16} />}
+                    active={pathname?.startsWith('/datasets')}
                     onClick={close}
                     styles={navLinkStyles}
                   />

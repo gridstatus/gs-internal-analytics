@@ -101,6 +101,7 @@ Each analytics page follows this pattern. API paths: overview `src/app/api/[name
 4. View component in `src/components/[Name]View.tsx`
 5. Page in `src/app/[name]/page.tsx`
 6. Sidebar entry in `src/components/AppLayout.tsx`
+7. `PageBreadcrumbs` at the top of every page: one item on list pages; on detail pages, parent (with `href`) then current. Do not use "Back" links.
 
 **Example files:** `src/sql/top-registrations.sql`, `src/lib/queries.ts` (getTopRegistrations), `src/app/api/alerts/route.ts`, `src/components/AlertsView.tsx`
 
@@ -196,6 +197,7 @@ Use `renderSqlTemplate(filename, context)` to load and render SQL templates. Thi
 - **Provide date range options** when viewing data: 24h, 7d, 30d, 90d (use `SegmentedControl`)
 - **Format numbers with commas** - Use `.toLocaleString()` when displaying numbers in the UI (e.g., `value.toLocaleString()`)
 - **Info hover** - Use `InfoHoverIcon` (tooltip to the right of card/section titles) when extra context helps (e.g. how a metric is computed).
+
 
 ### Data Fetching
 Use the `useApiData` hook for fetching data in view components. It handles loading, error states, and request cancellation.

@@ -40,6 +40,8 @@ interface HogqlTemplateContext {
   periodSelect?: string;
   /** When set, restricts each day to "midnight to current time" for fair same-time-of-day comparison */
   sameTimeOfDayFilter?: string;
+  /** Pathname for path-scoped HogQL (e.g. debug-daily-views-by-path) */
+  pathname?: string;
 }
 
 export function loadSql(filename: string): string {
@@ -143,6 +145,15 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
   } else {
     rendered = rendered.replace(/\s+AND\s+\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, '');
+  }
+
+  // Handle PATHNAME_FILTER: filter by pathname (e.g. for debug-daily-views-by-path)
+  if (context.pathname !== undefined && context.pathname !== '') {
+    const escaped = String(context.pathname).replace(/\\/g, '\\\\').replace(/'/g, "''");
+    rendered = rendered.replace(/\{\{PATHNAME_FILTER\}\}/g, `properties.pathname = '${escaped}'`);
+  } else {
+    rendered = rendered.replace(/\s+AND\s+\{\{PATHNAME_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{PATHNAME_FILTER\}\}/g, '');
   }
 
   return rendered;
@@ -320,6 +331,30 @@ export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | '
 export async function getMonthlyApiUsage(): Promise<MonthlyApiUsage[]> {
   const sql = renderSqlTemplate('monthly-api-usage.sql', {});
   return query<MonthlyApiUsage>(sql);
+}
+
+export interface DatasetUserLast24h {
+  user_id: number;
+  username: string | null;
+  num_requests: string;
+  last_query_at: Date;
+  avg_seconds_between: string | null;
+}
+
+export async function getDatasetUsersLast24h(datasetId: string, days: number): Promise<DatasetUserLast24h[]> {
+  const sql = renderSqlTemplate('dataset-users-last-24h.sql', {});
+  return query<DatasetUserLast24h>(sql, [datasetId, days]);
+}
+
+export interface DatasetUsage24hRow {
+  dataset_id: string;
+  num_unique_users: string;
+  last_query_at: Date;
+}
+
+export async function getDatasetUsage24h(): Promise<DatasetUsage24hRow[]> {
+  const sql = renderSqlTemplate('last-24h-dataset-unique-users.sql', {});
+  return query<DatasetUsage24hRow>(sql);
 }
 
 export async function getMonthlyCorpMetrics(): Promise<MonthlyCorpMetric[]> {

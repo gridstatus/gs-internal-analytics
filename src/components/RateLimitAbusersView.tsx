@@ -23,6 +23,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { DataTable, Column } from './DataTable';
 import { UserHoverCard } from './UserHoverCard';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 interface RateLimitUser {
   email: string;
@@ -130,6 +131,7 @@ export function RateLimitAbusersView() {
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
+        <PageBreadcrumbs items={[{ label: 'Rate Limit Activity' }]} />
         <Group justify="space-between" align="flex-end">
           <div>
             <Title order={2} mb="xs">Rate Limit Activity</Title>

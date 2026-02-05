@@ -24,7 +24,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
-
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function PosthogMausView() {
   // URL state management with nuqs
@@ -132,6 +132,7 @@ export function PosthogMausView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'PostHog Active Users' }]} />
       <Group justify="space-between" mb="xl" wrap="wrap">
         <div>
           <Title order={1}>PostHog Active Users</Title>

@@ -17,8 +17,9 @@ import {
   Badge,
   Tabs,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { useFilter } from '@/contexts/FilterContext';
 import { DateTime } from 'luxon';
 import { PlanDetailResponse } from '@/lib/api-types';
@@ -166,19 +167,12 @@ export default function PlanDetailPage() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/plans"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Plans
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Plans', href: '/plans' },
+          { label: `${plan.planName} (ID: ${plan.id})` },
+        ]}
+      />
       <Title order={1} mb="xl">
         {plan.planName} (ID: {plan.id})
       </Title>

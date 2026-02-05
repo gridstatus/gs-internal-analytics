@@ -21,6 +21,7 @@ import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
@@ -82,6 +83,7 @@ export function ChartsDashboardsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Charts & Dashboards' }]} />
       <Title order={1} mb="xl">Charts & Dashboards</Title>
 
       {loading ? (

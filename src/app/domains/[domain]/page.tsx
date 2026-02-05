@@ -15,13 +15,13 @@ import {
   Loader,
   Alert,
   Stack,
-  Anchor,
   Badge,
   TextInput,
   SegmentedControl,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconSearch } from '@tabler/icons-react';
+import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from '@/components/DataTable';
@@ -127,19 +127,12 @@ export default function DomainDetailPage() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/users-list"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Users
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Domains', href: '/domains' },
+          { label: data.domain },
+        ]}
+      />
       <Title order={1} mb="xl">
         {data.domain}
       </Title>

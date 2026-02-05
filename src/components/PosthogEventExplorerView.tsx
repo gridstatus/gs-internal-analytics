@@ -22,6 +22,7 @@ import { useQueryState, parseAsString, parseAsInteger } from 'nuqs';
 import { PosthogEventExplorerResponse, PosthogEventExplorerEvent } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const OTHER_GROUP = 'Other';
 
@@ -77,6 +78,7 @@ export function PosthogEventExplorerView() {
   return (
     <Container fluid py="xl">
       <Stack gap="md">
+        <PageBreadcrumbs items={[{ label: 'Event Explorer' }]} />
         <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
           <Title order={1}>PostHog Event Explorer</Title>
         </Group>

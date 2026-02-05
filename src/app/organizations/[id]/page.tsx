@@ -17,8 +17,9 @@ import {
   Badge,
   Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
+import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from '@/components/DataTable';
 import Link from 'next/link';
@@ -98,19 +99,12 @@ export default function OrganizationDetailPage() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/organizations"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Organizations
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Organizations', href: '/organizations' },
+          { label: data.organization.name },
+        ]}
+      />
       <Group justify="space-between" mb="xl">
         <Title order={1}>
           {data.organization.name}

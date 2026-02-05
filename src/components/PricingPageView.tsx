@@ -20,6 +20,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 interface PricingPageVisitCount {
   email: string;
@@ -88,6 +89,7 @@ export function PricingPageView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Pricing Page' }]} />
       <Group justify="space-between" mb="xl" wrap="wrap">
         <div>
           <Title order={1}>Pricing Page</Title>

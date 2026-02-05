@@ -20,6 +20,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
 import { DataTable, Column } from './DataTable';
 import { ErrorDisplay } from './ErrorDisplay';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function AlertsView() {
   const [search, setSearch] = useState('');
@@ -67,6 +68,7 @@ export function AlertsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Alerts' }]} />
       <Title order={1} mb="xl">Alerts</Title>
 
       {loading ? (

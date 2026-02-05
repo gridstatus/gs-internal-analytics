@@ -19,8 +19,9 @@ import {
   SegmentedControl,
   Tabs,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
+import { IconAlertCircle, IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from '@/components/DataTable';
@@ -157,20 +158,12 @@ export default function InsightDetailPage() {
 
   return (
     <Container fluid py="md">
-      {/* Compact Header */}
-      <Group mb="md">
-        <Anchor
-          component={Link}
-          href="/insights"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Insights', href: '/insights' },
+          { label: data.post.id },
+        ]}
+      />
       {/* Post Content Preview */}
       <Paper shadow="sm" p="md" radius="md" withBorder mb="md">
         <Stack gap="sm">

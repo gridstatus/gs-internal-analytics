@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { PlanListItem, PlansResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function PlansView() {
   const url = '/api/plans';
@@ -44,6 +45,7 @@ export function PlansView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Plans' }]} />
       <Title order={1} mb="xl">
         Plans
       </Title>

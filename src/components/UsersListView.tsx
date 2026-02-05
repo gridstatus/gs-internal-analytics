@@ -20,6 +20,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from './UserHoverCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function UsersListView() {
   const { timezone } = useFilter();
@@ -82,6 +83,7 @@ export function UsersListView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Users' }]} />
       <Title order={1} mb="xl">Users</Title>
 
       <TextInput

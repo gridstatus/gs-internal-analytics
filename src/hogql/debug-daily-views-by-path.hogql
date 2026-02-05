@@ -1,0 +1,13 @@
+-- Per-day view count for a single pathname (same time window each day). For "Pages with most views" debug. DATE_FILTER, SAME_TIME_OF_DAY_FILTER, PATHNAME_FILTER, USER_FILTER applied.
+SELECT
+  toStartOfDay(timestamp) AS day,
+  COUNT(*) AS views
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{SAME_TIME_OF_DAY_FILTER}}
+  AND {{PATHNAME_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY day
+ORDER BY day ASC

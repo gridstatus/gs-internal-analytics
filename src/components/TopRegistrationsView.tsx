@@ -11,13 +11,12 @@ import {
   Text,
   Group,
   Tabs,
-  Anchor,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { useFilter } from '@/contexts/FilterContext';
-import Link from 'next/link';
 import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
@@ -132,16 +131,12 @@ export function TopRegistrationsView() {
 
   return (
     <Container fluid py="xl">
-      <Anchor
-        component={Link}
-        href="/users"
-        size="sm"
-        c="dimmed"
-        style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '16px' }}
-      >
-        <IconArrowLeft size={16} />
-        Back to User Registrations
-      </Anchor>
+      <PageBreadcrumbs
+        items={[
+          { label: 'User Registrations', href: '/users' },
+          { label: 'Top Registrations' },
+        ]}
+      />
       <Title order={1} mb="xl">
         Top Registrations
       </Title>

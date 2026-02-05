@@ -11,22 +11,21 @@ import {
   Stack,
   Paper,
   Text,
-  Anchor,
   Collapse,
   Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconInfoCircle, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { IconAlertCircle, IconInfoCircle, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { useState } from 'react';
 import { DateTime } from 'luxon';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
 import { useFilter } from '@/contexts/FilterContext';
-import Link from 'next/link';
 import { CorporateTeamsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function CorporateTeamsView() {
   const [showHelp, setShowHelp] = useState(false);
@@ -104,17 +103,12 @@ export function CorporateTeamsView() {
 
   return (
     <Container fluid py="xl">
-      <Anchor
-        component={Link}
-        href="/users"
-        size="sm"
-        c="dimmed"
-        style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '16px' }}
-      >
-        <IconArrowLeft size={16} />
-        Back to User Registrations
-      </Anchor>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'User Registrations', href: '/users' },
+          { label: 'Corporate Users & Teams' },
+        ]}
+      />
       <Group justify="space-between" mb="xl">
         <Title order={1}>Corporate Users & Teams</Title>
         <ExportButton charts={chartRefs} />

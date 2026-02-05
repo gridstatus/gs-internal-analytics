@@ -12,5 +12,7 @@ export { SubscriptionsView } from './SubscriptionsView';
 export { UsersListView } from './UsersListView';
 export { UserHoverCard } from './UserHoverCard';
 export { InfoHoverIcon } from './InfoHoverIcon';
+export { PageBreadcrumbs } from './PageBreadcrumbs';
+export type { BreadcrumbItem } from './PageBreadcrumbs';
 export { DataTable } from './DataTable';
 export type { Column, DataTableProps } from './DataTable';

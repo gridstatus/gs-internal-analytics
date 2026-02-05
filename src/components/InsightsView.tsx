@@ -29,6 +29,7 @@ import { InsightsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function InsightsView() {
   const [search, setSearch] = useState('');
@@ -220,6 +221,7 @@ export function InsightsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Insights' }]} />
       <Group justify="space-between" mb="xl">
         <Title order={1}>Insights</Title>
         <Group>

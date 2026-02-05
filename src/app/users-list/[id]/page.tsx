@@ -23,8 +23,9 @@ import {
 } from '@mantine/core';
 import { CompositeChart } from '@mantine/charts';
 import { DateTime } from 'luxon';
-import { IconAlertCircle, IconArrowLeft, IconExternalLink } from '@tabler/icons-react';
+import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
 import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
 import { useFilter } from '@/contexts/FilterContext';
@@ -278,19 +279,12 @@ export default function UserDetailPage() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/users-list"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Users
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Users', href: '/users-list' },
+          { label: data.user.username },
+        ]}
+      />
       <Group justify="space-between" mb="xl">
         <Stack gap={4}>
           <Title order={1}>

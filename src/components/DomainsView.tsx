@@ -21,6 +21,7 @@ import { ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { DataTable, Column } from './DataTable';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
@@ -82,6 +83,7 @@ export function DomainsView() {
 
   return (
     <Container fluid py="xl">
+      <PageBreadcrumbs items={[{ label: 'Domains' }]} />
       <Title order={1} mb="xl">Domains</Title>
 
       {loading ? (

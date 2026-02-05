@@ -13,11 +13,10 @@ import {
   Badge,
   SegmentedControl,
 } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconThumbUp, IconEye, IconBookmark } from '@tabler/icons-react';
+import { IconAlertCircle, IconThumbUp, IconEye, IconBookmark } from '@tabler/icons-react';
 import { UserHoverCard } from './UserHoverCard';
-import { Anchor } from '@mantine/core';
 import { useFilter } from '@/contexts/FilterContext';
-import Link from 'next/link';
+import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
@@ -155,19 +154,12 @@ export function MostEngagedUsersView() {
 
   return (
     <Container fluid py="xl">
-      <Group mb="xl">
-        <Anchor
-          component={Link}
-          href="/insights"
-          size="sm"
-          c="dimmed"
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <IconArrowLeft size={16} />
-          Back to Insights
-        </Anchor>
-      </Group>
-
+      <PageBreadcrumbs
+        items={[
+          { label: 'Insights', href: '/insights' },
+          { label: 'Most Engaged Users' },
+        ]}
+      />
       <Group justify="space-between" mb="xl" wrap="wrap">
         <Title order={1}>Most Engaged Users</Title>
         <SegmentedControl
