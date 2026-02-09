@@ -120,6 +120,7 @@ export interface UsersResponse {
   last30DaysUsers?: {
     last30Days: number;
     previous30Days: number;
+    last30DaysSameTime1YearAgo: number;
   };
   totalUsers?: number;
   topDomains?: {

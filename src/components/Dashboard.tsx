@@ -182,46 +182,6 @@ export function Dashboard() {
       <PageBreadcrumbs items={[{ label: 'Home' }]} />
       <Title order={1} mb="xl">User Analytics Dashboard</Title>
 
-      {/* Activity Breakdown */}
-      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
-        <Text fw={600} size="lg" mb="md">
-          Activity Breakdown
-        </Text>
-        <Stack gap="lg">
-          <div>
-            <Group justify="space-between" mb="xs">
-              <Text size="sm">24 Hours</Text>
-              <Text size="sm" c="dimmed">{activeUsersData.active24h.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct24h}%)</Text>
-            </Group>
-            <Progress value={pct24h} size="lg" color="green" />
-          </div>
-          <div>
-            <Group justify="space-between" mb="xs">
-              <Text size="sm">7 Days</Text>
-              <Text size="sm" c="dimmed">{activeUsersData.active7d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct7d}%)</Text>
-            </Group>
-            <Progress value={pct7d} size="lg" color="teal" />
-          </div>
-          <div>
-            <Group justify="space-between" mb="xs">
-              <Text size="sm">30 Days</Text>
-              <Text size="sm" c="dimmed">{activeUsersData.active30d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct30d}%)</Text>
-            </Group>
-            <Progress value={pct30d} size="lg" color="blue" />
-          </div>
-          <div>
-            <Group justify="space-between" mb="xs">
-              <Text size="sm">90 Days</Text>
-              <Text size="sm" c="dimmed">{activeUsersData.active90d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct90d}%)</Text>
-            </Group>
-            <Progress value={pct90d} size="lg" color="violet" />
-          </div>
-        </Stack>
-        <Text size="xs" c="dimmed" mt="md">
-          Based on last_active_at timestamp. Total registered users: {activeUsersData.totalUsers.toLocaleString()}
-        </Text>
-      </Paper>
-
       {/* Activity Feed - TweetDeck Style */}
       <Stack gap="md">
         <Group justify="space-between" wrap="wrap">
@@ -363,6 +323,46 @@ export function Dashboard() {
           })}
         </SimpleGrid>
       </Stack>
+
+      {/* Activity Breakdown */}
+      <Paper shadow="sm" p="md" radius="md" withBorder mb="xl" mt="xl">
+        <Text fw={600} size="lg" mb="md">
+          Activity Breakdown
+        </Text>
+        <Stack gap="lg">
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">24 Hours</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active24h.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct24h}%)</Text>
+            </Group>
+            <Progress value={pct24h} size="lg" color="green" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">7 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active7d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct7d}%)</Text>
+            </Group>
+            <Progress value={pct7d} size="lg" color="teal" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">30 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active30d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct30d}%)</Text>
+            </Group>
+            <Progress value={pct30d} size="lg" color="blue" />
+          </div>
+          <div>
+            <Group justify="space-between" mb="xs">
+              <Text size="sm">90 Days</Text>
+              <Text size="sm" c="dimmed">{activeUsersData.active90d.toLocaleString()} / {activeUsersData.totalUsers.toLocaleString()} ({pct90d}%)</Text>
+            </Group>
+            <Progress value={pct90d} size="lg" color="violet" />
+          </div>
+        </Stack>
+        <Text size="xs" c="dimmed" mt="md">
+          Based on last_active_at timestamp. Total registered users: {activeUsersData.totalUsers.toLocaleString()}
+        </Text>
+      </Paper>
     </Container>
   );
 }

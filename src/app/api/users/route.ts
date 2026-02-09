@@ -208,6 +208,7 @@ export async function GET(request: Request) {
       last30DaysUsers: {
         last30Days: Number(last30DaysUsers[0]?.last_30_days || 0),
         previous30Days: Number(last30DaysUsers[0]?.previous_30_days || 0),
+        last30DaysSameTime1YearAgo: Number(last30DaysUsers[0]?.last_30_days_same_time_1_year_ago || 0),
       },
       totalUsers: Number(totalUsersCount[0]?.total_users || 0),
       topDomains: {

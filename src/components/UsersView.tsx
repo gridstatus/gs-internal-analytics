@@ -129,6 +129,7 @@ export function UsersView() {
         const todayDateLabel = DateTime.now().setZone(timezone).toLocaleString(DateTime.DATE_MED);
         const last30Days = data.last30DaysUsers?.last30Days ?? 0;
         const previous30Days = data.last30DaysUsers?.previous30Days ?? 0;
+        const last30DaysSameTime1YearAgo = data.last30DaysUsers?.last30DaysSameTime1YearAgo ?? 0;
 
         return (
           <>
@@ -141,40 +142,40 @@ export function UsersView() {
             <SimpleGrid cols={2} spacing="xs">
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
-                  vs Yesterday (all day): {data.usersToday.yesterdayAll.toLocaleString()}
-                  {data.usersToday.yesterdayAll > 0 && (
-                    <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
-                      {' '}({data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100).toLocaleString()}%)
+                  Yesterday (same time): {data.usersToday.yesterdaySameTime.toLocaleString()}
+                  {data.usersToday.yesterdaySameTime > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
+                      {' '}{data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100).toLocaleString()}%
                     </Text>
                   )}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  vs Yesterday (same time): {data.usersToday.yesterdaySameTime.toLocaleString()}
-                  {data.usersToday.yesterdaySameTime > 0 && (
-                    <Text span c={data.usersToday.today >= data.usersToday.yesterdaySameTime ? 'green' : 'red'}>
-                      {' '}({data.usersToday.today >= data.usersToday.yesterdaySameTime ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.yesterdaySameTime) / data.usersToday.yesterdaySameTime) * 100).toLocaleString()}%)
+                  Yesterday (all day): {data.usersToday.yesterdayAll.toLocaleString()}
+                  {data.usersToday.yesterdayAll > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.yesterdayAll ? 'green' : 'red'}>
+                      {' '}{data.usersToday.today >= data.usersToday.yesterdayAll ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.yesterdayAll) / data.usersToday.yesterdayAll) * 100).toLocaleString()}%
                     </Text>
                   )}
                 </Text>
               </Stack>
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
-                  vs Last Week (all day): {data.usersToday.lastWeekAll.toLocaleString()}
-                  {data.usersToday.lastWeekAll > 0 && (
-                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
-                      {' '}({data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100).toLocaleString()}%)
+                  Last Week (same time): {data.usersToday.lastWeekSameTime.toLocaleString()}
+                  {data.usersToday.lastWeekSameTime > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
+                      {' '}{data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100).toLocaleString()}%
                     </Text>
                   )}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  vs Last Week (same time): {data.usersToday.lastWeekSameTime.toLocaleString()}
-                  {data.usersToday.lastWeekSameTime > 0 && (
-                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekSameTime ? 'green' : 'red'}>
-                      {' '}({data.usersToday.today >= data.usersToday.lastWeekSameTime ? '+' : ''}
-                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekSameTime) / data.usersToday.lastWeekSameTime) * 100).toLocaleString()}%)
+                  Last Week (all day): {data.usersToday.lastWeekAll.toLocaleString()}
+                  {data.usersToday.lastWeekAll > 0 && (
+                    <Text span c={data.usersToday.today >= data.usersToday.lastWeekAll ? 'green' : 'red'}>
+                      {' '}{data.usersToday.today >= data.usersToday.lastWeekAll ? '+' : ''}
+                      {Math.round(((data.usersToday.today - data.usersToday.lastWeekAll) / data.usersToday.lastWeekAll) * 100).toLocaleString()}%
                     </Text>
                   )}
                 </Text>
@@ -191,40 +192,40 @@ export function UsersView() {
                 <SimpleGrid cols={2} spacing="xs">
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">
-                      vs Last Month (all month): {data.monthlyNewUsers.previousMonthAll.toLocaleString()}
-                      {data.monthlyNewUsers.previousMonthAll > 0 && (
-                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
-                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100).toLocaleString()}%)
+                      Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime.toLocaleString()}
+                      {data.monthlyNewUsers.previousMonthSameTime > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
+                          {' '}{data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100).toLocaleString()}%
                         </Text>
                       )}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      vs Last Month (same time): {data.monthlyNewUsers.previousMonthSameTime.toLocaleString()}
-                      {data.monthlyNewUsers.previousMonthSameTime > 0 && (
-                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? 'green' : 'red'}>
-                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthSameTime ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthSameTime) / data.monthlyNewUsers.previousMonthSameTime) * 100).toLocaleString()}%)
+                      Last Month (all month): {data.monthlyNewUsers.previousMonthAll.toLocaleString()}
+                      {data.monthlyNewUsers.previousMonthAll > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? 'green' : 'red'}>
+                          {' '}{data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.previousMonthAll ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.previousMonthAll) / data.monthlyNewUsers.previousMonthAll) * 100).toLocaleString()}%
                         </Text>
                       )}
                     </Text>
                   </Stack>
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">
-                      vs {lastYearMonthLabel} (all month): {data.monthlyNewUsers.lastYearMonthAll.toLocaleString()}
-                      {data.monthlyNewUsers.lastYearMonthAll > 0 && (
-                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? 'green' : 'red'}>
-                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthAll) / data.monthlyNewUsers.lastYearMonthAll) * 100).toLocaleString()}%)
+                      {lastYearMonthLabel} (same time): {data.monthlyNewUsers.lastYearMonthSameTime.toLocaleString()}
+                      {data.monthlyNewUsers.lastYearMonthSameTime > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? 'green' : 'red'}>
+                          {' '}{data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthSameTime) / data.monthlyNewUsers.lastYearMonthSameTime) * 100).toLocaleString()}%
                         </Text>
                       )}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      vs {lastYearMonthLabel} (same time): {data.monthlyNewUsers.lastYearMonthSameTime.toLocaleString()}
-                      {data.monthlyNewUsers.lastYearMonthSameTime > 0 && (
-                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? 'green' : 'red'}>
-                          {' '}({data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthSameTime ? '+' : ''}
-                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthSameTime) / data.monthlyNewUsers.lastYearMonthSameTime) * 100).toLocaleString()}%)
+                      {lastYearMonthLabel} (all month): {data.monthlyNewUsers.lastYearMonthAll.toLocaleString()}
+                      {data.monthlyNewUsers.lastYearMonthAll > 0 && (
+                        <Text span c={data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? 'green' : 'red'}>
+                          {' '}{data.monthlyNewUsers.currentMonth >= data.monthlyNewUsers.lastYearMonthAll ? '+' : ''}
+                          {Math.round(((data.monthlyNewUsers.currentMonth - data.monthlyNewUsers.lastYearMonthAll) / data.monthlyNewUsers.lastYearMonthAll) * 100).toLocaleString()}%
                         </Text>
                       )}
                     </Text>
@@ -240,19 +241,33 @@ export function UsersView() {
           title="New Users - Last 30 days"
           value={last30Days.toLocaleString()}
           subtitle={
-            previous30Days > 0 ? (
-              <Text size="xs" c="dimmed">
-                vs Previous 30 days: {previous30Days.toLocaleString()}
-                <Text span c={last30Days >= previous30Days ? 'green' : 'red'} ml="xs">
-                  ({last30Days >= previous30Days ? '+' : ''}
-                  {Math.round(((last30Days - previous30Days) / previous30Days) * 100).toLocaleString()}%)
+            <Stack gap={2}>
+              {previous30Days > 0 && (
+                <Text size="xs" c="dimmed">
+                  Previous 30 days: {previous30Days.toLocaleString()}
+                  <Text span c={last30Days >= previous30Days ? 'green' : 'red'} ml="xs">
+                    {last30Days >= previous30Days ? '+' : ''}
+                    {Math.round(((last30Days - previous30Days) / previous30Days) * 100).toLocaleString()}%
+                  </Text>
                 </Text>
-              </Text>
-            ) : (
-              <Text size="xs" c="dimmed">
-                Last 30 days
-              </Text>
-            )
+              )}
+              {last30DaysSameTime1YearAgo >= 0 && (
+                <Text size="xs" c="dimmed">
+                  Same time 1 year ago: {last30DaysSameTime1YearAgo.toLocaleString()}
+                  {last30DaysSameTime1YearAgo > 0 && (
+                    <Text span c={last30Days >= last30DaysSameTime1YearAgo ? 'green' : 'red'} ml="xs">
+                      {last30Days >= last30DaysSameTime1YearAgo ? '+' : ''}
+                      {Math.round(((last30Days - last30DaysSameTime1YearAgo) / last30DaysSameTime1YearAgo) * 100).toLocaleString()}%
+                    </Text>
+                  )}
+                </Text>
+              )}
+              {previous30Days <= 0 && last30DaysSameTime1YearAgo < 0 && (
+                <Text size="xs" c="dimmed">
+                  Last 30 days
+                </Text>
+              )}
+            </Stack>
           }
         />
       </SimpleGrid>

@@ -936,6 +936,7 @@ export async function getMonthlyNewUsersComparison(): Promise<MonthlyNewUsers[]>
 export interface Last30DaysUsers {
   last_30_days: string;
   previous_30_days: string;
+  last_30_days_same_time_1_year_ago: string;
 }
 
 export interface TotalUsersCount {
