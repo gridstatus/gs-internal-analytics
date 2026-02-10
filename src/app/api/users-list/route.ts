@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
-import { loadSql, renderSqlTemplate } from '@/lib/queries';
+import { loadSql, renderSqlTemplate, getSubscriptionsByUserId, toSubscriptionListItem } from '@/lib/queries';
 import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -167,6 +167,10 @@ export async function GET(request: Request) {
         view_sources: string;
       }>(viewsSql, [id]);
 
+      // Get subscriptions for this user
+      const subscriptionRows = await getSubscriptionsByUserId(id);
+      const subscriptions = subscriptionRows.map(toSubscriptionListItem);
+
       return NextResponse.json({
         user: {
           id: user.id,
@@ -249,6 +253,7 @@ export async function GET(request: Request) {
             viewSources: v.view_sources,
           })),
         },
+        subscriptions,
       });
     }
 

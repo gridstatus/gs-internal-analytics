@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
-import { renderSqlTemplate } from '@/lib/queries';
+import { renderSqlTemplate, getSubscriptionsByOrganizationId, toSubscriptionListItem } from '@/lib/queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -106,6 +106,9 @@ export async function GET(request: Request) {
         LIMIT 100
       `, [id]);
 
+      const subscriptionRows = await getSubscriptionsByOrganizationId(id);
+      const subscriptions = subscriptionRows.map(toSubscriptionListItem);
+
       return NextResponse.json({
         organization: {
           id: org.id,
@@ -139,6 +142,7 @@ export async function GET(request: Request) {
           newUsers7d: Number(stats[0]?.new_users_7d || 0),
           activeUsers7d: Number(stats[0]?.active_users_7d || 0),
         },
+        subscriptions,
       });
     }
 

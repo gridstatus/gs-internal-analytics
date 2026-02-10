@@ -24,6 +24,7 @@ import {
 import { CompositeChart } from '@mantine/charts';
 import { DateTime } from 'luxon';
 import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
+import type { SubscriptionListRowItem } from '@/lib/api-types';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
@@ -127,6 +128,7 @@ interface UserDetails {
     saved: InsightSaved[];
     views: InsightView[];
   };
+  subscriptions: SubscriptionListRowItem[];
 }
 
 interface ApiUsageData {
@@ -378,8 +380,18 @@ export default function UserDetailPage() {
                 <Text size="sm" fw={500}>{data.user.id}</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Username</Text>
-                <Text size="sm" fw={500}>{data.user.username}</Text>
+                <Text size="sm" c="dimmed">Subscriptions</Text>
+                {(data.subscriptions ?? []).length > 0 ? (
+                  <Stack gap={2} align="flex-end">
+                    {data.subscriptions.map((sub) => (
+                      <Anchor key={sub.id} component={Link} href={`/subscriptions/${sub.id}`} size="sm">
+                        #{sub.id} – {sub.planName ?? 'Unknown plan'} ({sub.status})
+                      </Anchor>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text size="sm" c="dimmed">None</Text>
+                )}
               </Group>
               {data.user.username.includes('@') && (
                 <Group justify="space-between">
@@ -393,12 +405,6 @@ export default function UserDetailPage() {
                   </Anchor>
                 </Group>
               )}
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">Name</Text>
-                <Text size="sm" fw={500}>
-                  {data.user.firstName} {data.user.lastName}
-                </Text>
-              </Group>
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">Created</Text>
                 <Text size="sm">{new Date(data.user.createdAt).toLocaleDateString()}</Text>

@@ -1090,6 +1090,24 @@ export async function getSubscriptionsByPlanId(planId: number): Promise<PlanSubs
   return query<PlanSubscriptionRow>(sql, [planId]);
 }
 
+export async function getSubscriptionsByOrganizationId(
+  organizationId: string
+): Promise<SubscriptionListRow[]> {
+  const sql = renderSqlTemplate('subscription-filter.sql', {
+    subscription_filter: 's.organization_id = $1',
+  });
+  return query<SubscriptionListRow>(sql, [organizationId]);
+}
+
+export async function getSubscriptionsByUserId(
+  userId: number | string
+): Promise<SubscriptionListRow[]> {
+  const sql = renderSqlTemplate('subscription-filter.sql', {
+    subscription_filter: 's.user_id = $1',
+  });
+  return query<SubscriptionListRow>(sql, [userId]);
+}
+
 export interface SubscriptionListRow {
   id: number;
   user_id: number | null;
@@ -1104,6 +1122,34 @@ export interface SubscriptionListRow {
   current_billing_period_start: Date;
   current_billing_period_end: Date | null;
   created_at: Date | null;
+}
+
+/** Map a SubscriptionListRow to a JSON-safe camelCase object. Shared by all routes that return subscription lists. */
+export function toSubscriptionListItem(row: SubscriptionListRow) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    planId: row.plan_id,
+    planName: row.plan_name,
+    startDate: row.start_date instanceof Date ? row.start_date.toISOString() : String(row.start_date),
+    status: row.status,
+    organizationId: row.organization_id,
+    organizationName: row.organization_name,
+    stripeSubscriptionId: row.stripe_subscription_id,
+    currentBillingPeriodStart:
+      row.current_billing_period_start instanceof Date
+        ? row.current_billing_period_start.toISOString()
+        : String(row.current_billing_period_start),
+    currentBillingPeriodEnd:
+      row.current_billing_period_end instanceof Date
+        ? row.current_billing_period_end.toISOString()
+        : row.current_billing_period_end != null
+          ? String(row.current_billing_period_end)
+          : null,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at != null ? String(row.created_at) : null,
+  };
 }
 
 export async function getSubscriptionsList(): Promise<SubscriptionListRow[]> {

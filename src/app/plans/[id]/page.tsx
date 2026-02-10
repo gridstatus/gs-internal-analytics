@@ -28,8 +28,10 @@ import { DataTable, Column } from '@/components/DataTable';
 import type { SubscriptionListItem } from '@/lib/api-types';
 
 function formatLimit(value: number | null): string {
-  if (value === null) return '—';
-  return value.toLocaleString();
+  if (value == null) return '—';
+  const num = typeof value === 'number' ? value : Number(value);
+  if (Number.isNaN(num)) return String(value);
+  return num.toLocaleString();
 }
 
 export default function PlanDetailPage() {
