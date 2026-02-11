@@ -13,7 +13,7 @@ interface AppContainerProps {
  */
 export function AppContainer({ children }: AppContainerProps) {
   return (
-    <Container fluid pt="md" pb="xl">
+    <Container fluid pt="0" pb="xl" px="0">
       {children}
     </Container>
   );
