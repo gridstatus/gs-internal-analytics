@@ -94,17 +94,22 @@ PostHog is used to track user activity and provides data for anonymous users (no
 
 
 ### Page Pattern
-Each analytics page follows this pattern. API paths: overview `src/app/api/[name]/route.ts`, instance `src/app/api/[name]/[id]/route.ts`. Use typed query functions from `src/lib/queries.ts` and `loadSql(..., context)` when filtering by domain.
+Each analytics page follows this pattern. API paths: overview `src/app/api/[name]/route.ts`, instance `src/app/api/[name]/[id]/route.ts`. Use typed query functions from `src/lib/queries/` and `loadSql(..., context)` when filtering by domain.
 
 1. SQL file in `src/sql/[name].sql` (one query per file)
-2. Typed query function in `src/lib/queries.ts`
+2. Typed query function in `src/lib/queries/[domain].ts`
 3. API route in `src/app/api/[name]/route.ts` or `[name]/[id]/route.ts`
 4. View component in `src/components/[Name]View.tsx`
 5. Page in `src/app/[name]/page.tsx`
 6. Sidebar entry in `src/components/AppLayout.tsx`
 7. `PageBreadcrumbs` at the top of every page: one item on list pages; on detail pages, parent (with `href`) then current. Do not use "Back" links.
 
-**Example files:** `src/sql/top-registrations.sql`, `src/lib/queries.ts` (getTopRegistrations), `src/app/api/alerts/route.ts`, `src/components/AlertsView.tsx`
+**Example files:** `src/sql/top-registrations.sql`, `src/lib/queries/users.ts` (getTopRegistrations), `src/app/api/alerts/route.ts`, `src/components/AlertsView.tsx`
+
+### Query Module Organization
+Typed query functions live in `src/lib/queries/` — one file per domain (`users.ts`, `insights.ts`, `datasets.ts`, `domains.ts`, `posthog.ts`, `plans.ts`, `subscriptions.ts`). Shared infrastructure (template loading, `FREE_EMAIL_DOMAINS`) is in `core.ts`. A barrel `index.ts` re-exports everything so imports stay `@/lib/queries`.
+
+**When adding a new query**: put it in the existing domain file that matches (e.g. a new user metric goes in `users.ts`). Only create a new domain file if the query belongs to a genuinely new domain with 3+ planned functions.
 
 **Important - Clean Up Dead Code**: When refactoring code, queries, or components, always delete unused functions, SQL files, and imports. Search the codebase to verify nothing references the code before deleting. Dead code increases maintenance burden and causes confusion.
 
