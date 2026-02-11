@@ -13,6 +13,8 @@ export interface PlanSubscriptionRow {
   stripe_subscription_id: string | null;
   current_billing_period_start: Date;
   current_billing_period_end: Date | null;
+  cancel_at_period_end: boolean | null;
+  enforce_api_usage_limit: boolean;
   created_at: Date | null;
 }
 
@@ -34,6 +36,7 @@ export interface SubscriptionListRow {
   stripe_subscription_id: string | null;
   current_billing_period_start: Date;
   current_billing_period_end: Date | null;
+  cancel_at_period_end: boolean | null;
   enforce_api_usage_limit: boolean;
   created_at: Date | null;
 }
@@ -75,6 +78,7 @@ export function toSubscriptionListItem(row: SubscriptionListRow) {
         : row.current_billing_period_end != null
           ? String(row.current_billing_period_end)
           : null,
+    cancelAtPeriodEnd: row.cancel_at_period_end ?? null,
     enforceApiUsageLimit: row.enforce_api_usage_limit,
     createdAt:
       row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at != null ? String(row.created_at) : null,

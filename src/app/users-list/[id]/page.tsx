@@ -109,6 +109,7 @@ interface AlertLog {
 interface UserDetails {
   user: User;
   organizations: Organization[];
+  firstPercentile: number | null;
   stats: {
     chartCount: number;
     dashboardCount: number;
@@ -407,6 +408,12 @@ export default function UserDetailPage() {
                 <Text size="sm" c="dimmed">Created</Text>
                 <Text size="sm">{new Date(data.user.createdAt).toLocaleDateString()}</Text>
               </Group>
+              {data.firstPercentile != null && (
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Cohort</Text>
+                  <Text size="sm" fw={500}>First {data.firstPercentile}% of users</Text>
+                </Group>
+              )}
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">Last Active</Text>
                 <Text size="sm">

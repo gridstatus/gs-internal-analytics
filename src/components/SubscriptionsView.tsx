@@ -35,6 +35,10 @@ export function SubscriptionsView() {
   const [planFilter, setPlanFilter] = useQueryState('plan', parseAsArrayOf(parseAsString).withDefault([]));
   const [enforceFilter, setEnforceFilter] = useQueryState('enforce', parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes'));
   const [stripeFilter, setStripeFilter] = useQueryState('stripe', parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes'));
+  const [cancelAtPeriodEndFilter, setCancelAtPeriodEndFilter] = useQueryState(
+    'cancelAtPeriodEnd',
+    parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes')
+  );
 
   // Default status filter: all except canceled (only on first load with no URL param)
   const didSetDefault = useRef(false);
@@ -51,24 +55,21 @@ export function SubscriptionsView() {
 
   // Build filter options from data
   const { statusOptions, planOptions } = useMemo(() => {
-    const statusMap = new Map<string, number>();
-    const planMap = new Map<string, number>();
+    const statusSet = new Set<string>();
+    const planSet = new Set<string>();
 
     for (const s of subscriptions) {
-      const status = s.status || '—';
-      statusMap.set(status, (statusMap.get(status) || 0) + 1);
-
-      const plan = s.planName || '—';
-      planMap.set(plan, (planMap.get(plan) || 0) + 1);
+      statusSet.add(s.status || '—');
+      planSet.add(s.planName || '—');
     }
 
-    const statusOpts = Array.from(statusMap.keys())
+    const statusOpts = Array.from(statusSet)
       .sort((a, b) => a.localeCompare(b))
-      .map((s) => ({ value: s, label: `${s} (${statusMap.get(s)})` }));
+      .map((s) => ({ value: s, label: s }));
 
-    const planOpts = Array.from(planMap.keys())
+    const planOpts = Array.from(planSet)
       .sort((a, b) => a.localeCompare(b))
-      .map((p) => ({ value: p, label: `${p} (${planMap.get(p)})` }));
+      .map((p) => ({ value: p, label: p }));
 
     return {
       statusOptions: statusOpts,
@@ -95,8 +96,13 @@ export function SubscriptionsView() {
     } else if (stripeFilter === 'no') {
       result = result.filter((s) => !s.stripeSubscriptionId);
     }
+    if (cancelAtPeriodEndFilter === 'yes') {
+      result = result.filter((s) => s.cancelAtPeriodEnd === true);
+    } else if (cancelAtPeriodEndFilter === 'no') {
+      result = result.filter((s) => s.cancelAtPeriodEnd !== true);
+    }
     return result;
-  }, [subscriptions, statusFilter, planFilter, enforceFilter, stripeFilter]);
+  }, [subscriptions, statusFilter, planFilter, enforceFilter, stripeFilter, cancelAtPeriodEndFilter]);
 
   const columns: Column<SubscriptionListItem>[] = [
     {
@@ -168,6 +174,13 @@ export function SubscriptionsView() {
       sortValue: (row) => (row.enforceApiUsageLimit ? 1 : 0),
     },
     {
+      id: 'cancelAtPeriodEnd',
+      header: 'Cancel at period end',
+      align: 'center',
+      render: (row) => (row.cancelAtPeriodEnd === true ? '✓' : '—'),
+      sortValue: (row) => (row.cancelAtPeriodEnd === true ? 1 : 0),
+    },
+    {
       id: 'billingPeriod',
       header: 'Billing period',
       align: 'left',
@@ -205,9 +218,7 @@ export function SubscriptionsView() {
                 value={statusFilter}
                 onChange={setStatusFilter}
                 clearable
-                hidePickedOptions
                 w={300}
-                pillsListStyle={{ maxHeight: 70, overflowY: 'auto' }}
               />
               <CustomMultiSelect
                 label="Plan"
@@ -216,8 +227,7 @@ export function SubscriptionsView() {
                 value={planFilter}
                 onChange={setPlanFilter}
                 clearable
-                singleLine
-                w={340}
+                w={300}
               />
               <Select
                 label="Enforce limit"
@@ -243,7 +253,19 @@ export function SubscriptionsView() {
                 clearable
                 w={140}
               />
-              {(statusFilter.length > 0 || planFilter.length > 0 || enforceFilter != null || stripeFilter != null) && (
+              <Select
+                label="Cancel at period end"
+                placeholder="All"
+                data={[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ]}
+                value={cancelAtPeriodEndFilter}
+                onChange={(v) => setCancelAtPeriodEndFilter(v as 'yes' | 'no' | null)}
+                clearable
+                w={180}
+              />
+              {(statusFilter.length > 0 || planFilter.length > 0 || enforceFilter != null || stripeFilter != null || cancelAtPeriodEndFilter != null) && (
                 <Text size="sm" c="dimmed">
                   {filtered.length.toLocaleString()} of {subscriptions.length.toLocaleString()} subscriptions
                 </Text>

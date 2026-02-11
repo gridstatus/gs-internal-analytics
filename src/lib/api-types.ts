@@ -343,6 +343,7 @@ export interface SubscriptionListItem {
   stripeSubscriptionId: string | null;
   currentBillingPeriodStart: string;
   currentBillingPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean | null;
   enforceApiUsageLimit: boolean;
   createdAt: string | null;
 }

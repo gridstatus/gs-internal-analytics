@@ -12,6 +12,8 @@ SELECT
   s.stripe_subscription_id,
   s.current_billing_period_start,
   s.current_billing_period_end,
+  s.cancel_at_period_end,
+  s.enforce_api_usage_limit,
   s.created_at
 FROM api_server.subscriptions s
 LEFT JOIN api_server.users u ON u.id = s.user_id

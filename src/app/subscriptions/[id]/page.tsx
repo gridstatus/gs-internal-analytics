@@ -41,6 +41,7 @@ import {
 } from '@/lib/api-types';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { InfoHoverIcon } from '@/components/InfoHoverIcon';
+import { StripeSubscriptionId } from '@/components/StripeSubscriptionId';
 
 
 function formatOverride(value: number | null): string {
@@ -416,7 +417,9 @@ export default function SubscriptionDetailPage() {
             </Table.Tr>
             <Table.Tr>
               <Table.Td fw={600}>Stripe subscription</Table.Td>
-              <Table.Td>{subRow.stripeSubscriptionId ?? '—'}</Table.Td>
+              <Table.Td>
+                <StripeSubscriptionId id={subRow.stripeSubscriptionId} />
+              </Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td fw={600}>Created</Table.Td>

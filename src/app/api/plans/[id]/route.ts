@@ -27,6 +27,7 @@ function mapSubscriptionToListItem(row: Awaited<ReturnType<typeof getSubscriptio
     userId: row.user_id,
     username: row.username,
     planId: row.plan_id,
+    planName: null as string | null,
     startDate: row.start_date instanceof Date ? row.start_date.toISOString() : String(row.start_date),
     status: row.status,
     organizationId: row.organization_id,
@@ -42,6 +43,8 @@ function mapSubscriptionToListItem(row: Awaited<ReturnType<typeof getSubscriptio
         : row.current_billing_period_end != null
           ? String(row.current_billing_period_end)
           : null,
+    cancelAtPeriodEnd: row.cancel_at_period_end ?? null,
+    enforceApiUsageLimit: row.enforce_api_usage_limit,
     createdAt:
       row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at != null ? String(row.created_at) : null,
   };

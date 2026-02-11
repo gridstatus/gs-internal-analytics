@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Checkbox, Box, Text, Pill, Group, UnstyledButton } from '@mantine/core';
+import { Menu, Checkbox, Box, Text, UnstyledButton } from '@mantine/core';
 import { IconChevronDown } from '@tabler/icons-react';
 
 export interface CustomMultiSelectOption {
@@ -16,13 +16,7 @@ interface CustomMultiSelectProps {
   value: string[];
   onChange: (value: string[]) => void;
   clearable?: boolean;
-  /** When true, only show options that are not already selected in the dropdown list */
-  hidePickedOptions?: boolean;
-  /** When true, show "N selected" when more than one selected so the trigger stays on one row */
-  singleLine?: boolean;
   w?: number;
-  /** Optional styles for the pills container (e.g. maxHeight, overflowY) */
-  pillsListStyle?: React.CSSProperties;
 }
 
 export function CustomMultiSelect({
@@ -32,17 +26,11 @@ export function CustomMultiSelect({
   value,
   onChange,
   clearable = true,
-  hidePickedOptions = false,
-  singleLine = false,
   w = 300,
-  pillsListStyle,
 }: CustomMultiSelectProps) {
   const [opened, setOpened] = useState(false);
 
   const selectedSet = new Set(value);
-  const optionsToShow = hidePickedOptions
-    ? data.filter((opt) => !selectedSet.has(opt.value))
-    : data;
 
   const toggleOption = (optValue: string) => {
     if (selectedSet.has(optValue)) {
@@ -56,30 +44,17 @@ export function CustomMultiSelect({
     .map((v) => data.find((d) => d.value === v)?.label ?? v)
     .filter(Boolean);
 
-  const pillsMaxHeight = pillsListStyle?.maxHeight ?? 70;
-  const pillsOverflow = pillsListStyle?.overflowY ?? 'auto';
-
   const triggerContent =
     value.length === 0 ? (
       <Text size="sm" c="dimmed">
         {placeholder}
       </Text>
-    ) : singleLine ? (
-      <Text size="sm" truncate>
-        {value.length > 1 ? `${value.length} selected` : selectedLabels[0]}
-      </Text>
     ) : (
-      selectedLabels.map((labelText, i) => (
-        <Pill
-          key={value[i]}
-          size="sm"
-          withRemoveButton
-          onRemove={() => onChange(value.filter((_, j) => j !== i))}
-          styles={{ root: { maxWidth: '100%' } }}
-        >
-          {labelText}
-        </Pill>
-      ))
+      <Text size="sm" truncate>
+        {value.length > 1
+          ? `${selectedLabels[0]} (+${value.length - 1} more)`
+          : selectedLabels[0]}
+      </Text>
     );
 
   return (
@@ -119,13 +94,8 @@ export function CustomMultiSelect({
               style={{
                 flex: 1,
                 minWidth: 0,
-                maxHeight: singleLine ? undefined : pillsMaxHeight,
-                overflowY: singleLine ? undefined : pillsOverflow,
-                overflowX: 'hidden',
+                overflow: 'hidden',
                 display: 'flex',
-                flexWrap: singleLine ? 'nowrap' : 'wrap',
-                gap: 6,
-                alignContent: 'flex-start',
                 alignItems: 'center',
               }}
             >
@@ -153,25 +123,25 @@ export function CustomMultiSelect({
               </Text>
             </Menu.Item>
           )}
-          {optionsToShow.length === 0 ? (
+          {data.length === 0 ? (
             <Box py="xs" px="sm">
               <Text size="sm" c="dimmed">
-                {hidePickedOptions ? 'All options selected' : 'No options'}
+                No options
               </Text>
             </Box>
           ) : (
-            optionsToShow.map((opt) => (
+            data.map((opt) => (
               <Menu.Item
                 key={opt.value}
                 closeMenuOnClick={false}
-                onClick={(e) => e.preventDefault()}
+                onClick={() => toggleOption(opt.value)}
               >
                 <Checkbox
                   checked={selectedSet.has(opt.value)}
-                  onChange={() => toggleOption(opt.value)}
                   label={opt.label}
                   size="sm"
-                  onClick={(e) => e.stopPropagation()}
+                  readOnly
+                  style={{ pointerEvents: 'none' }}
                 />
               </Menu.Item>
             ))

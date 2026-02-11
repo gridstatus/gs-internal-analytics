@@ -171,6 +171,17 @@ export async function GET(request: Request) {
       const subscriptionRows = await getSubscriptionsByUserId(id);
       const subscriptions = subscriptionRows.map(toSubscriptionListItem);
 
+      // First X% of users by created_at
+      const percentileResult = await query<{ users_at_or_before: number; total_users: number }>(
+        loadSql('user-percentile.sql'),
+        [id]
+      );
+      const p = percentileResult[0];
+      const firstPercentile =
+        p && p.total_users > 0
+          ? Math.round((p.users_at_or_before / p.total_users) * 1000) / 10
+          : null;
+
       return NextResponse.json({
         user: {
           id: user.id,
@@ -254,6 +265,7 @@ export async function GET(request: Request) {
           })),
         },
         subscriptions,
+        firstPercentile,
       });
     }
 
