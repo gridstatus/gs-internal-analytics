@@ -1,61 +1,34 @@
--- New-user counts for current month, previous month, and same month last year. {{USER_FILTER}} is applied to restrict to correct users.
-WITH current_month_start AS (
-  SELECT DATE_TRUNC('month', NOW()) AS start_time
-),
-current_month_end AS (
-  SELECT DATE_TRUNC('month', NOW()) + INTERVAL '1 month' AS end_time
-),
-previous_month_start AS (
-  SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 month') AS start_time
-),
-previous_month_end AS (
-  SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 month') + INTERVAL '1 month' AS end_time
-),
-last_year_month_start AS (
-  SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 year') AS start_time
-),
-last_year_month_end AS (
-  SELECT DATE_TRUNC('month', NOW() - INTERVAL '1 year') + INTERVAL '1 month' AS end_time
-),
-current_month_all AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM current_month_start)
-    AND created_at < (SELECT end_time FROM current_month_end)
-    AND {{USER_FILTER}}
-),
-previous_month_all AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM previous_month_start)
-    AND created_at < (SELECT start_time FROM current_month_start)
-    AND {{USER_FILTER}}
-),
-previous_month_same_time AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM previous_month_start)
-    AND created_at < (SELECT start_time FROM previous_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-    AND {{USER_FILTER}}
-),
-last_year_month_all AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM last_year_month_start)
-    AND created_at < (SELECT end_time FROM last_year_month_end)
-    AND {{USER_FILTER}}
-),
-last_year_month_same_time AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM last_year_month_start)
-    AND created_at < (SELECT start_time FROM last_year_month_start) + (NOW() - (SELECT start_time FROM current_month_start))
-    AND {{USER_FILTER}}
+-- New-user counts for current month, previous month, and same month last year. {{USER_FILTER}} is applied to restrict to correct users. Single scan using FILTER.
+WITH bounds AS (
+  SELECT
+    DATE_TRUNC('month', NOW()) AS cur_start,
+    DATE_TRUNC('month', NOW()) + INTERVAL '1 month' AS cur_end,
+    DATE_TRUNC('month', NOW() - INTERVAL '1 month') AS prev_start,
+    DATE_TRUNC('month', NOW() - INTERVAL '1 year') AS ly_start,
+    DATE_TRUNC('month', NOW() - INTERVAL '1 year') + INTERVAL '1 month' AS ly_end,
+    NOW() - DATE_TRUNC('month', NOW()) AS elapsed_this_month
 )
-SELECT 
-  (SELECT count FROM current_month_all) as current_month_all,
-  (SELECT count FROM previous_month_all) as previous_month_all,
-  (SELECT count FROM previous_month_same_time) as previous_month_same_time,
-  (SELECT count FROM last_year_month_all) as last_year_month_all,
-  (SELECT count FROM last_year_month_same_time) as last_year_month_same_time
-
+SELECT
+  COUNT(*) FILTER (
+    WHERE created_at >= b.cur_start
+      AND created_at < b.cur_end
+  ) AS current_month_all,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.prev_start
+      AND created_at < b.cur_start
+  ) AS previous_month_all,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.prev_start
+      AND created_at < b.prev_start + b.elapsed_this_month
+  ) AS previous_month_same_time,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.ly_start
+      AND created_at < b.ly_end
+  ) AS last_year_month_all,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.ly_start
+      AND created_at < b.ly_start + b.elapsed_this_month
+  ) AS last_year_month_same_time
+FROM api_server.users, bounds b
+WHERE created_at >= b.ly_start
+  AND {{USER_FILTER}}

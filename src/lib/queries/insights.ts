@@ -73,44 +73,25 @@ export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'mont
   return query<MonthlyInsightsReactions>(sql);
 }
 
-export async function getTotalUniqueVisitors(): Promise<number> {
-  const sql = loadSql('total-unique-visitors.sql', { usernamePrefix: 'u.' });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
+
+export interface PostViewsSummary {
+  uniqueVisitors: number;
+  homefeedVisitors: number;
+  engagements: number;
+  impressions: number;
 }
 
-export async function getTotalUniqueHomefeedVisitors(): Promise<number> {
-  const sql = loadSql('total-unique-homefeed-visitors.sql', { usernamePrefix: 'u.' });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
-}
-
-export async function getSummaryUniqueVisitors(period: SummaryPeriod): Promise<number> {
+export async function getSummaryPostViews(period: SummaryPeriod): Promise<PostViewsSummary> {
   const dateFilter = buildInsightsDateFilter(period, 'pv.viewed_at');
-  const sql = loadSql('summary-unique-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
-}
-
-export async function getSummaryHomefeedVisitors(period: SummaryPeriod): Promise<number> {
-  const dateFilter = buildInsightsDateFilter(period, 'pv.viewed_at');
-  const sql = loadSql('summary-homefeed-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
-}
-
-export async function getSummaryEngagements(period: SummaryPeriod): Promise<number> {
-  const dateFilter = buildInsightsDateFilter(period, 'pv.viewed_at');
-  const sql = loadSql('summary-engagements.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
-}
-
-export async function getSummaryImpressions(period: SummaryPeriod): Promise<number> {
-  const dateFilter = buildInsightsDateFilter(period, 'pv.viewed_at');
-  const sql = loadSql('summary-impressions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
-  const result = await query<{ total: string }>(sql);
-  return Number(result[0]?.total || 0);
+  const sql = loadSql('summary-post-views.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const result = await query<{ unique_visitors: string; homefeed_visitors: string; engagements: string; impressions: string }>(sql);
+  const row = result[0];
+  return {
+    uniqueVisitors: Number(row?.unique_visitors || 0),
+    homefeedVisitors: Number(row?.homefeed_visitors || 0),
+    engagements: Number(row?.engagements || 0),
+    impressions: Number(row?.impressions || 0),
+  };
 }
 
 export async function getSummaryReactions(period: SummaryPeriod): Promise<number> {

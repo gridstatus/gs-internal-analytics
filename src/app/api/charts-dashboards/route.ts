@@ -7,15 +7,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
-    // Get summary stats (filters from request context)
-    const [chartStats, dashboardStats] = await Promise.all([
-      query<{ total: string; users: string }>(loadSql('chart-stats.sql', {})),
-      query<{ total: string; users: string }>(loadSql('dashboard-stats.sql', {})),
-    ]);
-
-    // Get user breakdown for charts/dashboards
-    const chartsDashboardsSql = loadSql('charts-dashboards-by-user.sql', {});
-    const userBreakdown = await query<{
+    // Get summary stats (combined single query) and user breakdown in parallel
+    const [summaryStats, userBreakdown] = await Promise.all([
+      query<{ chart_total: string; chart_users: string; dashboard_total: string; dashboard_users: string }>(
+        loadSql('summary-charts-dashboards.sql', {})
+      ),
+      query<{
       user_id: number;
       username: string;
       domain: string;
@@ -23,14 +20,15 @@ export async function GET(request: Request) {
       dashboard_count: string;
       last_chart_created: Date | null;
       last_dashboard_created: Date | null;
-    }>(chartsDashboardsSql);
+    }>(loadSql('charts-dashboards-by-user.sql', {})),
+    ]);
 
     return NextResponse.json({
       summary: {
-        totalCharts: Number(chartStats[0].total),
-        totalDashboards: Number(dashboardStats[0].total),
-        chartUsers: Number(chartStats[0].users),
-        dashboardUsers: Number(dashboardStats[0].users),
+        totalCharts: Number(summaryStats[0].chart_total),
+        totalDashboards: Number(summaryStats[0].dashboard_total),
+        chartUsers: Number(summaryStats[0].chart_users),
+        dashboardUsers: Number(summaryStats[0].dashboard_users),
       },
       users: userBreakdown.map((row) => ({
         userId: row.user_id,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  getMonthlyUserCounts,
+  getUserCountsByPeriod,
   getMonthlyApiUsage,
   getMonthlyCorpMetrics,
   getDomainDistribution,
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     // Run all queries in parallel (filters from request context)
     const [userCounts, apiUsage, corpMetrics, domainDistribution, domainSummaryResult, posthogMaus] =
       await Promise.all([
-        getMonthlyUserCounts(),
+        getUserCountsByPeriod('month'),
         getMonthlyApiUsage(),
         getMonthlyCorpMetrics(),
         getDomainDistribution(),

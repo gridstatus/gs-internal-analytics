@@ -2,8 +2,6 @@ import type { SubscriptionEditableFields } from '@/lib/api-types';
 import { EDITABLE_FIELD_KEYS, EDITABLE_FIELD_TO_COLUMN, SUBSCRIPTION_STATUSES } from '@/lib/api-types';
 import { getDistinctEntitlements, getPlanById, loadSql } from '@/lib/queries';
 
-const MAX_LIMIT = 100_000_000;
-
 export type ValidationResult =
   | { valid: true; sanitized: SubscriptionEditableFields }
   | { valid: false; errors: string[] };
@@ -99,8 +97,6 @@ export async function validateSubscriptionUpdate(
     if (v != null) {
       if (!isNonNegativeInteger(v)) {
         errors.push(`${key} must be null or a non-negative integer`);
-      } else if (v > MAX_LIMIT) {
-        errors.push(`${key} must be at most ${MAX_LIMIT}`);
       }
     }
   }

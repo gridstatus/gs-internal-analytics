@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql } from '@/lib/queries';
+import { getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql } from '@/lib/queries';
 import { query } from '@/lib/db';
 import { formatMonthUtc, jsonError, withRequestContext } from '@/lib/api-helpers';
 import { DateTime } from 'luxon';
@@ -38,15 +38,12 @@ export async function GET(request: Request) {
     };
 
     // Use period-specific query for combined chart (single query with cumulative calc in DB)
-    // When period is 'month', reuse this data for monthlyData too
-    const periodUserCountsPromise = newUsersPeriod === 'month' 
-      ? getMonthlyUserCounts()
-      : getUserCountsByPeriod(newUsersPeriod);
+    const periodUserCountsPromise = getUserCountsByPeriod(newUsersPeriod);
 
     // Still need monthly data for metrics and table (reuse when period is 'month')
     const monthlyUserCountsPromise = newUsersPeriod === 'month'
       ? periodUserCountsPromise
-      : getMonthlyUserCounts();
+      : getUserCountsByPeriod('month');
 
     const [periodUserCounts, userCounts, corpMetrics, usersToday, monthlyNewUsers, last30DaysUsers, totalUsersCount, topDomains1d, topDomains7d, topDomains30d, hourlyRegistrationsRaw, hourlyRegistrationsYesterdayRaw, hourlyRegistrationsLastWeekRaw] = await Promise.all([
       periodUserCountsPromise,

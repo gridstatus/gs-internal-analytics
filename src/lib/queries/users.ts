@@ -9,12 +9,7 @@ export interface MonthlyUserCount {
   total_corp_users: number;
 }
 
-export async function getMonthlyUserCounts(): Promise<MonthlyUserCount[]> {
-  const sql = loadSql('monthly-user-counts.sql', {});
-  return query<MonthlyUserCount>(sql);
-}
-
-export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year'): Promise<MonthlyUserCount[]> {
+export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<MonthlyUserCount[]> {
   const sql = loadSql('user-counts-by-period.sql', { period });
   return query<MonthlyUserCount>(sql);
 }

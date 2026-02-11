@@ -4,10 +4,7 @@ import {
   getMonthlyInsightsViews,
   getMonthlyInsightsReactions,
   getTopInsightsPosts,
-  getSummaryUniqueVisitors,
-  getSummaryHomefeedVisitors,
-  getSummaryEngagements,
-  getSummaryImpressions,
+  getSummaryPostViews,
   getSummaryReactions,
   getSummaryPosts,
   getSummaryAnonymousVisitors,
@@ -63,20 +60,15 @@ export async function GET(request: Request) {
     ]);
 
     // Fetch summary KPIs using dedicated queries (independent of chartPeriod)
+    // Post-view metrics (unique visitors, homefeed visitors, engagements, impressions) are combined into a single query
     const [
-      summaryUniqueVisitorsLoggedIn,
-      summaryHomefeedVisitorsLoggedIn,
-      summaryEngagements,
-      summaryImpressions,
+      summaryPostViews,
       summaryReactions,
       summaryPosts,
       summaryAnonymousVisitors,
       summaryAnonymousHomefeedVisitors,
     ] = await Promise.all([
-      getSummaryUniqueVisitors(summaryPeriod),
-      getSummaryHomefeedVisitors(summaryPeriod),
-      getSummaryEngagements(summaryPeriod),
-      getSummaryImpressions(summaryPeriod),
+      getSummaryPostViews(summaryPeriod),
       getSummaryReactions(summaryPeriod),
       getSummaryPosts(summaryPeriod),
       getSummaryAnonymousVisitors(summaryPeriod),
@@ -142,15 +134,15 @@ export async function GET(request: Request) {
     return NextResponse.json({
       summary: {
         totalPosts: summaryPosts,
-        totalImpressions: summaryImpressions,
-        totalEngagements: summaryEngagements,
+        totalImpressions: summaryPostViews.impressions,
+        totalEngagements: summaryPostViews.engagements,
         totalReactions: summaryReactions,
         uniqueAuthors: 0, // Not used in summary KPIs, can be calculated separately if needed
-        totalUniqueVisitors: summaryUniqueVisitorsLoggedIn + summaryAnonymousVisitors,
-        totalUniqueVisitorsLoggedIn: summaryUniqueVisitorsLoggedIn,
+        totalUniqueVisitors: summaryPostViews.uniqueVisitors + summaryAnonymousVisitors,
+        totalUniqueVisitorsLoggedIn: summaryPostViews.uniqueVisitors,
         totalUniqueVisitorsAnon: summaryAnonymousVisitors,
-        totalUniqueHomefeedVisitors: summaryHomefeedVisitorsLoggedIn + summaryAnonymousHomefeedVisitors,
-        totalUniqueHomefeedVisitorsLoggedIn: summaryHomefeedVisitorsLoggedIn,
+        totalUniqueHomefeedVisitors: summaryPostViews.homefeedVisitors + summaryAnonymousHomefeedVisitors,
+        totalUniqueHomefeedVisitorsLoggedIn: summaryPostViews.homefeedVisitors,
         totalUniqueHomefeedVisitorsAnon: summaryAnonymousHomefeedVisitors,
       },
       monthlyData: monthlyDataWithChanges.reverse(),

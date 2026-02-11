@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getMonthlyCorpMetrics } from '@/lib/queries';
+import { getUserCountsByPeriod, getMonthlyCorpMetrics } from '@/lib/queries';
 import { formatMonthUtc, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   return withRequestContext(searchParams, async () => {
     try {
     const [userCounts, corpMetrics] = await Promise.all([
-      getMonthlyUserCounts(),
+      getUserCountsByPeriod('month'),
       getMonthlyCorpMetrics(),
     ]);
 

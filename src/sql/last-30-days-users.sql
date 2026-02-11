@@ -1,42 +1,24 @@
--- Count of new users in the last 30 days, previous 30 days, and same 30-day window 1 year ago. {{USER_FILTER}} is applied to restrict to correct users.
-WITH last_30_days_start AS (
-  SELECT NOW() - INTERVAL '30 days' AS start_time
-),
-previous_30_days_start AS (
-  SELECT NOW() - INTERVAL '60 days' AS start_time
-),
-previous_30_days_end AS (
-  SELECT NOW() - INTERVAL '30 days' AS end_time
-),
-same_time_1_year_ago_start AS (
-  SELECT NOW() - INTERVAL '1 year' - INTERVAL '30 days' AS start_time
-),
-same_time_1_year_ago_end AS (
-  SELECT NOW() - INTERVAL '1 year' AS end_time
-),
-last_30_days_count AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM last_30_days_start)
-    AND created_at < NOW()
-    AND {{USER_FILTER}}
-),
-previous_30_days_count AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM previous_30_days_start)
-    AND created_at < (SELECT end_time FROM previous_30_days_end)
-    AND {{USER_FILTER}}
-),
-same_time_1_year_ago_count AS (
-  SELECT COUNT(*) as count
-  FROM api_server.users
-  WHERE created_at >= (SELECT start_time FROM same_time_1_year_ago_start)
-    AND created_at < (SELECT end_time FROM same_time_1_year_ago_end)
-    AND {{USER_FILTER}}
+-- Count of new users in the last 30 days, previous 30 days, and same 30-day window 1 year ago. {{USER_FILTER}} is applied to restrict to correct users. Single scan using FILTER.
+WITH bounds AS (
+  SELECT
+    NOW() - INTERVAL '30 days' AS last_30_start,
+    NOW() - INTERVAL '60 days' AS prev_30_start,
+    NOW() - INTERVAL '1 year' - INTERVAL '30 days' AS ly_start,
+    NOW() - INTERVAL '1 year' AS ly_end
 )
-SELECT 
-  (SELECT count FROM last_30_days_count)::text AS last_30_days,
-  (SELECT count FROM previous_30_days_count)::text AS previous_30_days,
-  (SELECT count FROM same_time_1_year_ago_count)::text AS last_30_days_same_time_1_year_ago
-
+SELECT
+  COUNT(*) FILTER (
+    WHERE created_at >= b.last_30_start
+      AND created_at < NOW()
+  )::text AS last_30_days,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.prev_30_start
+      AND created_at < b.last_30_start
+  )::text AS previous_30_days,
+  COUNT(*) FILTER (
+    WHERE created_at >= b.ly_start
+      AND created_at < b.ly_end
+  )::text AS last_30_days_same_time_1_year_ago
+FROM api_server.users, bounds b
+WHERE created_at >= b.ly_start
+  AND {{USER_FILTER}}
