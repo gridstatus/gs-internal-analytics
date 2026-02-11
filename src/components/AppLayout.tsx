@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconPackage, IconReceipt, IconChartLine, IconDatabase } from '@tabler/icons-react';
+import { useDisclosure, useLocalStorage } from '@mantine/hooks';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -145,6 +145,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [spotlightOpened, { open: openSpotlight, close: closeSpotlight }] = useDisclosure(false);
   const hasActiveQueries = useActiveQueriesStore((s) => s.activeQueries.length > 0);
 
+  const [productsOpen, setProductsOpen] = useLocalStorage({
+    key: 'nav:products',
+    defaultValue: true,
+  });
+  const [goToMarketOpen, setGoToMarketOpen] = useLocalStorage({
+    key: 'nav:go-to-market',
+    defaultValue: true,
+  });
+
   const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
 
   // Keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
@@ -197,12 +206,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Title order={4}>Grid Status</Title>
               <UserButton />
             </Group>
-            <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6}>
+            <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6} styles={{ viewport: { overflowX: 'visible' } }}>
+              <Box mx="-xs" px="xs">
               <Stack gap={4} pb="xs">
                 <Stack gap={0}>
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mb={1} mt={0}>
-                    Overview
-                  </Text>
                   <NavLink
                     component={Link}
                     href="/"
@@ -231,9 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
-                    Account Management
-                  </Text>
+                  <Divider my="sm" mx="-xs" />
                   <NavLink
                     component={Link}
                     href="/users-list"
@@ -254,6 +259,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                   />
                   <NavLink
                     component={Link}
+                    href="/domains"
+                    label="Domains"
+                    leftSection={<IconWorld size={16} />}
+                    active={pathname?.startsWith('/domains')}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
+                  <NavLink
+                    component={Link}
                     href="/subscriptions"
                     label="Subscriptions"
                     leftSection={<IconReceipt size={16} />}
@@ -261,37 +275,42 @@ export function AppLayout({ children }: AppLayoutProps) {
                     onClick={close}
                     styles={navLinkStyles}
                   />
-                  
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
-                    Product Features
-                  </Text>
+                  <Divider my="sm" mx="-xs" />
                   <NavLink
-                    component={Link}
-                    href="/insights"
-                    label="Insights"
-                    leftSection={<IconBulb size={16} />}
-                    active={pathname?.startsWith('/insights')}
-                    onClick={close}
+                    label="Products"
+                    leftSection={<IconApps size={16} />}
+                    opened={productsOpen}
+                    onChange={() => setProductsOpen((prev) => !prev)}
                     styles={navLinkStyles}
-                  />
-                  <NavLink
-                    component={Link}
-                    href="/charts-dashboards"
-                    label="Charts & Dashboards"
-                    leftSection={<IconChartBar size={16} />}
-                    active={pathname === '/charts-dashboards'}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
-                  <NavLink
-                    component={Link}
-                    href="/alerts"
-                    label="Alerts"
-                    leftSection={<IconBell size={16} />}
-                    active={pathname === '/alerts'}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/insights"
+                      label="Insights"
+                      leftSection={<IconBulb size={16} />}
+                      active={pathname?.startsWith('/insights')}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/charts-dashboards"
+                      label="Charts & Dashboards"
+                      leftSection={<IconChartBar size={16} />}
+                      active={pathname === '/charts-dashboards'}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/alerts"
+                      label="Alerts"
+                      leftSection={<IconBell size={16} />}
+                      active={pathname === '/alerts'}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
                   <NavLink
                     component={Link}
                     href="/posthog-event-explorer"
@@ -311,47 +330,35 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
-                    Go-to-market
-                  </Text>
                   <NavLink
-                    component={Link}
-                    href="/domains"
-                    label="Domains"
-                    leftSection={<IconWorld size={16} />}
-                    active={pathname?.startsWith('/domains')}
-                    onClick={close}
+                    label="Go-to-market"
+                    leftSection={<IconTrendingUp size={16} />}
+                    opened={goToMarketOpen}
+                    onChange={() => setGoToMarketOpen((prev) => !prev)}
                     styles={navLinkStyles}
-                  />
-                  <NavLink
-                    component={Link}
-                    href="/pricing-page"
-                    label="Pricing Page"
-                    leftSection={<IconCurrencyDollar size={16} />}
-                    active={pathname === '/pricing-page'}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
-                  <NavLink
-                    component={Link}
-                    href="/plans"
-                    label="Plans"
-                    leftSection={<IconPackage size={16} />}
-                    active={pathname?.startsWith('/plans')}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
-                  <NavLink
-                    component={Link}
-                    href="/rate-limit-abusers"
-                    label="Rate Limit Activity"
-                    leftSection={<IconAlertTriangle size={16} />}
-                    active={pathname === '/rate-limit-abusers'}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/pricing-page"
+                      label="Pricing Page"
+                      leftSection={<IconCurrencyDollar size={16} />}
+                      active={pathname === '/pricing-page'}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/rate-limit-abusers"
+                      label="Rate Limit Activity"
+                      leftSection={<IconAlertTriangle size={16} />}
+                      active={pathname === '/rate-limit-abusers'}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
                 </Stack>
               </Stack>
+              </Box>
             </ScrollArea>
             <Divider />
             <Stack gap={4} pt="xs" pb="xs" style={{ flexShrink: 0 }}>

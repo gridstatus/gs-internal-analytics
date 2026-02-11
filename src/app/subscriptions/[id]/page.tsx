@@ -617,7 +617,8 @@ export default function SubscriptionDetailPage() {
                   key === 'alertsLimitOverride' ||
                   key === 'dashboardsLimitOverride' ||
                   key === 'downloadsLimitOverride' ||
-                  key === 'chartsLimitOverride';
+                  key === 'chartsLimitOverride' ||
+                  key === 'apiRequestsLimitOverride';
                 return (
                   <Table.Tr key={key}>
                     <Table.Td fw={600}>{label}</Table.Td>

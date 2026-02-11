@@ -6,6 +6,10 @@ export type ValidationResult =
   | { valid: true; sanitized: SubscriptionEditableFields }
   | { valid: false; errors: string[] };
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && !Number.isNaN(value) && isFinite(value);
+}
+
 /** Limit overrides: null, -1 (unlimited), or a non-negative integer. */
 function isLimitOverrideValue(value: unknown): value is number | null {
   if (value == null) return true;
@@ -83,23 +87,33 @@ export async function validateSubscriptionUpdate(
     }
   }
 
-  // Alerts, dashboards, downloads, charts, API/rate limits: null, -1 (unlimited), or non-negative integer
+  // Alerts, dashboards, downloads, charts, API requests: null, -1 (unlimited), or non-negative integer
   const unlimitedAllowedKeys: (keyof SubscriptionEditableFields)[] = [
     'alertsLimitOverride',
     'dashboardsLimitOverride',
     'downloadsLimitOverride',
     'chartsLimitOverride',
-    'apiRowsReturnedLimitOverride',
     'apiRequestsLimitOverride',
-    'apiRowsPerResponseLimitOverride',
-    'perSecondApiRateLimitOverride',
-    'perMinuteApiRateLimitOverride',
-    'perHourApiRateLimitOverride',
   ];
   for (const key of unlimitedAllowedKeys) {
     const v = m[key];
     if (!isLimitOverrideValue(v)) {
       errors.push(`${key} must be null, -1 (unlimited), or a non-negative integer`);
+    }
+  }
+
+  // API/rate limits (other than request count): null or non-negative integer only
+  const nonNegativeOnlyKeys: (keyof SubscriptionEditableFields)[] = [
+    'apiRowsReturnedLimitOverride',
+    'apiRowsPerResponseLimitOverride',
+    'perSecondApiRateLimitOverride',
+    'perMinuteApiRateLimitOverride',
+    'perHourApiRateLimitOverride',
+  ];
+  for (const key of nonNegativeOnlyKeys) {
+    const v = m[key];
+    if (v != null && !isNonNegativeInteger(v)) {
+      errors.push(`${key} must be null or a non-negative integer`);
     }
   }
 

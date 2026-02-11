@@ -10,7 +10,9 @@ import {
   Select,
   Group,
   Skeleton,
+  Button,
 } from '@mantine/core';
+import { IconPackage } from '@tabler/icons-react';
 import { AppContainer } from '@/components/AppContainer';
 import { CustomMultiSelect } from '@/components/CustomMultiSelect';
 import Link from 'next/link';
@@ -199,7 +201,14 @@ export function SubscriptionsView() {
 
   return (
     <AppContainer>
-      <PageBreadcrumbs items={[{ label: 'Subscriptions' }]} />
+      <PageBreadcrumbs
+        items={[{ label: 'Subscriptions' }]}
+        rightSection={
+          <Button component={Link} href="/plans" variant="light" leftSection={<IconPackage size={16} />}>
+            View Plans
+          </Button>
+        }
+      />
 
       {loading ? (
         <Stack gap="md">

@@ -69,6 +69,7 @@ PostHog is used to track user activity and provides data for anonymous users (no
 ### State management
 - **Prefer Zustand** over React Context for client state (e.g. filter store, active queries). Use stores in `src/stores/` and follow the pattern in `src/stores/filterStore.ts`.
 - **Sidebar “Queries” (DB vs PostHog):** Any API path that contains `posthog` (e.g. `/api/posthog/...`) is shown as PostHog; others as DB. Put new PostHog-backed routes under `/api/posthog/...` so they classify correctly without a maintained list.
+- **Local storage**: Use Mantine's `useLocalStorage` hook (from `@mantine/hooks`) instead of raw `localStorage` / `useState`. It handles SSR, serialization, and syncs across tabs automatically.
 
 ### Date/Timezone Handling
 **Important**: Always use UTC methods when parsing dates from PostgreSQL (`getUTCFullYear()`, `getUTCMonth()`) - not local methods which cause timezone shift.
