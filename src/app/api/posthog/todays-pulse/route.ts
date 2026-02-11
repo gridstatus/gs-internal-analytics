@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server';
+import { DateTime } from 'luxon';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { requestContext } from '@/lib/db';
 import { loadRenderedHogql } from '@/lib/queries';
 import { runPosthogQuery, PostHogThrottledError } from '@/lib/posthog';
+import { sanitizeTimezone } from '@/lib/timezones';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
+      const timezone = sanitizeTimezone(requestContext.getStore()?.timezone);
+      const nowInTz = DateTime.now().setZone(timezone);
+      const startOfTodayInTz = nowInTz.startOf('day');
+      const startOfYesterdayInTz = startOfTodayInTz.minus({ days: 1 });
+      const startOfLastWeekInTz = startOfTodayInTz.minus({ weeks: 1 });
+      const endOfLastWeekInTz = startOfLastWeekInTz.plus({ days: 1 });
+
+      const fmt = (dt: DateTime) => dt.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
       const dateFilters = {
-        today:
-          'timestamp >= toStartOfDay(now()) AND timestamp < now()',
-        yesterday:
-          "timestamp >= toStartOfDay(now()) - INTERVAL 1 DAY AND timestamp < toStartOfDay(now())",
-        lastWeek:
-          "timestamp >= toStartOfDay(now()) - INTERVAL 7 DAY AND timestamp < toStartOfDay(now()) - INTERVAL 6 DAY",
+        today: `timestamp >= parseDateTimeBestEffort('${fmt(startOfTodayInTz)}') AND timestamp < now()`,
+        yesterday: `timestamp >= parseDateTimeBestEffort('${fmt(startOfYesterdayInTz)}') AND timestamp < parseDateTimeBestEffort('${fmt(startOfTodayInTz)}')`,
+        lastWeek: `timestamp >= parseDateTimeBestEffort('${fmt(startOfLastWeekInTz)}') AND timestamp < parseDateTimeBestEffort('${fmt(endOfLastWeekInTz)}')`,
       };
 
       const [todayRows, yesterdayRows, lastWeekRows] = await Promise.all([

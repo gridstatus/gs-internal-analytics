@@ -3,26 +3,36 @@
  * Use to verify 7-day vs 30-day totals. Remove before merge / add back to auth.
  * GET /api/debug-daily-counts — no auth required.
  * GET /api/debug-daily-counts?path=/live — per-day views for that path (logged-in, same as "Pages with most views").
+ * Optional ?timezone=America/Chicago for timezone-aware same-time-of-day window.
  */
 import { NextResponse } from 'next/server';
+import { DateTime } from 'luxon';
 import { loadRenderedHogql } from '@/lib/queries';
 import { runPosthogQuery } from '@/lib/posthog';
+import { sanitizeTimezone } from '@/lib/timezones';
 
 const dateFilter = 'timestamp >= now() - INTERVAL 30 DAY';
-const sameTimeOfDayFilter =
-  "timestamp < toStartOfDay(timestamp) + toIntervalSecond(dateDiff('second', toStartOfDay(now()), now()))";
 
-const baseContext = {
-  dateFilter,
-  sameTimeOfDayFilter,
-  filterInternal: false,
-  filterFree: false,
-};
+function getSameTimeOfDayFilter(timezone: string): string {
+  const nowInTz = DateTime.now().setZone(timezone);
+  const startOfTodayInTz = nowInTz.startOf('day');
+  const secondsSinceMidnight = Math.floor(nowInTz.diff(startOfTodayInTz, 'seconds').seconds);
+  return `timestamp < toStartOfDay(timestamp, '${timezone}') + toIntervalSecond(${secondsSinceMidnight})`;
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path') ?? '';
+    const timezone = sanitizeTimezone(searchParams.get('timezone'));
+    const sameTimeOfDayFilter = getSameTimeOfDayFilter(timezone);
+
+    const baseContext = {
+      dateFilter,
+      sameTimeOfDayFilter,
+      filterInternal: false,
+      filterFree: false,
+    };
 
     if (path) {
       const hogql = loadRenderedHogql('debug-daily-views-by-path.hogql', {

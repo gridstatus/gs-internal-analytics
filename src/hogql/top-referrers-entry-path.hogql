@@ -1,4 +1,4 @@
--- Unique users per (referring domain, entry pathname) from $pageview. Excludes self-referrals and direct. USER_TYPE_FILTER = logged-in, anon, or empty for all. USER_FILTER, DATE_FILTER, LIMIT applied. SAME_TIME_OF_DAY_FILTER optional; when set restricts each day to midnight–current time for fair comparison.
+-- Unique users per (referring domain, entry pathname) from $pageview. Excludes self-referrals and direct. USER_TYPE_FILTER = logged-in, anon, or empty for all. USER_FILTER, DATE_FILTER, LIMIT applied. SAME_TIME_OF_DAY_FILTER optional; when set restricts each day to midnight–current time (in the request timezone) for fair comparison. The API passes timezone-aware DATE_FILTER and SAME_TIME_OF_DAY_FILTER from the user's selected timezone.
 SELECT
   COALESCE(properties.$initial_referring_domain, properties.$referring_domain, '') AS referring_domain,
   COALESCE(properties.$initial_pathname, properties.$pathname, '/') AS entry_pathname,

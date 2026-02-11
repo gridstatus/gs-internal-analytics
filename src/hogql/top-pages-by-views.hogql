@@ -1,4 +1,4 @@
--- View count per pathname from $pageview for logged-in users. DATE_FILTER, USER_FILTER, LIMIT applied. Empty pathname normalized to '/'. SAME_TIME_OF_DAY_FILTER optional; when set restricts each day to midnight–current time for fair comparison.
+-- View count per pathname from $pageview for logged-in users. DATE_FILTER, USER_FILTER, LIMIT applied. Empty pathname normalized to '/'. SAME_TIME_OF_DAY_FILTER optional; when set restricts each day to midnight–current time (in the request timezone) for fair comparison. The API passes timezone-aware DATE_FILTER and SAME_TIME_OF_DAY_FILTER from the user's selected timezone.
 SELECT
   COALESCE(nullIf(trim(properties.$pathname), ''), '/') AS pathname,
   COUNT(*) AS views

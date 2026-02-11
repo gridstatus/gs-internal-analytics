@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server';
+import { DateTime } from 'luxon';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
+import { requestContext } from '@/lib/db';
 import { loadRenderedHogql } from '@/lib/queries';
 import { runPosthogQuery, PostHogThrottledError } from '@/lib/posthog';
+import { sanitizeTimezone } from '@/lib/timezones';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return withRequestContext(searchParams, async () => {
     try {
+      const timezone = sanitizeTimezone(requestContext.getStore()?.timezone);
+      const nowInTz = DateTime.now().setZone(timezone);
+      const startOfTodayInTz = nowInTz.startOf('day');
+      const secondsSinceMidnight = Math.floor(nowInTz.diff(startOfTodayInTz, 'seconds').seconds);
+
       const dateFilter7 = 'timestamp >= now() - INTERVAL 7 DAY';
       const dateFilter30 = 'timestamp >= now() - INTERVAL 30 DAY';
-      const todayFilter = 'timestamp >= toStartOfDay(now())';
-      const sameTimeOfDayFilter =
-        "timestamp < toStartOfDay(timestamp) + toIntervalSecond(dateDiff('second', toStartOfDay(now()), now()))";
+      const todayStartUtc = startOfTodayInTz.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
+      const todayFilter = `timestamp >= parseDateTimeBestEffort('${todayStartUtc}') AND timestamp < now()`;
+      const sameTimeOfDayFilter = `timestamp < toStartOfDay(timestamp, '${timezone}') + toIntervalSecond(${secondsSinceMidnight})`;
 
       // Order matters: [0]=7-day, [1]=30-day, [2]=today. 7- and 30-day use different DATE_FILTER so totals differ.
       const [main7Results, main30Results, todayResults] = await Promise.all([
