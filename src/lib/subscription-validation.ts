@@ -10,6 +10,13 @@ function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && !Number.isNaN(value) && isFinite(value);
 }
 
+/** Limit overrides: null, -1 (unlimited), or a non-negative integer. */
+function isLimitOverrideValue(value: unknown): value is number | null {
+  if (value == null) return true;
+  if (typeof value !== 'number' || !Number.isInteger(value) || Number.isNaN(value) || !isFinite(value)) return false;
+  return value === -1 || value >= 0;
+}
+
 function isValidDateString(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const d = new Date(value);
@@ -80,24 +87,33 @@ export async function validateSubscriptionUpdate(
     }
   }
 
-  const limitOverrideKeys: (keyof SubscriptionEditableFields)[] = [
-    'apiRowsReturnedLimitOverride',
-    'apiRequestsLimitOverride',
-    'apiRowsPerResponseLimitOverride',
+  // Alerts, dashboards, downloads, charts: null, -1 (unlimited), or non-negative integer
+  const unlimitedAllowedKeys: (keyof SubscriptionEditableFields)[] = [
     'alertsLimitOverride',
     'dashboardsLimitOverride',
     'downloadsLimitOverride',
     'chartsLimitOverride',
+  ];
+  for (const key of unlimitedAllowedKeys) {
+    const v = m[key];
+    if (!isLimitOverrideValue(v)) {
+      errors.push(`${key} must be null, -1 (unlimited), or a non-negative integer`);
+    }
+  }
+
+  // API/rate limits: null or non-negative integer only
+  const nonNegativeOnlyKeys: (keyof SubscriptionEditableFields)[] = [
+    'apiRowsReturnedLimitOverride',
+    'apiRequestsLimitOverride',
+    'apiRowsPerResponseLimitOverride',
     'perSecondApiRateLimitOverride',
     'perMinuteApiRateLimitOverride',
     'perHourApiRateLimitOverride',
   ];
-  for (const key of limitOverrideKeys) {
+  for (const key of nonNegativeOnlyKeys) {
     const v = m[key];
-    if (v != null) {
-      if (!isNonNegativeInteger(v)) {
-        errors.push(`${key} must be null or a non-negative integer`);
-      }
+    if (v != null && !isNonNegativeInteger(v)) {
+      errors.push(`${key} must be null or a non-negative integer`);
     }
   }
 

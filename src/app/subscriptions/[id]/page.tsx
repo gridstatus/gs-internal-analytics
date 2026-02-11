@@ -46,6 +46,7 @@ import { StripeSubscriptionId } from '@/components/StripeSubscriptionId';
 
 function formatOverride(value: number | null): string {
   if (value == null) return '—';
+  if (value === -1) return 'Unlimited';
   const num = typeof value === 'number' ? value : Number(value);
   if (Number.isNaN(num)) return String(value);
   return num.toLocaleString();
@@ -611,27 +612,34 @@ export default function SubscriptionDetailPage() {
                   ['perMinuteApiRateLimitOverride', 'Per minute rate limit'],
                   ['perHourApiRateLimitOverride', 'Per hour rate limit'],
                 ] as const
-              ).map(([key, label]) => (
-                <Table.Tr key={key}>
-                  <Table.Td fw={600}>{label}</Table.Td>
-                  <Table.Td>
-                    {editing && form ? (
-                      <NumberInput
-                        value={form[key] ?? ''}
-                        onChange={(v) => {
-                          const num = v === '' || v == null ? null : typeof v === 'number' ? v : Number(v);
-                          setForm((f) => (f ? { ...f, [key]: Number.isNaN(num) ? null : num } : f));
-                        }}
-                        min={0}
-                        placeholder="No override"
-                        allowNegative={false}
-                      />
-                    ) : (
-                      formatOverride(subRow[key])
-                    )}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
+              ).map(([key, label]) => {
+                const allowUnlimited =
+                  key === 'alertsLimitOverride' ||
+                  key === 'dashboardsLimitOverride' ||
+                  key === 'downloadsLimitOverride' ||
+                  key === 'chartsLimitOverride';
+                return (
+                  <Table.Tr key={key}>
+                    <Table.Td fw={600}>{label}</Table.Td>
+                    <Table.Td>
+                      {editing && form ? (
+                        <NumberInput
+                          value={form[key] ?? ''}
+                          onChange={(v) => {
+                            const num = v === '' || v == null ? null : typeof v === 'number' ? v : Number(v);
+                            setForm((f) => (f ? { ...f, [key]: Number.isNaN(num) ? null : num } : f));
+                          }}
+                          min={allowUnlimited ? -1 : 0}
+                          placeholder={allowUnlimited ? 'No override (use -1 for unlimited)' : 'No override'}
+                          allowNegative={allowUnlimited}
+                        />
+                      ) : (
+                        formatOverride(subRow[key])
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                );
+              })}
               <Table.Tr>
                 <Table.Td fw={600}>Entitlement overrides</Table.Td>
                 <Table.Td>
