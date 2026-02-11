@@ -347,43 +347,43 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </Stack>
 
                 <ActiveQueriesWidget />
-                <Divider mt="xs" />
-                <Stack gap={4} mt="xs" pb="md">
-                  <Text size="sm" fw={500}>Settings</Text>
-                <Switch
-                  label="Filter Internal"
-                  checked={filterInternal}
-                  onChange={(e) => setFilterInternal(e.currentTarget.checked)}
-                />
-                <Switch
-                  label="Filter Free"
-                  checked={filterFree}
-                  onChange={(e) => setFilterFree(e.currentTarget.checked)}
-                />
-                <Select
-                  label="Timezone"
-                  size="xs"
-                  value={timezone}
-                  onChange={(value) => setTimezone((value as ValidTimezone) || DEFAULT_TIMEZONE)}
-                  data={VALID_TIMEZONES}
-                  allowDeselect={false}
-                />
-                <div>
-                  <Text size="xs" c="dimmed" mb={4}>Color Scheme</Text>
-                  <SegmentedControl
-                    value={colorScheme}
-                    onChange={(value) => setColorScheme(value as 'light' | 'dark' | 'auto')}
-                    data={[
-                      { label: 'Light', value: 'light' },
-                      { label: 'Dark', value: 'dark' },
-                      { label: 'Auto', value: 'auto' },
-                    ]}
-                    fullWidth
-                  />
-                </div>
-                </Stack>
               </Stack>
             </ScrollArea>
+            <Divider />
+            <Stack gap={4} pt="xs" pb="xs" style={{ flexShrink: 0 }}>
+              <Text size="sm" fw={500}>Settings</Text>
+              <Switch
+                label="Filter Internal"
+                checked={filterInternal}
+                onChange={(e) => setFilterInternal(e.currentTarget.checked)}
+              />
+              <Switch
+                label="Filter Free"
+                checked={filterFree}
+                onChange={(e) => setFilterFree(e.currentTarget.checked)}
+              />
+              <Select
+                label="Timezone"
+                size="xs"
+                value={timezone}
+                onChange={(value) => setTimezone((value as ValidTimezone) || DEFAULT_TIMEZONE)}
+                data={VALID_TIMEZONES}
+                allowDeselect={false}
+              />
+              <div>
+                <Text size="xs" c="dimmed" mb={4}>Color Scheme</Text>
+                <SegmentedControl
+                  value={colorScheme}
+                  onChange={(value) => setColorScheme(value as 'light' | 'dark' | 'auto')}
+                  data={[
+                    { label: 'Light', value: 'light' },
+                    { label: 'Dark', value: 'dark' },
+                    { label: 'Auto', value: 'auto' },
+                  ]}
+                  fullWidth
+                />
+              </div>
+            </Stack>
           </AppShell.Navbar>
 
           <AppShell.Main style={{ minWidth: 0, overflow: 'auto' }}>
