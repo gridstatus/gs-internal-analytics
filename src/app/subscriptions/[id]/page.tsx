@@ -15,7 +15,7 @@ import {
   Anchor,
   Badge,
   Button,
-  Switch,
+  SegmentedControl,
   Select,
   NumberInput,
   MultiSelect,
@@ -40,6 +40,7 @@ import {
   SUBSCRIPTION_STATUSES,
 } from '@/lib/api-types';
 import { UserHoverCard } from '@/components/UserHoverCard';
+import { InfoHoverIcon } from '@/components/InfoHoverIcon';
 
 
 function formatOverride(value: number | null): string {
@@ -483,12 +484,11 @@ export default function SubscriptionDetailPage() {
                 <Table.Td fw={600}>Cancel at period end</Table.Td>
                 <Table.Td>
                   {editing && form ? (
-                    <Switch
-                      checked={form.cancelAtPeriodEnd ?? false}
-                      onChange={(e) => {
-                        const checked = e?.currentTarget?.checked ?? !(form.cancelAtPeriodEnd ?? false);
-                        setForm((f) => (f ? { ...f, cancelAtPeriodEnd: checked } : f));
-                      }}
+                    <SegmentedControl
+                      size="xs"
+                      data={[{ label: 'Yes', value: 'true' }, { label: 'No', value: 'false' }]}
+                      value={(form.cancelAtPeriodEnd ?? false) ? 'true' : 'false'}
+                      onChange={(v) => setForm((f) => (f ? { ...f, cancelAtPeriodEnd: v === 'true' } : f))}
                     />
                   ) : (
                     subRow.cancelAtPeriodEnd == null ? '—' : subRow.cancelAtPeriodEnd ? 'Yes' : 'No'
@@ -499,12 +499,11 @@ export default function SubscriptionDetailPage() {
                 <Table.Td fw={600}>Enforce API usage limit</Table.Td>
                 <Table.Td>
                   {editing && form ? (
-                    <Switch
-                      checked={form.enforceApiUsageLimit}
-                      onChange={(e) => {
-                        const checked = e?.currentTarget?.checked ?? !form.enforceApiUsageLimit;
-                        setForm((f) => (f ? { ...f, enforceApiUsageLimit: checked } : f));
-                      }}
+                    <SegmentedControl
+                      size="xs"
+                      data={[{ label: 'Yes', value: 'true' }, { label: 'No', value: 'false' }]}
+                      value={form.enforceApiUsageLimit ? 'true' : 'false'}
+                      onChange={(v) => setForm((f) => (f ? { ...f, enforceApiUsageLimit: v === 'true' } : f))}
                     />
                   ) : (
                     subRow.enforceApiUsageLimit ? 'Yes' : 'No'
@@ -580,7 +579,7 @@ export default function SubscriptionDetailPage() {
           </Table>
         </Paper>
 
-        {/* Limit overrides */}
+        {/* Subscription overrides */}
         <Paper
           shadow="sm"
           p="md"
@@ -588,9 +587,12 @@ export default function SubscriptionDetailPage() {
           withBorder
           styles={editing ? { root: { outline: '2px solid var(--mantine-color-yellow-6)' } } : undefined}
         >
-          <Text fw={600} size="lg" mb="md">
-            Limit &amp; rate overrides
-          </Text>
+          <Group gap="xs" mb="md">
+            <Text fw={600} size="lg">
+              Subscription overrides
+            </Text>
+            <InfoHoverIcon tooltip="These values override the base plan defaults. Limits replace the plan value; entitlements are unioned with the plan's entitlements." />
+          </Group>
           <Table>
             <Table.Tbody>
               {(
