@@ -31,26 +31,31 @@ function ActiveQueriesWidget() {
   const count = activeQueries.length;
 
   return (
-    <HoverCard width={320} position="right-start" withArrow shadow="md" openDelay={200} closeDelay={150}>
+    <HoverCard width={320} position="top" withArrow shadow="md" openDelay={200} closeDelay={150}>
       <HoverCard.Target>
         <Box
-          p="xs"
+          p="sm"
+          px="md"
           style={{
-            borderRadius: 4,
+            borderRadius: 9999,
             border: '1px solid var(--mantine-color-default-border)',
+            backgroundColor: 'var(--mantine-color-default)',
             cursor: 'pointer',
-            minHeight: 30,
+            minHeight: 36,
             display: 'flex',
             alignItems: 'center',
+            boxShadow: 'var(--mantine-shadow-sm)',
           }}
         >
-          <Text size="xs" component="span">
-            <Text span size="xs" c="dimmed">Queries: </Text>
-            <Text span size="xs" c={dbCount > 0 ? 'teal' : 'dimmed'}>
+          <Text size="sm" component="span" c="dimmed">
+            Queries:{' '}
+            <Text span inherit c={dbCount > 0 ? 'teal' : 'dimmed'}>
               {dbCount} DB
             </Text>
-            <Text span size="xs" c="dimmed">, </Text>
-            <Text span size="xs" c={posthogCount > 0 ? 'violet' : 'dimmed'}>
+            <Text span inherit c="dimmed">
+              ,{' '}
+            </Text>
+            <Text span inherit c={posthogCount > 0 ? 'violet' : 'dimmed'}>
               {posthogCount} PostHog
             </Text>
           </Text>
@@ -138,8 +143,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure();
   const [spotlightOpened, { open: openSpotlight, close: closeSpotlight }] = useDisclosure(false);
+  const hasActiveQueries = useActiveQueriesStore((s) => s.activeQueries.length > 0);
 
-  const navLinkStyles = { root: { paddingTop: 4, paddingBottom: 4 } };
+  const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
 
   // Keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
   useEffect(() => {
@@ -182,19 +188,19 @@ export function AppLayout({ children }: AppLayoutProps) {
           <AppShell.Header hiddenFrom="sm">
             <Group h="100%" px="md" justify="space-between">
               <Burger opened={opened} onClick={toggle} size="sm" />
-              <Title order={4}>Analytics</Title>
+              <Title order={4}>Grid Status</Title>
               <UserButton />
             </Group>
           </AppShell.Header>
           <AppShell.Navbar p="xs" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <Group mb="xs" justify="space-between" visibleFrom="sm" style={{ flexShrink: 0 }}>
-              <Title order={4}>Analytics</Title>
+              <Title order={4}>Grid Status</Title>
               <UserButton />
             </Group>
             <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6}>
-              <Stack gap="xs" py="xs">
-                <Stack gap={2}>
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+              <Stack gap={4} pb="xs">
+                <Stack gap={0}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mb={1} mt={0}>
                     Overview
                   </Text>
                   <NavLink
@@ -225,7 +231,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
                     Account Management
                   </Text>
                   <NavLink
@@ -256,7 +262,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
                     Product Features
                   </Text>
                   <NavLink
@@ -305,7 +311,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   
-                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt="xs" mb={2}>
+                  <Text size="xs" fw={600} tt="uppercase" c="dimmed" mt={10} mb={1}>
                     Go-to-market
                   </Text>
                   <NavLink
@@ -345,8 +351,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                 </Stack>
-
-                <ActiveQueriesWidget />
               </Stack>
             </ScrollArea>
             <Divider />
@@ -388,6 +392,19 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           <AppShell.Main style={{ minWidth: 0, overflow: 'auto' }}>
             <Box data-main-content style={{ minWidth: 0 }}>{children}</Box>
+            {hasActiveQueries && (
+              <Box
+                style={{
+                  position: 'fixed',
+                  bottom: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 100,
+                }}
+              >
+                <ActiveQueriesWidget />
+              </Box>
+            )}
           </AppShell.Main>
         </AppShell>
         <SpotlightSearch opened={spotlightOpened} onClose={closeSpotlight} />
