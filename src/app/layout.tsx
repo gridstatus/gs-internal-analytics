@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import '@mantine/charts/styles.css';
+import '@mantine/code-highlight/styles.css';
 import './main-content.css';
 
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
@@ -7,6 +8,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { AppLayout } from '@/components/AppLayout';
 import { FilterProvider } from '@/contexts/FilterContext';
+import { CodeHighlightSetup } from '@/components/CodeHighlightAdapter';
 
 export const metadata = {
   title: 'Grid Status',
@@ -29,11 +31,13 @@ export default function RootLayout({
         </head>
         <body>
           <MantineProvider>
-            <NuqsAdapter>
-              <FilterProvider>
-                <AppLayout>{children}</AppLayout>
-              </FilterProvider>
-            </NuqsAdapter>
+            <CodeHighlightSetup>
+              <NuqsAdapter>
+                <FilterProvider>
+                  <AppLayout>{children}</AppLayout>
+                </FilterProvider>
+              </NuqsAdapter>
+            </CodeHighlightSetup>
           </MantineProvider>
         </body>
       </html>

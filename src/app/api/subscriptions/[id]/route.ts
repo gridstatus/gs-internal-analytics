@@ -5,6 +5,7 @@ import { withRequestContext } from '@/lib/api-helpers';
 import { assertCanEdit } from '@/lib/auth';
 import { writeQuery } from '@/lib/write-db';
 import { prepareSubscriptionUpdate } from '@/lib/subscription-validation';
+import { format as formatSql } from 'sql-formatter';
 import type { SubscriptionEditableFields, SubscriptionStatus } from '@/lib/api-types';
 import type { SubscriptionDetailRow } from '@/lib/queries';
 
@@ -127,6 +128,9 @@ export async function PATCH(
     throw res;
   }
 
+  const { searchParams } = new URL(request.url);
+  const preview = searchParams.get('preview') === 'true';
+
   try {
     const { id } = await params;
     const subscriptionId = parseInt(id, 10);
@@ -149,6 +153,21 @@ export async function PATCH(
         { error: prepared.error, ...(prepared.errors && { errors: prepared.errors }) },
         { status: prepared.status }
       );
+    }
+
+    // Preview mode: return interpolated SQL for display without executing
+    if (preview) {
+      const interpolated = prepared.sql.replace(/\$(\d+)/g, (_, idx) => {
+        const val = prepared.params[Number(idx) - 1];
+        if (val == null) return 'NULL';
+        if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+        if (typeof val === 'number') return String(val);
+        if (Array.isArray(val)) return `'{${val.map((v: unknown) => `"${String(v)}"`).join(',')}}'`;
+        return `'${String(val).replace(/'/g, "''")}'`;
+      });
+
+      const displaySql = formatSql(interpolated, { language: 'postgresql', tabWidth: 2 });
+      return NextResponse.json({ sql: displaySql });
     }
 
     await writeQuery(prepared.sql, prepared.params);

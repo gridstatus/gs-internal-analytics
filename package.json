@@ -11,10 +11,12 @@
   "dependencies": {
     "@clerk/nextjs": "^6.36.10",
     "@mantine/charts": "^8.3.14",
+    "@mantine/code-highlight": "^8.3.14",
     "@mantine/core": "^8.3.14",
     "@mantine/hooks": "^8.3.14",
     "@tabler/icons-react": "^3.24.0",
     "file-saver": "^2.0.5",
+    "highlight.js": "^11.11.1",
     "html-to-image": "^1.11.11",
     "jszip": "^3.10.1",
     "luxon": "^3.7.2",
@@ -24,6 +26,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
+    "sql-formatter": "^15.7.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {

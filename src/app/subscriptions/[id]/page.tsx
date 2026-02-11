@@ -23,7 +23,8 @@ import {
   TextInput,
   Tooltip,
 } from '@mantine/core';
-import { IconAlertCircle, IconLock, IconLockOpen, IconPencil } from '@tabler/icons-react';
+import { CodeHighlight } from '@mantine/code-highlight';
+import { IconAlertCircle, IconCircleCheck, IconLock, IconLockOpen, IconPencil } from '@tabler/icons-react';
 import Link from 'next/link';
 import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -137,6 +138,9 @@ export default function SubscriptionDetailPage() {
   const [isLocked, setIsLocked] = useState(true);
   const [form, setForm] = useState<SubscriptionEditableFields | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSql, setPreviewSql] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -209,11 +213,33 @@ export default function SubscriptionDetailPage() {
     }));
   }, [form, initialEditable, planLookup]);
 
-  const handleSave = useCallback(() => {
-    if (!canEdit) return;
+  const handleSave = useCallback(async () => {
+    if (!canEdit || !id) return;
     setSaveError(null);
+    setPreviewError(null);
+    setPreviewSql(null);
     setPreviewOpen(true);
-  }, [canEdit]);
+    setPreviewLoading(true);
+    try {
+      const payload = buildPayload();
+      const res = await fetch(`/api/subscriptions/${id}?preview=true`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = Array.isArray(data?.errors) ? data.errors.join('. ') : data?.error || res.statusText;
+        setPreviewError(msg);
+        return;
+      }
+      setPreviewSql(data.sql);
+    } catch {
+      setPreviewError('Failed to load query preview');
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [canEdit, id, buildPayload]);
 
   const handleConfirm = useCallback(async () => {
     if (!canEdit || !id) return;
@@ -237,16 +263,22 @@ export default function SubscriptionDetailPage() {
         setSaveError(msg);
         return;
       }
-      setPreviewOpen(false);
-      setRefetchKey((k) => k + 1);
-      setIsLocked(true);
-      setForm(null);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 4000);
     } finally {
       setSaveLoading(false);
     }
   }, [canEdit, id, buildPayload]);
+
+  const handleCloseModal = useCallback(() => {
+    setPreviewOpen(false);
+    if (saveSuccess) {
+      setRefetchKey((k) => k + 1);
+      setIsLocked(true);
+      setForm(null);
+    }
+    setSaveSuccess(false);
+    setSaveError(null);
+  }, [saveSuccess]);
 
   // --- Render ---
 
@@ -338,17 +370,6 @@ export default function SubscriptionDetailPage() {
         </Alert>
       )}
 
-      {/* Success / error alerts */}
-      {saveError && (
-        <Alert color="red" mb="md" onClose={() => setSaveError(null)} withCloseButton>
-          {saveError}
-        </Alert>
-      )}
-      {saveSuccess && (
-        <Alert color="green" mb="md" onClose={() => setSaveSuccess(false)} withCloseButton>
-          Subscription updated successfully.
-        </Alert>
-      )}
 
       {/* ───────── Read-only info ───────── */}
       <Paper shadow="sm" p="md" radius="md" withBorder mb="md">
@@ -641,49 +662,90 @@ export default function SubscriptionDetailPage() {
       {/* Confirm modal */}
       <Modal
         opened={previewOpen}
-        onClose={() => !saveLoading && setPreviewOpen(false)}
-        title="Confirm changes"
-        size="lg"
+        onClose={handleCloseModal}
+        closeOnClickOutside={!saveLoading}
+        closeOnEscape={!saveLoading}
+        title={saveSuccess ? 'Update complete' : 'Confirm changes'}
+        size="xl"
       >
         <Stack>
-          <Text size="sm" fw={500}>
-            Subscription #{subRow.id}
-            {subRow.username ? ` — ${subRow.username}` : ''}
-            {subRow.organizationName ? ` (${subRow.organizationName})` : ''}
-          </Text>
-          <Text size="sm" c="dimmed">
-            Review the changes below.
-          </Text>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Field</Table.Th>
-                <Table.Th>Old value</Table.Th>
-                <Table.Th>New value</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {changesList.map(({ key, label, old, new: newVal }) => (
-                <Table.Tr key={key}>
-                  <Table.Td fw={500}>{label}</Table.Td>
-                  <Table.Td c="red.7">{old}</Table.Td>
-                  <Table.Td c="green.7">{newVal}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-          <Group justify="flex-end" mt="md">
-            <Button variant="default" onClick={() => setPreviewOpen(false)} disabled={saveLoading}>
-              Cancel
-            </Button>
-            <Button
-              color="green"
-              onClick={handleConfirm}
-              loading={saveLoading}
-            >
-              Confirm
-            </Button>
-          </Group>
+          {saveSuccess ? (
+            <>
+              <Stack align="center" gap="xs" py="lg">
+                <IconCircleCheck size={48} color="var(--mantine-color-green-6)" />
+                <Text fw={600} size="lg">Update successful</Text>
+                <Text size="sm" c="dimmed">Close this dialog to see the updated subscription.</Text>
+              </Stack>
+              <Group justify="flex-end">
+                <Button onClick={handleCloseModal}>Close</Button>
+              </Group>
+            </>
+          ) : (
+            <>
+              <Text size="sm" fw={500}>
+                Subscription #{subRow.id}
+                {subRow.username ? ` — ${subRow.username}` : ''}
+                {subRow.organizationName ? ` (${subRow.organizationName})` : ''}
+              </Text>
+              <Text size="sm" c="dimmed">
+                Review the changes below.
+              </Text>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Field</Table.Th>
+                    <Table.Th>Old value</Table.Th>
+                    <Table.Th>New value</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {changesList.map(({ key, label, old, new: newVal }) => (
+                    <Table.Tr key={key}>
+                      <Table.Td fw={500}>{label}</Table.Td>
+                      <Table.Td c="red.7">{old}</Table.Td>
+                      <Table.Td c="green.7">{newVal}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+
+              {/* SQL query preview */}
+              <Text size="sm" fw={500} mt="xs">
+                Query preview
+              </Text>
+              {previewLoading ? (
+                <Group justify="center" py="sm">
+                  <Loader size="sm" />
+                </Group>
+              ) : previewError ? (
+                <Alert color="red" variant="light">
+                  {previewError}
+                </Alert>
+              ) : previewSql ? (
+                <CodeHighlight code={previewSql} language="sql" />
+              ) : null}
+
+              {saveError && (
+                <Alert color="red" variant="light">
+                  {saveError}
+                </Alert>
+              )}
+
+              <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={handleCloseModal} disabled={saveLoading}>
+                  Cancel
+                </Button>
+                <Button
+                  color="green"
+                  onClick={handleConfirm}
+                  loading={saveLoading}
+                  disabled={previewLoading || !!previewError}
+                >
+                  Confirm
+                </Button>
+              </Group>
+            </>
+          )}
         </Stack>
       </Modal>
     </AppContainer>

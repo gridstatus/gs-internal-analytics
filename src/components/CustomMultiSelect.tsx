@@ -99,6 +99,9 @@ export function CustomMultiSelect({
       >
         <Menu.Target>
           <UnstyledButton
+            component="div"
+            role="button"
+            tabIndex={0}
             style={{
               width: '100%',
               minHeight: 36,
