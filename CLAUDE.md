@@ -16,7 +16,7 @@ This app connects directly to the same database as the main Grid Status app. The
 
 ## Tech Stack
 - **Framework**: Next.js 16 with App Router
-- **UI**: Mantine v7
+- **UI**: Mantine v8
 - **Charts**: @mantine/charts (built on Recharts)
 - **Database**: PostgreSQL via `pg` package
 - **External APIs**: PostHog HogQL API for MAU data
@@ -48,6 +48,7 @@ All SQL queries that touch user/domain data MUST include **`{{USER_FILTER}}`**; 
 Per-backend concurrency limits protect the shared DB and PostHog API. Do not remove or bypass them.
 
 - **SQL mutations** (`src/sql/mutations/[name].sql`): Separate files for INSERT/UPDATE/DELETE operations. **Reviewing changes to this folder requires extra care**; when in doubt, confirm with the user before applying.
+- **Write authorization** (`src/lib/auth.ts`): Any API route that mutates data must call `assertCanEdit()` before writing. This checks the current Clerk user's email against `AUTHORIZED_EDITOR_EMAILS`. Do not bypass or weaken this check.
 - **PostgreSQL** (`src/lib/db.ts`): Pool limited by `DB_MAX_CONCURRENT`; excess `query()` calls wait.
 - **PostHog** (`src/lib/posthog.ts`): Semaphore limited by `POSTHOG_MAX_CONCURRENT`. All PostHog requests must go through `posthogFetchWithRetry`. Do not add direct `fetch` calls to PostHog.
 

@@ -16,10 +16,17 @@ npm install
 
 2. Configure environment variables by editing `.env.local`:
 ```
-APPLICATION_POSTGRES_USER=your_username
-APPLICATION_POSTGRES_PASSWORD=your_password
-APPLICATION_POSTGRES_HOST=your_host
-APPLICATION_POSTGRES_DATABASE=your_database
+READ_ONLY_APP_USER=your_username
+READ_ONLY_APP_PASSWORD=your_password
+READ_ONLY_APP_HOST=your_host
+READ_ONLY_APP_PORT=5432
+READ_ONLY_APP_DATABASE=your_database
+WRITE_DB_ENV=local
+LOCAL_WRITE_APP_USER=your_write_username
+LOCAL_WRITE_APP_PASSWORD=your_write_password
+LOCAL_WRITE_APP_HOST=your_write_host
+LOCAL_WRITE_APP_PORT=5432
+LOCAL_WRITE_APP_DATABASE=your_write_database
 ```
 
 3. Update the MAU data file at `src/data/maus.csv` with your monthly active user data.
@@ -88,12 +95,19 @@ The timeout is configured in `src/lib/db.ts` and applies to all queries executed
    - Render will automatically detect `render.yaml` and create the services
 
 3. **Configure Environment Variables:**
-   In the Render dashboard, add these environment variables to your web service:
+   In the Render dashboard, add these environment variables to your web service (see `render.yaml` for the full list):
    ```
-   APPLICATION_POSTGRES_USER=<your_db_user>
-   APPLICATION_POSTGRES_PASSWORD=<your_db_password>
-   APPLICATION_POSTGRES_HOST=<your_db_host>
-   APPLICATION_POSTGRES_DATABASE=api_server
+   READ_ONLY_APP_USER=<your_db_user>
+   READ_ONLY_APP_PASSWORD=<your_db_password>
+   READ_ONLY_APP_HOST=<your_db_host>
+   READ_ONLY_APP_PORT=5432
+   READ_ONLY_APP_DATABASE=api_server
+   WRITE_DB_ENV=prod
+   PROD_WRITE_APP_USER=<your_write_db_user>
+   PROD_WRITE_APP_PASSWORD=<your_write_db_password>
+   PROD_WRITE_APP_HOST=<your_write_db_host>
+   PROD_WRITE_APP_PORT=5432
+   PROD_WRITE_APP_DATABASE=api_server
    POSTHOG_PROJECT_ID=<your_posthog_project_id>
    POSTHOG_PERSONAL_API_KEY=<your_posthog_api_key>
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your_clerk_publishable_key>
