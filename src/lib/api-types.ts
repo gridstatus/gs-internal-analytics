@@ -357,6 +357,28 @@ export interface SubscriptionsResponse {
   subscriptions: SubscriptionListItem[];
 }
 
+export interface SubscriptionMonitorLimitNotEnforcedItem {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  organizationName: string | null;
+}
+
+export interface SubscriptionMonitorActiveTrialItem {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  organizationName: string | null;
+  status: string;
+  pastEndDate: boolean;
+}
+
+export interface SubscriptionMonitorResponse {
+  limitNotEnforced: SubscriptionMonitorLimitNotEnforcedItem[];
+  activeTrials: SubscriptionMonitorActiveTrialItem[];
+  pastBillingPeriod: SubscriptionListItem[];
+}
+
 /** Editable fields for PATCH /api/subscriptions/[id]. Only keys present in the payload are applied; null means clear to NULL. */
 export interface SubscriptionEditableFields {
   planId: number;

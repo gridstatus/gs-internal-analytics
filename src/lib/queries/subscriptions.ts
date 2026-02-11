@@ -123,3 +123,34 @@ export async function getSubscriptionById(id: number): Promise<SubscriptionDetai
   const sql = loadSql('subscription-by-id.sql');
   return query<SubscriptionDetailRow>(sql, [id]);
 }
+
+export interface LimitNotEnforcedRow {
+  id: number;
+  user_id: number | null;
+  username: string | null;
+  organization_name: string | null;
+}
+
+export interface ActiveTrialRow {
+  id: number;
+  user_id: number | null;
+  username: string | null;
+  organization_name: string | null;
+  status: string;
+  past_end_date: boolean;
+}
+
+export async function getLimitNotEnforcedSubscriptions(): Promise<LimitNotEnforcedRow[]> {
+  const sql = loadSql('subscription-monitor-limit-not-enforced.sql', {});
+  return query<LimitNotEnforcedRow>(sql);
+}
+
+export async function getActiveEnterpriseTrials(): Promise<ActiveTrialRow[]> {
+  const sql = loadSql('subscription-monitor-active-trials.sql', {});
+  return query<ActiveTrialRow>(sql);
+}
+
+export async function getPastBillingPeriodSubscriptions(): Promise<SubscriptionListRow[]> {
+  const sql = loadSql('subscription-monitor-past-billing-period.sql', {});
+  return query<SubscriptionListRow>(sql);
+}
