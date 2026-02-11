@@ -3,8 +3,6 @@
 import { useState, useRef } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
-  Container,
-  Title,
   SimpleGrid,
   Group,
   Skeleton,
@@ -33,6 +31,7 @@ import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { UsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { DataTable, Column } from './DataTable';
 
@@ -71,30 +70,33 @@ export function UsersView() {
   const { data, loading, error } = useApiData<UsersResponse>(url, [url, debouncedDomainFilter, timestampType, newUsersPeriod]);
 
   return (
-    <Container fluid py="xl">
-      <PageBreadcrumbs items={[{ label: 'User Registrations' }]} />
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>User Registrations</Title>
-        <Group>
-          <Button
-            component={Link}
-            href="/users/top-registrations"
-            leftSection={<IconTrendingUp size={16} />}
-            variant="light"
-          >
-            Top Registrations
-          </Button>
-          <Button
-            component={Link}
-            href="/users/corporate-teams"
-            leftSection={<IconBuilding size={16} />}
-            variant="light"
-          >
-            Corporate & Teams
-          </Button>
-          <ExportButton charts={chartRefs} />
-        </Group>
-      </Group>
+    <AppContainer>
+      <PageBreadcrumbs
+        items={[{ label: 'User Registrations' }]}
+        rightSection={
+          <>
+            <Button
+              component={Link}
+              href="/users/top-registrations"
+              leftSection={<IconTrendingUp size={16} />}
+              variant="light"
+              size="compact-sm"
+            >
+              Top Registrations
+            </Button>
+            <Button
+              component={Link}
+              href="/users/corporate-teams"
+              leftSection={<IconBuilding size={16} />}
+              variant="light"
+              size="compact-sm"
+            >
+              Corporate & Teams
+            </Button>
+            <ExportButton charts={chartRefs} />
+          </>
+        }
+      />
 
       {loading ? (
         <Stack gap="md">
@@ -560,6 +562,6 @@ export function UsersView() {
           </>
         );
       })()}
-    </Container>
+    </AppContainer>
   );
 }

@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   Skeleton,
   Alert,
   Stack,
@@ -20,6 +18,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import { ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -82,9 +81,8 @@ export function DomainsView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Domains' }]} />
-      <Title order={1} mb="xl">Domains</Title>
 
       {loading ? (
         <Stack gap="md">
@@ -119,7 +117,7 @@ export function DomainsView() {
           </Text>
         </Paper>
       ) : null}
-    </Container>
+    </AppContainer>
   );
 }
 

@@ -2,8 +2,6 @@
 
 import { useMemo } from 'react';
 import {
-  Container,
-  Title,
   Skeleton,
   Alert,
   Stack,
@@ -22,6 +20,7 @@ import { useQueryState, parseAsString, parseAsInteger } from 'nuqs';
 import { PosthogEventExplorerResponse, PosthogEventExplorerEvent } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const OTHER_GROUP = 'Other';
@@ -76,12 +75,9 @@ export function PosthogEventExplorerView() {
   const hasSearch = search.trim().length > 0;
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <Stack gap="md">
-        <PageBreadcrumbs items={[{ label: 'Event Explorer' }]} />
-        <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
-          <Title order={1}>PostHog Event Explorer</Title>
-        </Group>
+        <PageBreadcrumbs items={[{ label: 'PostHog Event Explorer' }]} />
 
         <Text size="sm" c="dimmed">
           Unique events from the last {days} day{days !== 1 ? 's' : ''} of PostHog data, grouped by prefix (before the first <Text span inherit component="code">.</Text>). Click an event to view its analysis.
@@ -167,6 +163,6 @@ export function PosthogEventExplorerView() {
         </Paper>
         )}
       </Stack>
-    </Container>
+    </AppContainer>
   );
 }

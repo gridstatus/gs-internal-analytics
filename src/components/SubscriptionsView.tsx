@@ -1,31 +1,28 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
-  Container,
-  Title,
   Paper,
   Text,
   Anchor,
-  Loader,
   Stack,
   Badge,
-  MultiSelect,
+  Select,
   Group,
-  SimpleGrid,
   Skeleton,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
+import { CustomMultiSelect } from '@/components/CustomMultiSelect';
 import Link from 'next/link';
 import { DateTime } from 'luxon';
-import { useQueryState, parseAsArrayOf, parseAsString } from 'nuqs';
+import { useQueryState, parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs';
 import { useFilterStore } from '@/stores/filterStore';
-import { SubscriptionListRowItem, SubscriptionsResponse } from '@/lib/api-types';
+import { SubscriptionListItem, SubscriptionsResponse, SUBSCRIPTION_STATUSES } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
-import { MetricCard } from './MetricCard';
 import { ErrorDisplay } from './ErrorDisplay';
 
 export function SubscriptionsView() {
@@ -36,9 +33,24 @@ export function SubscriptionsView() {
 
   const [statusFilter, setStatusFilter] = useQueryState('status', parseAsArrayOf(parseAsString).withDefault([]));
   const [planFilter, setPlanFilter] = useQueryState('plan', parseAsArrayOf(parseAsString).withDefault([]));
+  const [enforceFilter, setEnforceFilter] = useQueryState('enforce', parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes'));
+  const [stripeFilter, setStripeFilter] = useQueryState('stripe', parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes'));
+
+  // Default status filter: all except canceled (only on first load with no URL param)
+  const didSetDefault = useRef(false);
+  useEffect(() => {
+    if (didSetDefault.current || subscriptions.length === 0) return;
+    didSetDefault.current = true;
+    if (statusFilter.length === 0) {
+      const nonCanceled = Array.from(new Set(subscriptions.map((s) => s.status || '—'))).filter(
+        (s) => s !== 'canceled'
+      );
+      if (nonCanceled.length > 0) setStatusFilter(nonCanceled);
+    }
+  }, [subscriptions, statusFilter, setStatusFilter]);
 
   // Build filter options from data
-  const { statusOptions, planOptions, statusCounts, planCounts } = useMemo(() => {
+  const { statusOptions, planOptions } = useMemo(() => {
     const statusMap = new Map<string, number>();
     const planMap = new Map<string, number>();
 
@@ -61,8 +73,6 @@ export function SubscriptionsView() {
     return {
       statusOptions: statusOpts,
       planOptions: planOpts,
-      statusCounts: statusMap,
-      planCounts: planMap,
     };
   }, [subscriptions]);
 
@@ -75,10 +85,20 @@ export function SubscriptionsView() {
     if (planFilter.length > 0) {
       result = result.filter((s) => planFilter.includes(s.planName || '—'));
     }
+    if (enforceFilter === 'yes') {
+      result = result.filter((s) => s.enforceApiUsageLimit);
+    } else if (enforceFilter === 'no') {
+      result = result.filter((s) => !s.enforceApiUsageLimit);
+    }
+    if (stripeFilter === 'yes') {
+      result = result.filter((s) => !!s.stripeSubscriptionId);
+    } else if (stripeFilter === 'no') {
+      result = result.filter((s) => !s.stripeSubscriptionId);
+    }
     return result;
-  }, [subscriptions, statusFilter, planFilter]);
+  }, [subscriptions, statusFilter, planFilter, enforceFilter, stripeFilter]);
 
-  const columns: Column<SubscriptionListRowItem>[] = [
+  const columns: Column<SubscriptionListItem>[] = [
     {
       id: 'id',
       header: 'Id',
@@ -141,12 +161,11 @@ export function SubscriptionsView() {
       sortValue: (row) => row.status.toLowerCase(),
     },
     {
-      id: 'startDate',
-      header: 'Start date',
-      align: 'left',
-      render: (row) =>
-        DateTime.fromISO(row.startDate).setZone(timezone).toLocaleString(DateTime.DATETIME_SHORT),
-      sortValue: (row) => new Date(row.startDate).getTime(),
+      id: 'enforceApiUsageLimit',
+      header: 'Enforce limit',
+      align: 'center',
+      render: (row) => (row.enforceApiUsageLimit ? '✓' : '—'),
+      sortValue: (row) => (row.enforceApiUsageLimit ? 1 : 0),
     },
     {
       id: 'billingPeriod',
@@ -158,65 +177,73 @@ export function SubscriptionsView() {
     },
     {
       id: 'stripeSubscriptionId',
-      header: 'Stripe subscription',
-      align: 'left',
-      render: (row) => row.stripeSubscriptionId ?? '—',
-      sortValue: (row) => row.stripeSubscriptionId ?? '',
+      header: 'Stripe',
+      align: 'center',
+      render: (row) => (row.stripeSubscriptionId ? '✓' : '—'),
+      sortValue: (row) => (row.stripeSubscriptionId ? 1 : 0),
     },
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Subscriptions' }]} />
-      <Title order={1} mb="xl">
-        Subscriptions
-      </Title>
 
       {loading ? (
         <Stack gap="md">
-          <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="md">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} height={90} />
-            ))}
-          </SimpleGrid>
           <Skeleton height={400} />
         </Stack>
       ) : error ? (
         <ErrorDisplay error={error} />
       ) : (
         <>
-          {/* Summary metrics */}
-          <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="md" mb="xl">
-            <MetricCard title="Total" value={subscriptions.length} />
-            {Array.from(statusCounts.entries())
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([status, count]) => (
-                <MetricCard key={status} title={status} value={count} />
-              ))}
-          </SimpleGrid>
-
-          {/* Filters */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Group mb="md" align="flex-end">
-              <MultiSelect
+              <CustomMultiSelect
                 label="Status"
                 placeholder="All statuses"
                 data={statusOptions}
                 value={statusFilter}
                 onChange={setStatusFilter}
                 clearable
+                hidePickedOptions
                 w={300}
+                pillsListStyle={{ maxHeight: 70, overflowY: 'auto' }}
               />
-              <MultiSelect
+              <CustomMultiSelect
                 label="Plan"
                 placeholder="All plans"
                 data={planOptions}
                 value={planFilter}
                 onChange={setPlanFilter}
                 clearable
+                singleLine
                 w={340}
               />
-              {(statusFilter.length > 0 || planFilter.length > 0) && (
+              <Select
+                label="Enforce limit"
+                placeholder="All"
+                data={[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ]}
+                value={enforceFilter}
+                onChange={(v) => setEnforceFilter(v as 'yes' | 'no' | null)}
+                clearable
+                w={160}
+              />
+              <Select
+                label="Stripe"
+                placeholder="All"
+                data={[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ]}
+                value={stripeFilter}
+                onChange={(v) => setStripeFilter(v as 'yes' | 'no' | null)}
+                clearable
+                w={140}
+              />
+              {(statusFilter.length > 0 || planFilter.length > 0 || enforceFilter != null || stripeFilter != null) && (
                 <Text size="sm" c="dimmed">
                   {filtered.length.toLocaleString()} of {subscriptions.length.toLocaleString()} subscriptions
                 </Text>
@@ -227,7 +254,7 @@ export function SubscriptionsView() {
               data={filtered}
               columns={columns}
               keyField="id"
-              defaultSort={{ column: 'startDate', direction: 'desc' }}
+              defaultSort={{ column: 'billingPeriod', direction: 'desc' }}
               emptyMessage="No subscriptions match the selected filters"
             />
 
@@ -237,6 +264,6 @@ export function SubscriptionsView() {
           </Paper>
         </>
       )}
-    </Container>
+    </AppContainer>
   );
 }

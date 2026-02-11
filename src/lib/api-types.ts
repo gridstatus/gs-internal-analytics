@@ -1,3 +1,17 @@
+/** Canonical list of Stripe subscription statuses. Use this everywhere instead of local arrays. */
+export const SUBSCRIPTION_STATUSES = [
+  'active',
+  'canceled',
+  'past_due',
+  'trialing',
+  'incomplete',
+  'incomplete_expired',
+  'unpaid',
+  'paused',
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
 export interface ActiveUsersDomainRow {
   domain: string;
   active24h: number;
@@ -321,26 +335,6 @@ export interface SubscriptionListItem {
   userId: number | null;
   username: string | null;
   planId: number | null;
-  startDate: string;
-  status: string;
-  organizationId: string | null;
-  organizationName: string | null;
-  stripeSubscriptionId: string | null;
-  currentBillingPeriodStart: string;
-  currentBillingPeriodEnd: string | null;
-  createdAt: string | null;
-}
-
-export interface PlanDetailResponse {
-  plan: PlanDetail;
-  subscriptions: SubscriptionListItem[];
-}
-
-export interface SubscriptionListRowItem {
-  id: number;
-  userId: number | null;
-  username: string | null;
-  planId: number | null;
   planName: string | null;
   startDate: string;
   status: string;
@@ -349,11 +343,68 @@ export interface SubscriptionListRowItem {
   stripeSubscriptionId: string | null;
   currentBillingPeriodStart: string;
   currentBillingPeriodEnd: string | null;
+  enforceApiUsageLimit: boolean;
   createdAt: string | null;
 }
 
+export interface PlanDetailResponse {
+  plan: PlanDetail;
+  subscriptions: SubscriptionListItem[];
+}
+
 export interface SubscriptionsResponse {
-  subscriptions: SubscriptionListRowItem[];
+  subscriptions: SubscriptionListItem[];
+}
+
+/** Editable fields for PATCH /api/subscriptions/[id]. Only keys present in the payload are applied; null means clear to NULL. */
+export interface SubscriptionEditableFields {
+  planId: number;
+  status: SubscriptionStatus;
+  enforceApiUsageLimit: boolean;
+  cancelAtPeriodEnd: boolean | null;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string | null;
+  apiRowsReturnedLimitOverride: number | null;
+  apiRequestsLimitOverride: number | null;
+  apiRowsPerResponseLimitOverride: number | null;
+  alertsLimitOverride: number | null;
+  dashboardsLimitOverride: number | null;
+  downloadsLimitOverride: number | null;
+  chartsLimitOverride: number | null;
+  perSecondApiRateLimitOverride: number | null;
+  perMinuteApiRateLimitOverride: number | null;
+  perHourApiRateLimitOverride: number | null;
+  entitlementOverrides: string[] | null;
+}
+
+/** DB column names for editable subscription fields. Single source of truth for "what can be updated"; EDITABLE_FIELD_KEYS is derived from this. */
+export const EDITABLE_FIELD_TO_COLUMN: Record<keyof SubscriptionEditableFields, string> = {
+  planId: 'plan_id',
+  status: 'status',
+  enforceApiUsageLimit: 'enforce_api_usage_limit',
+  cancelAtPeriodEnd: 'cancel_at_period_end',
+  currentBillingPeriodStart: 'current_billing_period_start',
+  currentBillingPeriodEnd: 'current_billing_period_end',
+  apiRowsReturnedLimitOverride: 'api_rows_returned_limit_override',
+  apiRequestsLimitOverride: 'api_requests_limit_override',
+  apiRowsPerResponseLimitOverride: 'api_rows_per_response_limit_override',
+  alertsLimitOverride: 'alerts_limit_override',
+  dashboardsLimitOverride: 'dashboards_limit_override',
+  downloadsLimitOverride: 'downloads_limit_override',
+  chartsLimitOverride: 'charts_limit_override',
+  perSecondApiRateLimitOverride: 'per_second_api_rate_limit_override',
+  perMinuteApiRateLimitOverride: 'per_minute_api_rate_limit_override',
+  perHourApiRateLimitOverride: 'per_hour_api_rate_limit_override',
+  entitlementOverrides: 'entitlement_overrides',
+};
+
+/** Ordered list of editable keys; derived from EDITABLE_FIELD_TO_COLUMN so we only maintain one list. */
+export const EDITABLE_FIELD_KEYS = Object.keys(
+  EDITABLE_FIELD_TO_COLUMN
+) as (keyof SubscriptionEditableFields)[];
+
+export interface SubscriptionUpdateResponse {
+  subscription: SubscriptionDetail;
 }
 
 export interface SubscriptionDetail {

@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import {
-  Container,
-  Title,
   Skeleton,
   Alert,
   Stack,
@@ -17,6 +15,7 @@ import { IconSearch, IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -132,11 +131,8 @@ export function DatasetsListView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Datasets' }]} />
-      <Title order={1} mb="xl">
-        Datasets
-      </Title>
       <Text size="sm" c="dimmed" mb="md">
         Click a dataset to see users who queried it.
       </Text>
@@ -175,6 +171,6 @@ export function DatasetsListView() {
           </Text>
         </Paper>
       ) : null}
-    </Container>
+    </AppContainer>
   );
 }

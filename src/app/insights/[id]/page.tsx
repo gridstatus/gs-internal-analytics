@@ -20,6 +20,7 @@ import {
   Tabs,
 } from '@mantine/core';
 import { IconAlertCircle, IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
+import { AppContainer } from '@/components/AppContainer';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
@@ -123,17 +124,17 @@ export default function InsightDetailPage() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || !data) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading insight"
@@ -141,7 +142,7 @@ export default function InsightDetailPage() {
         >
           {error || 'Insight data not available'}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 

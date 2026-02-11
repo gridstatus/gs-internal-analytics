@@ -8,7 +8,7 @@ Perform a check of staged changes for regressions or unintended side effects.
 - **Security**: Auth requirements, `PUBLIC_API_ROUTES` restrictions, and parameterized/templated SQL.
 - **Filtering**: `filterInternal` and `filterFree` applied correctly to all new queries and views.
 - **Dead Code**: Ensure no unused imports, functions, or SQL files remain.
-- **Patterns**: Use existing utilities (e.g., `useApiData`, `UserHoverCard`, `renderSqlTemplate`).
+- **Patterns**: Use existing utilities (e.g., `useApiData`, `UserHoverCard`, `loadSql`).
 
 1. **Logic & Documentation**:
    - Check for breaking changes to existing APIs or components.

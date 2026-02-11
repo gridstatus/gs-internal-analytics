@@ -44,10 +44,90 @@ interface HogqlTemplateContext {
   pathname?: string;
 }
 
-export function loadSql(filename: string): string {
-  return readFileSync(join(sqlDir, filename), 'utf-8');
+/**
+ * Load SQL from file. With no context, returns raw file content.
+ * With context, loads the file and replaces {{PLACEHOLDER}}s (including {{USER_FILTER}} from request context).
+ */
+export function loadSql(filename: string, context?: TemplateContext): string {
+  const raw = readFileSync(join(sqlDir, filename), 'utf-8');
+  if (context === undefined) return raw;
+  return renderSqlFromRaw(raw, context, filename);
 }
 
+function renderSqlFromRaw(raw: string, context: TemplateContext, filename: string): string {
+  const lines = raw.split('\n');
+  let rendered = lines.filter(line => !line.trim().startsWith('--')).join('\n');
+
+  if (!context.usernamePrefix) {
+    context.usernamePrefix = rendered.includes('FROM api_server.users u') || rendered.includes('JOIN api_server.users u')
+      ? 'u.'
+      : '';
+  }
+
+  const store = requestContext.getStore();
+  const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
+  const filterFree = context.filterFree ?? store?.filterFree ?? true;
+
+  const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
+  const domainExpr = `SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1)`;
+  const internalClause = filterInternal
+    ? `${domainExpr} NOT IN ('gridstatus.io') AND ${usernameRef} != 'kmax12+dev@gmail.com'`
+    : '';
+  const freeClause = filterFree
+    ? `${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
+    : '';
+  const userFilter = [internalClause, freeClause].filter(Boolean).join(' AND ');
+  if (userFilter) {
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
+  } else {
+    rendered = rendered.replace(/\s+AND\s+\{\{USER_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
+  }
+
+  const AND_PREFIXED_PLACEHOLDERS = ['DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER', 'DOMAIN_FILTER'];
+
+  for (const [key, value] of Object.entries(context)) {
+    if (key === 'filterInternal' || key === 'filterFree' || key === 'usernamePrefix') continue;
+
+    const placeholderName = key.toUpperCase();
+    const isEmpty = value === undefined || value === null || value === '';
+
+    if (!isEmpty) {
+      const stringValue = String(value);
+      const isClausePlaceholder = AND_PREFIXED_PLACEHOLDERS.includes(placeholderName);
+      const looksLikeSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue) || /\w+\s*(>=|<=|=|<|>)\s*['"]/.test(stringValue);
+      const escapedValue = (isClausePlaceholder || looksLikeSqlClause) ? stringValue : stringValue.replace(/'/g, "''");
+      rendered = rendered.replace(new RegExp(`\\{\\{${placeholderName}\\}\\}`, 'g'), escapedValue);
+    } else {
+      if (AND_PREFIXED_PLACEHOLDERS.includes(placeholderName)) {
+        rendered = rendered.replace(new RegExp(`\\s+AND\\s+\\{\\{${placeholderName}\\}\\}`, 'g'), '');
+      } else {
+        rendered = rendered.replace(new RegExp(`\\s*\\{\\{${placeholderName}\\}\\}`, 'g'), '');
+      }
+    }
+  }
+
+  rendered = rendered.replace(/\n\s*\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
+  rendered = rendered.replace(/\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
+  rendered = rendered.replace(/(WHERE[^\n]*(?:\n[^\n]*)*?)\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '$1\n$2');
+  rendered = rendered.replace(/WHERE\s+(?=\)|GROUP BY|ORDER BY|HAVING|LIMIT)/gi, '');
+  rendered = rendered.replace(/WHERE\s+(?=\s*(?:GROUP BY|ORDER BY|HAVING|LIMIT|\)|,))/gi, '');
+
+  const remainingPlaceholders = rendered.match(/\{\{[A-Z_]+\}\}/g);
+  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+    const uniquePlaceholders = [...new Set(remainingPlaceholders)];
+    const requiredPlaceholders = uniquePlaceholders.filter(
+      p => !['DOMAIN_FILTER', 'TIME_FILTER', 'DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER'].includes(p.replace(/[{}]/g, ''))
+    );
+    if (requiredPlaceholders.length > 0) {
+      console.warn(
+        `Warning: Unresolved placeholders in ${filename}: ${requiredPlaceholders.join(', ')}. This may cause SQL syntax errors.`
+      );
+    }
+  }
+
+  return `-- SQL file: src/sql/${filename}\n${rendered}`;
+}
 
 export function loadHogql(filename: string): string {
   return readFileSync(join(hogqlDir, filename), 'utf-8');
@@ -163,128 +243,6 @@ export function loadRenderedHogql(filename: string, context: HogqlTemplateContex
   return renderHogqlTemplate(loadHogql(filename), context);
 }
 
-/**
- * Renders SQL template with placeholders from a file.
- * 
- * Available placeholders:
- * - {{USER_FILTER}} - Combined filter for both gridstatus.io domain and test account
- * - Any custom {{KEY}} placeholders - Replaced with values from context[key]
- * 
- * BEST PRACTICES to prevent SQL syntax errors:
- * - Use a real WHERE condition (no 1=1); add {{USER_FILTER}} and other filters as additional lines.
- * - Put AND in the SQL template before filter placeholders (e.g. "AND {{USER_FILTER}}", "AND {{DATE_FILTER}}"); pass bare clauses (no leading AND) in context.
- */
-export function renderSqlTemplate(filename: string, context: TemplateContext): string {
-  let sql = loadSql(filename);
-  
-  // Remove SQL comment lines
-  const lines = sql.split('\n');
-  let rendered = lines.filter(line => !line.trim().startsWith('--')).join('\n');
-  
-  // Determine username prefix if not provided
-  if (!context.usernamePrefix) {
-    context.usernamePrefix = rendered.includes('FROM api_server.users u') || rendered.includes('JOIN api_server.users u') 
-      ? 'u.' 
-      : '';
-  }
-
-  const store = requestContext.getStore();
-  const filterInternal = context.filterInternal ?? store?.filterInternal ?? true;
-  const filterFree = context.filterFree ?? store?.filterFree ?? true;
-
-  // Handle USER_FILTER: value is bare clauses (no leading AND); template must have "AND {{USER_FILTER}}"
-  const usernameRef = context.usernamePrefix ? `${context.usernamePrefix}username` : 'username';
-  const domainExpr = `SUBSTRING(${usernameRef} FROM POSITION('@' IN ${usernameRef}) + 1)`;
-  const internalClause = filterInternal
-    ? `${domainExpr} NOT IN ('gridstatus.io') AND ${usernameRef} != 'kmax12+dev@gmail.com'`
-    : '';
-  const freeClause = filterFree
-    ? `${domainExpr} NOT IN (${FREE_EMAIL_DOMAINS.map(d => `'${d.replace(/'/g, "''")}'`).join(', ')})`
-    : '';
-  const userFilter = [internalClause, freeClause].filter(Boolean).join(' AND ');
-  if (userFilter) {
-    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
-  } else {
-    rendered = rendered.replace(/\s+AND\s+\{\{USER_FILTER\}\}/g, '');
-    rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, '');
-  }
-
-  // Placeholders that are written in SQL as "AND {{KEY}}" — when empty we remove the whole "AND {{KEY}}" line
-  const AND_PREFIXED_PLACEHOLDERS = ['DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER', 'DOMAIN_FILTER'];
-
-  // Handle custom template variables (any {{KEY}} placeholders not already handled)
-  // Process after standard placeholders to allow overrides if needed
-  for (const [key, value] of Object.entries(context)) {
-    // Skip standard context properties that are already handled
-    if (key === 'filterInternal' || key === 'filterFree' || key === 'usernamePrefix') {
-      continue;
-    }
-    
-    const placeholderName = key.toUpperCase();
-    const isEmpty = value === undefined || value === null || value === '';
-    
-    // Replace {{KEY}} with the value (convert to string, escape single quotes for SQL safety)
-    // Note: Empty strings are valid for non-filter placeholders (e.g. empty domainFilter removes the AND line)
-    if (!isEmpty) {
-      const stringValue = String(value);
-      // Don't escape SQL clauses: AND-prefixed placeholders get full clauses; or value looks like SQL (AND/OR/WHERE/.../comparison)
-      const isClausePlaceholder = AND_PREFIXED_PLACEHOLDERS.includes(placeholderName);
-      const looksLikeSqlClause = /^\s*(AND|OR)\s+/i.test(stringValue) || /\b(WHERE|JOIN|FROM|SELECT|INSERT|UPDATE|DELETE)\b/i.test(stringValue) || /\w+\s*(>=|<=|=|<|>)\s*['"]/.test(stringValue);
-      const escapedValue = (isClausePlaceholder || looksLikeSqlClause) ? stringValue : stringValue.replace(/'/g, "''");
-      rendered = rendered.replace(new RegExp(`\\{\\{${placeholderName}\\}\\}`, 'g'), escapedValue);
-    } else {
-      // If value is undefined, null, or empty: remove the placeholder (for optional filters)
-      // If template uses "AND {{KEY}}", remove the whole "AND {{KEY}}" line so we don't leave stray AND
-      if (AND_PREFIXED_PLACEHOLDERS.includes(placeholderName)) {
-        rendered = rendered.replace(new RegExp(`\\s+AND\\s+\\{\\{${placeholderName}\\}\\}`, 'g'), '');
-      } else {
-        rendered = rendered.replace(new RegExp(`\\s*\\{\\{${placeholderName}\\}\\}`, 'g'), '');
-      }
-    }
-  }
-  
-  // Clean up trailing whitespace/newlines that might result from removing filters or empty placeholders
-  // This must happen AFTER all placeholders are replaced
-  // Remove trailing whitespace/newlines before GROUP BY, ORDER BY, etc. (most aggressive pattern first)
-  rendered = rendered.replace(/\n\s*\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
-  // Remove trailing whitespace on the same line before GROUP BY, ORDER BY, etc.
-  rendered = rendered.replace(/\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '\n$1');
-  // Remove trailing whitespace at end of WHERE clause (before GROUP BY, etc.)
-  rendered = rendered.replace(/(WHERE[^\n]*(?:\n[^\n]*)*?)\s+\n\s*(GROUP BY|ORDER BY|HAVING|LIMIT|\)|,)/gi, '$1\n$2');
-  
-  // Clean up empty WHERE clauses that might result from removing all filters
-  // Only clean up if WHERE is followed immediately by GROUP BY, ORDER BY, etc. (no conditions)
-  // Pattern: "WHERE\n  \n)" - empty WHERE before closing paren or other clause
-  rendered = rendered.replace(/WHERE\s+(?=\)|GROUP BY|ORDER BY|HAVING|LIMIT)/gi, '');
-  // Pattern: "WHERE " followed by only whitespace and then another keyword - replace with nothing
-  rendered = rendered.replace(/WHERE\s+(?=\s*(?:GROUP BY|ORDER BY|HAVING|LIMIT|\)|,))/gi, '');
-  
-  // Validate: Check for any remaining unresolved placeholders
-  // Only check for standard/reserved placeholders that should have been handled
-  // Custom placeholders that are intentionally optional (like empty domainFilter) may remain
-  const remainingPlaceholders = rendered.match(/\{\{[A-Z_]+\}\}/g);
-  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
-    const uniquePlaceholders = [...new Set(remainingPlaceholders)];
-    // Filter out known optional placeholders that can be empty strings
-    const requiredPlaceholders = uniquePlaceholders.filter(
-      p => !['DOMAIN_FILTER', 'TIME_FILTER', 'DATE_FILTER', 'TIME_FILTER_REACTIONS', 'TIME_FILTER_VIEWS', 'TIME_FILTER_SAVES', 'TIMEFILTER'].includes(p.replace(/[{}]/g, ''))
-    );
-    
-    if (requiredPlaceholders.length > 0) {
-      console.warn(
-        `Warning: Unresolved placeholders in ${filename}: ${requiredPlaceholders.join(', ')}. ` +
-        `This may cause SQL syntax errors.`
-      );
-    }
-  }
-  
-  // Add SQL file name as a comment at the top for error tracking
-  // This will help identify which SQL file caused an error
-  rendered = `-- SQL file: src/sql/${filename}\n${rendered}`;
-  
-  return rendered;
-}
-
 export interface MonthlyUserCount {
   month: Date;
   new_users: number;
@@ -319,17 +277,17 @@ export interface DomainSummary {
 }
 
 export async function getMonthlyUserCounts(): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('monthly-user-counts.sql', {});
+  const sql = loadSql('monthly-user-counts.sql', {});
   return query<MonthlyUserCount>(sql);
 }
 
 export async function getUserCountsByPeriod(period: 'day' | 'week' | 'month' | 'year'): Promise<MonthlyUserCount[]> {
-  const sql = renderSqlTemplate('user-counts-by-period.sql', { period });
+  const sql = loadSql('user-counts-by-period.sql', { period });
   return query<MonthlyUserCount>(sql);
 }
 
 export async function getMonthlyApiUsage(): Promise<MonthlyApiUsage[]> {
-  const sql = renderSqlTemplate('monthly-api-usage.sql', {});
+  const sql = loadSql('monthly-api-usage.sql', {});
   return query<MonthlyApiUsage>(sql);
 }
 
@@ -342,7 +300,7 @@ export interface DatasetUserLast24h {
 }
 
 export async function getDatasetUsersLast24h(datasetId: string, days: number): Promise<DatasetUserLast24h[]> {
-  const sql = renderSqlTemplate('dataset-users-last-24h.sql', {});
+  const sql = loadSql('dataset-users-last-24h.sql', {});
   return query<DatasetUserLast24h>(sql, [datasetId, days]);
 }
 
@@ -353,22 +311,22 @@ export interface DatasetUsage24hRow {
 }
 
 export async function getDatasetUsage24h(): Promise<DatasetUsage24hRow[]> {
-  const sql = renderSqlTemplate('last-24h-dataset-unique-users.sql', {});
+  const sql = loadSql('last-24h-dataset-unique-users.sql', {});
   return query<DatasetUsage24hRow>(sql);
 }
 
 export async function getMonthlyCorpMetrics(): Promise<MonthlyCorpMetric[]> {
-  const sql = renderSqlTemplate('monthly-corp-metrics.sql', {});
+  const sql = loadSql('monthly-corp-metrics.sql', {});
   return query<MonthlyCorpMetric>(sql);
 }
 
 export async function getDomainDistribution(): Promise<DomainDistribution[]> {
-  const sql = renderSqlTemplate('domain-distribution.sql', {});
+  const sql = loadSql('domain-distribution.sql', {});
   return query<DomainDistribution>(sql);
 }
 
 export async function getDomainSummary(): Promise<DomainSummary[]> {
-  const sql = renderSqlTemplate('domain-summary.sql', {});
+  const sql = loadSql('domain-summary.sql', {});
   return query<DomainSummary>(sql);
 }
 
@@ -381,7 +339,7 @@ export interface ActiveUsers {
 }
 
 export async function getActiveUsers(): Promise<ActiveUsers[]> {
-  const sql = renderSqlTemplate('active-users.sql', {});
+  const sql = loadSql('active-users.sql', {});
   return query<ActiveUsers>(sql);
 }
 
@@ -395,7 +353,7 @@ export interface ActiveUsersByDomain {
 }
 
 export async function getActiveUsersByDomain(): Promise<ActiveUsersByDomain[]> {
-  const sql = renderSqlTemplate('active-users-by-domain.sql', {});
+  const sql = loadSql('active-users-by-domain.sql', {});
   return query<ActiveUsersByDomain>(sql);
 }
 
@@ -443,21 +401,21 @@ export interface TopInsightsPost {
 
 // NOTE: Posts are not filtered by author domain because all posts are authored by GS employees.
 export async function getMonthlyInsightsPosts(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsPosts[]> {
-  let sql = renderSqlTemplate('monthly-insights-posts.sql', {});
+  let sql = loadSql('monthly-insights-posts.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsPosts>(sql);
 }
 
 export async function getMonthlyInsightsViews(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsViews[]> {
-  let sql = renderSqlTemplate('monthly-insights-views.sql', {});
+  let sql = loadSql('monthly-insights-views.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsViews>(sql);
 }
 
 export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'month' = 'month'): Promise<MonthlyInsightsReactions[]> {
-  let sql = renderSqlTemplate('monthly-insights-reactions.sql', {});
+  let sql = loadSql('monthly-insights-reactions.sql', {});
   // Replace DATE_TRUNC('month' with the appropriate period
   sql = sql.replace(/DATE_TRUNC\('month'/g, `DATE_TRUNC('${period}'`);
   return query<MonthlyInsightsReactions>(sql);
@@ -466,7 +424,7 @@ export async function getMonthlyInsightsReactions(period: 'day' | 'week' | 'mont
 // Get total unique logged-in users who have visited insights (any view source)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
 export async function getTotalUniqueVisitors(): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-visitors.sql', { usernamePrefix: 'u.' });
+  const sql = loadSql('total-unique-visitors.sql', { usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -474,7 +432,7 @@ export async function getTotalUniqueVisitors(): Promise<number> {
 // Get total unique logged-in users who have visited the homefeed (/insights)
 // Note: Anonymous users are tracked in PostHog, not PostgreSQL
 export async function getTotalUniqueHomefeedVisitors(): Promise<number> {
-  const sql = renderSqlTemplate('total-unique-homefeed-visitors.sql', { usernamePrefix: 'u.' });
+  const sql = loadSql('total-unique-homefeed-visitors.sql', { usernamePrefix: 'u.' });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -491,7 +449,7 @@ export async function getSummaryUniqueVisitors(period: '1d' | '7d' | '30d' | 'al
     dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-unique-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = loadSql('summary-unique-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -505,7 +463,7 @@ export async function getSummaryHomefeedVisitors(period: '1d' | '7d' | '30d' | '
     dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-homefeed-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = loadSql('summary-homefeed-visitors.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -519,7 +477,7 @@ export async function getSummaryEngagements(period: '1d' | '7d' | '30d' | 'all')
     dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-engagements.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = loadSql('summary-engagements.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -533,7 +491,7 @@ export async function getSummaryImpressions(period: '1d' | '7d' | '30d' | 'all')
     dateFilter = `pv.viewed_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-impressions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = loadSql('summary-impressions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -547,7 +505,7 @@ export async function getSummaryReactions(period: '1d' | '7d' | '30d' | 'all'): 
     dateFilter = `r.created_at >= '2025-10-01'`;
   }
   
-  const sql = renderSqlTemplate('summary-reactions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
+  const sql = loadSql('summary-reactions.sql', { usernamePrefix: 'u.', date_filter: dateFilter });
   const result = await query<{ total: string }>(sql);
   return Number(result[0]?.total || 0);
 }
@@ -830,7 +788,7 @@ export async function getMostEngagedUsers(days: number | null = null): Promise<M
     timeFilterSaves = `sp.created_at >= '${cutoffDateStr}'`;
   }
   
-  const sql = renderSqlTemplate('top-engaged-users.sql', { 
+  const sql = loadSql('top-engaged-users.sql', { 
     usernamePrefix: 'u.',
     time_filter_reactions: timeFilterReactions,
     time_filter_views: timeFilterViews,
@@ -874,7 +832,7 @@ export async function getTopInsightsPosts(timeFilter?: '24h' | '7d' | '1m'): Pro
     timeFilterClause = "p.created_at >= '2025-10-01'";
   }
   
-  const sql = renderSqlTemplate('top-insights-posts.sql', { timeFilter: timeFilterClause });
+  const sql = loadSql('top-insights-posts.sql', { timeFilter: timeFilterClause });
   return query<TopInsightsPost>(sql);
 }
 
@@ -887,7 +845,7 @@ export interface UserActivity {
 }
 
 export async function getUserActivities(): Promise<UserActivity[]> {
-  const sql = renderSqlTemplate('user-activities.sql', {});
+  const sql = loadSql('user-activities.sql', {});
   return query<UserActivity>(sql);
 }
 
@@ -897,7 +855,7 @@ export interface NewUsersLast3Months {
 }
 
 export async function getNewUsersLast3Months(): Promise<NewUsersLast3Months[]> {
-  const sql = renderSqlTemplate('last-3-months-new-users.sql', {});
+  const sql = loadSql('last-3-months-new-users.sql', {});
   return query<NewUsersLast3Months>(sql);
 }
 
@@ -908,7 +866,7 @@ export interface TopRegistration {
 }
 
 export async function getTopRegistrations(): Promise<TopRegistration[]> {
-  const sql = renderSqlTemplate('top-registrations.sql', {});
+  const sql = loadSql('top-registrations.sql', {});
   return query<TopRegistration>(sql);
 }
 
@@ -929,7 +887,7 @@ export interface MonthlyNewUsers {
 }
 
 export async function getMonthlyNewUsersComparison(): Promise<MonthlyNewUsers[]> {
-  const sql = renderSqlTemplate('monthly-new-users-comparison.sql', {});
+  const sql = loadSql('monthly-new-users-comparison.sql', {});
   return query<MonthlyNewUsers>(sql);
 }
 
@@ -944,17 +902,17 @@ export interface TotalUsersCount {
 }
 
 export async function getTotalUsersCount(): Promise<TotalUsersCount[]> {
-  const sql = renderSqlTemplate('total-users-count.sql', {});
+  const sql = loadSql('total-users-count.sql', {});
   return query<TotalUsersCount>(sql);
 }
 
 export async function getLast30DaysUsers(): Promise<Last30DaysUsers[]> {
-  const sql = renderSqlTemplate('last-30-days-users.sql', {});
+  const sql = loadSql('last-30-days-users.sql', {});
   return query<Last30DaysUsers>(sql);
 }
 
 export async function getUsersToday(): Promise<UsersToday[]> {
-  const sql = renderSqlTemplate('users-today.sql', {});
+  const sql = loadSql('users-today.sql', {});
   return query<UsersToday>(sql);
 }
 
@@ -1049,6 +1007,15 @@ export async function getPlansList(): Promise<PlanListRow[]> {
   return query<PlanListRow>(sql);
 }
 
+export interface PlanEntitlementRow {
+  entitlement: string;
+}
+
+export async function getDistinctEntitlements(): Promise<PlanEntitlementRow[]> {
+  const sql = loadSql('plan-entitlements.sql');
+  return query<PlanEntitlementRow>(sql);
+}
+
 export interface PlanRow {
   id: number;
   plan_name: string;
@@ -1093,7 +1060,7 @@ export async function getSubscriptionsByPlanId(planId: number): Promise<PlanSubs
 export async function getSubscriptionsByOrganizationId(
   organizationId: string
 ): Promise<SubscriptionListRow[]> {
-  const sql = renderSqlTemplate('subscription-filter.sql', {
+  const sql = loadSql('subscription-filter.sql', {
     subscription_filter: 's.organization_id = $1',
   });
   return query<SubscriptionListRow>(sql, [organizationId]);
@@ -1102,7 +1069,7 @@ export async function getSubscriptionsByOrganizationId(
 export async function getSubscriptionsByUserId(
   userId: number | string
 ): Promise<SubscriptionListRow[]> {
-  const sql = renderSqlTemplate('subscription-filter.sql', {
+  const sql = loadSql('subscription-filter.sql', {
     subscription_filter: 's.user_id = $1',
   });
   return query<SubscriptionListRow>(sql, [userId]);
@@ -1121,6 +1088,7 @@ export interface SubscriptionListRow {
   stripe_subscription_id: string | null;
   current_billing_period_start: Date;
   current_billing_period_end: Date | null;
+  enforce_api_usage_limit: boolean;
   created_at: Date | null;
 }
 
@@ -1147,6 +1115,7 @@ export function toSubscriptionListItem(row: SubscriptionListRow) {
         : row.current_billing_period_end != null
           ? String(row.current_billing_period_end)
           : null,
+    enforceApiUsageLimit: row.enforce_api_usage_limit,
     createdAt:
       row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at != null ? String(row.created_at) : null,
   };

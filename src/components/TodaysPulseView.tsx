@@ -3,8 +3,6 @@
 import { useState, useMemo } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
-  Container,
-  Title,
   Stack,
   SimpleGrid,
   Paper,
@@ -28,6 +26,7 @@ import { useQueryState } from 'nuqs';
 import { UserHoverCard } from './UserHoverCard';
 import { InfoHoverIcon } from './InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 import type {
   TodaysPulseResponse,
@@ -70,7 +69,7 @@ export function TodaysPulseView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={320} />
@@ -79,26 +78,23 @@ export function TodaysPulseView() {
           <Skeleton height={280} />
           <Skeleton height={280} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: "Today's Pulse" }]} />
-      <Title order={1} mb="xl">
-        Today&apos;s Pulse
-      </Title>
 
       {/* Charts side by side */}
       {pulseData?.hourlyPulse && pulseData.hourlyPulse.length > 0 && (
@@ -259,7 +255,7 @@ export function TodaysPulseView() {
           </Text>
         </Paper>
       </SimpleGrid>
-    </Container>
+    </AppContainer>
   );
 }
 

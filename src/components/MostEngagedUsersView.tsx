@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   Paper,
   Text,
   Group,
@@ -20,6 +18,7 @@ import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 
 interface MostEngagedUser {
@@ -130,17 +129,17 @@ export function MostEngagedUsersView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -148,32 +147,31 @@ export function MostEngagedUsersView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'Insights', href: '/insights' },
           { label: 'Most Engaged Users' },
         ]}
+        rightSection={
+          <SegmentedControl
+            value={timeFilter}
+            onChange={(value) => setTimeFilter(value as TimeFilter)}
+            data={[
+              { label: 'All Time', value: 'all' },
+              { label: '1 Day', value: '1' },
+              { label: '7 Days', value: '7' },
+              { label: '30 Days', value: '30' },
+              { label: '90 Days', value: '90' },
+            ]}
+          />
+        }
       />
-      <Group justify="space-between" mb="xl" wrap="wrap">
-        <Title order={1}>Most Engaged Users</Title>
-        <SegmentedControl
-          value={timeFilter}
-          onChange={(value) => setTimeFilter(value as TimeFilter)}
-          data={[
-            { label: 'All Time', value: 'all' },
-            { label: '1 Day', value: '1' },
-            { label: '7 Days', value: '7' },
-            { label: '30 Days', value: '30' },
-            { label: '90 Days', value: '90' },
-          ]}
-        />
-      </Group>
 
       <Paper shadow="sm" p="md" radius="md" withBorder>
         <DataTable
@@ -189,7 +187,7 @@ export function MostEngagedUsersView() {
           </Text>
         )}
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }
 

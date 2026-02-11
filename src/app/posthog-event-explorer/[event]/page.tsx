@@ -2,19 +2,17 @@
 
 import { useParams } from 'next/navigation';
 import {
-  Container,
-  Title,
   Paper,
   Stack,
   Anchor,
   Text,
-  Group,
   SegmentedControl,
   Skeleton,
   Alert,
   Table,
   SimpleGrid,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
 import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -51,15 +49,15 @@ export default function PosthogEventDetailPage() {
 
   if (!eventName) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert color="yellow" title="Missing event">Event name is required.</Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={24} width={200} />
           <Skeleton height={40} width={300} />
@@ -67,17 +65,17 @@ export default function PosthogEventDetailPage() {
           <Skeleton height={320} />
           <Skeleton height={300} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -87,26 +85,25 @@ export default function PosthogEventDetailPage() {
   const periodLabel = period === 'day' ? 'Day' : period === 'week' ? 'Week' : 'Month';
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <Stack gap="md">
         <PageBreadcrumbs
           items={[
             { label: 'Event Explorer', href: '/posthog-event-explorer' },
             { label: eventName },
           ]}
+          rightSection={
+            <SegmentedControl
+              value={period}
+              onChange={(v) => setPeriod((v as 'day' | 'week' | 'month') || 'month')}
+              data={[
+                { label: 'By day', value: 'day' },
+                { label: 'By week', value: 'week' },
+                { label: 'By month', value: 'month' },
+              ]}
+            />
+          }
         />
-        <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
-          <Title order={1}>{eventName}</Title>
-          <SegmentedControl
-            value={period}
-            onChange={(v) => setPeriod((v as 'day' | 'week' | 'month') || 'month')}
-            data={[
-              { label: 'By day', value: 'day' },
-              { label: 'By week', value: 'week' },
-              { label: 'By month', value: 'month' },
-            ]}
-          />
-        </Group>
 
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" mb="xl">
           <TimeSeriesChart
@@ -172,6 +169,6 @@ export default function PosthogEventDetailPage() {
             )}
           </Paper>
       </Stack>
-    </Container>
+    </AppContainer>
   );
 }

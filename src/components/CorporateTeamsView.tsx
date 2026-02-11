@@ -2,8 +2,6 @@
 
 import { useRef } from 'react';
 import {
-  Container,
-  Title,
   SimpleGrid,
   Group,
   Skeleton,
@@ -24,6 +22,7 @@ import { useFilter } from '@/contexts/FilterContext';
 import { CorporateTeamsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -45,7 +44,7 @@ export function CorporateTeamsView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -55,13 +54,13 @@ export function CorporateTeamsView() {
           </SimpleGrid>
           <Skeleton height={350} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -69,17 +68,17 @@ export function CorporateTeamsView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert title="No data" color="yellow">
           No corporate and teams data available.
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -102,17 +101,14 @@ export function CorporateTeamsView() {
   };
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'User Registrations', href: '/users' },
           { label: 'Corporate Users & Teams' },
         ]}
+        rightSection={<ExportButton charts={chartRefs} />}
       />
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>Corporate Users & Teams</Title>
-        <ExportButton charts={chartRefs} />
-      </Group>
 
       {/* Help Text */}
       <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
@@ -306,7 +302,7 @@ export function CorporateTeamsView() {
           keyField="month"
         />
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }
 

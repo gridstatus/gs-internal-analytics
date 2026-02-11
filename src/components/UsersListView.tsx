@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   TextInput,
   Paper,
   Text,
@@ -17,6 +15,7 @@ import { DateTime } from 'luxon';
 import { UsersListItem, UsersListResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { UserHoverCard } from './UserHoverCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { DataTable, Column } from './DataTable';
@@ -82,9 +81,8 @@ export function UsersListView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Users' }]} />
-      <Title order={1} mb="xl">Users</Title>
 
       <TextInput
         placeholder="Search users by username, first name, or last name..."
@@ -113,7 +111,7 @@ export function UsersListView() {
           Showing up to 100 users. Click column headers to sort.
         </Text>
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }
 

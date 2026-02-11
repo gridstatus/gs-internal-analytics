@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import {
-  Container,
   Title,
   SimpleGrid,
   Group,
@@ -29,6 +28,7 @@ import { InsightsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 export function InsightsView() {
@@ -82,7 +82,7 @@ export function InsightsView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
@@ -92,13 +92,13 @@ export function InsightsView() {
           </SimpleGrid>
           <Skeleton height={350} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -106,17 +106,17 @@ export function InsightsView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert title="No data" color="yellow">
           No insights data available.
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -220,22 +220,24 @@ export function InsightsView() {
   ];
 
   return (
-    <Container fluid py="xl">
-      <PageBreadcrumbs items={[{ label: 'Insights' }]} />
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>Insights</Title>
-        <Group>
-          <Button
-            component={Link}
-            href="/insights/most-engaged-users"
-            leftSection={<IconUsers size={16} />}
-            variant="light"
-          >
-            Most Engaged Users
-          </Button>
-          <ExportButton charts={chartRefs} />
-        </Group>
-      </Group>
+    <AppContainer>
+      <PageBreadcrumbs
+        items={[{ label: 'Insights' }]}
+        rightSection={
+          <>
+            <Button
+              component={Link}
+              href="/insights/most-engaged-users"
+              leftSection={<IconUsers size={16} />}
+              variant="light"
+              size="compact-sm"
+            >
+              Most Engaged Users
+            </Button>
+            <ExportButton charts={chartRefs} />
+          </>
+        }
+      />
       {/* Summary Metrics */}
       <Group justify="space-between" mb="md">
         <Title order={2}>Summary</Title>
@@ -431,7 +433,7 @@ export function InsightsView() {
           Showing up to 100 posts, sorted by engagement rate. Engagement rate = (Views / Impressions) × 100%. Click on a post to see details.
         </Text>
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }
 

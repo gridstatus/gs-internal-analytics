@@ -1,8 +1,6 @@
 'use client';
 
 import {
-  Container,
-  Title,
   Paper,
   Text,
   Anchor,
@@ -14,6 +12,7 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { PlanListItem, PlansResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -44,11 +43,8 @@ export function PlansView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Plans' }]} />
-      <Title order={1} mb="xl">
-        Plans
-      </Title>
 
       {error && (
         <Alert
@@ -76,6 +72,6 @@ export function PlansView() {
           />
         )}
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }

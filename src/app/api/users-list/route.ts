@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query, getErrorMessage } from '@/lib/db';
-import { loadSql, renderSqlTemplate, getSubscriptionsByUserId, toSubscriptionListItem } from '@/lib/queries';
+import { loadSql, getSubscriptionsByUserId, toSubscriptionListItem } from '@/lib/queries';
 import { withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -259,7 +259,7 @@ export async function GET(request: Request) {
 
     // Search users with fuzzy matching on username/email and first/last name
     // Uses ILIKE for pattern matching - exact matches work, partial matches supported
-    const searchSql = renderSqlTemplate('users-list-search.sql', { usernamePrefix: 'u.' });
+    const searchSql = loadSql('users-list-search.sql', { usernamePrefix: 'u.' });
     const users = await query<{
       id: number;
       username: string;

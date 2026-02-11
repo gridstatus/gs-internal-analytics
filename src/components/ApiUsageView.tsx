@@ -2,7 +2,6 @@
 
 import { useRef } from 'react';
 import {
-  Container,
   Title,
   SimpleGrid,
   Group,
@@ -19,6 +18,7 @@ import { ExportButton } from './ExportButton';
 import { ApiUsageResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 
 export function ApiUsageView() {
@@ -38,7 +38,7 @@ export function ApiUsageView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -48,13 +48,13 @@ export function ApiUsageView() {
           </SimpleGrid>
           <Skeleton height={350} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -62,17 +62,17 @@ export function ApiUsageView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (!data || data.monthlyData.length === 0) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert title="No data" color="yellow">
           No API usage data available.
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -149,7 +149,7 @@ export function ApiUsageView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <Group justify="space-between" mb="xl">
         <Title order={1}>API Usage</Title>
         <ExportButton charts={chartRefs} />
@@ -231,6 +231,6 @@ export function ApiUsageView() {
           keyField="month"
         />
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }

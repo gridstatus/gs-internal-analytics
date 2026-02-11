@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   Skeleton,
   Alert,
   Stack,
@@ -20,6 +18,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 interface PricingPageVisitCount {
@@ -48,18 +47,18 @@ export function PricingPageView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={400} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -67,7 +66,7 @@ export function PricingPageView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -88,23 +87,22 @@ export function PricingPageView() {
   const filteredMostVisits30d = filterBySearch(data.mostVisits['30d']);
 
   return (
-    <Container fluid py="xl">
-      <PageBreadcrumbs items={[{ label: 'Pricing Page' }]} />
-      <Group justify="space-between" mb="xl" wrap="wrap">
-        <div>
-          <Title order={1}>Pricing Page</Title>
-          <Text size="sm" c="dimmed" mt={4}>
-            Logged-in users who have visited the pricing page
-          </Text>
-        </div>
-        <TextInput
-          placeholder="Search by email..."
-          leftSection={<IconSearch size={16} />}
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
-          style={{ flex: 1, maxWidth: 400 }}
-        />
-      </Group>
+    <AppContainer>
+      <PageBreadcrumbs
+        items={[{ label: 'Pricing Page' }]}
+        rightSection={
+          <TextInput
+            placeholder="Search by email..."
+            leftSection={<IconSearch size={16} />}
+            value={search}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+            style={{ width: 300 }}
+          />
+        }
+      />
+      <Text size="sm" c="dimmed" mb="md">
+        Logged-in users who have visited the pricing page
+      </Text>
 
       {/* Multi-column layout */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="xs">
@@ -273,7 +271,7 @@ export function PricingPageView() {
           </Stack>
         </Paper>
       </SimpleGrid>
-    </Container>
+    </AppContainer>
   );
 }
 

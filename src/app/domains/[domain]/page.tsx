@@ -6,8 +6,6 @@ import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
-  Container,
-  Title,
   Paper,
   Text,
   Group,
@@ -19,6 +17,7 @@ import {
   TextInput,
   SegmentedControl,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
 import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -103,17 +102,17 @@ export default function DomainDetailPage() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || !data) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading domain"
@@ -121,21 +120,18 @@ export default function DomainDetailPage() {
         >
           {error || 'Domain data not available'}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'Domains', href: '/domains' },
           { label: data.domain },
         ]}
       />
-      <Title order={1} mb="xl">
-        {data.domain}
-      </Title>
 
       {/* Stats */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
@@ -314,7 +310,7 @@ export default function DomainDetailPage() {
           keyField="id"
         />
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }
 

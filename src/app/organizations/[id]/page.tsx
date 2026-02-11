@@ -3,8 +3,6 @@
 import { useParams } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
 import {
-  Container,
-  Title,
   Paper,
   Table,
   Text,
@@ -18,13 +16,14 @@ import {
   Button,
   ScrollArea,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
 import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { DataTable, Column } from '@/components/DataTable';
 import Link from 'next/link';
-import type { SubscriptionListRowItem } from '@/lib/api-types';
+import type { SubscriptionListItem } from '@/lib/api-types';
 
 interface Organization {
   id: string;
@@ -58,7 +57,7 @@ interface OrganizationDetails {
   domains: string[];
   users: User[];
   potentialAdditions: PotentialAddition[];
-  subscriptions: SubscriptionListRowItem[];
+  subscriptions: SubscriptionListItem[];
   stats: {
     chartCount: number;
     dashboardCount: number;
@@ -93,17 +92,17 @@ export default function OrganizationDetailPage() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || !data) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading organization"
@@ -111,33 +110,31 @@ export default function OrganizationDetailPage() {
         >
           {error || 'Organization data not available'}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'Organizations', href: '/organizations' },
           { label: data.organization.name },
         ]}
+        rightSection={
+          <Button
+            component="a"
+            href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/organizations/${data.organization.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            leftSection={<IconExternalLink size={16} />}
+            variant="light"
+            size="compact-sm"
+          >
+            Open in Clerk
+          </Button>
+        }
       />
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>
-          {data.organization.name}
-        </Title>
-        <Button
-          component="a"
-          href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/organizations/${data.organization.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          leftSection={<IconExternalLink size={16} />}
-          variant="light"
-        >
-          Open in Clerk
-        </Button>
-      </Group>
 
       {/* Stats */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
@@ -357,7 +354,7 @@ export default function OrganizationDetailPage() {
           )}
         </Paper>
       )}
-    </Container>
+    </AppContainer>
   );
 }
 

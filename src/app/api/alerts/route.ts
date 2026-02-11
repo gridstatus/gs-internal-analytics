@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { renderSqlTemplate } from '@/lib/queries';
+import { loadSql } from '@/lib/queries';
 import { formatDateOnly, jsonError, withRequestContext } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -9,11 +9,11 @@ export async function GET(request: Request) {
     try {
     // Get summary stats (filtered via request context)
     const alertStats = await query<{ total: string; users: string }>(
-      renderSqlTemplate('summary-alerts.sql', {})
+      loadSql('summary-alerts.sql', {})
     );
 
     // Get user breakdown for alerts
-    const alertsSql = renderSqlTemplate('alerts-by-user.sql', {});
+    const alertsSql = loadSql('alerts-by-user.sql', {});
     const alertsBreakdown = await query<{
       user_id: number;
       username: string;

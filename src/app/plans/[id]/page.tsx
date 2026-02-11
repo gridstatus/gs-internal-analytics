@@ -4,11 +4,8 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
 import {
-  Container,
-  Title,
   Paper,
   Text,
-  Group,
   Table,
   Loader,
   Alert,
@@ -17,6 +14,7 @@ import {
   Badge,
   Tabs,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
 import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -57,17 +55,17 @@ export default function PlanDetailPage() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || !data) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading plan"
@@ -75,7 +73,7 @@ export default function PlanDetailPage() {
         >
           {error || 'Plan data not available'}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -168,16 +166,13 @@ export default function PlanDetailPage() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'Plans', href: '/plans' },
           { label: `${plan.planName} (ID: ${plan.id})` },
         ]}
       />
-      <Title order={1} mb="xl">
-        {plan.planName} (ID: {plan.id})
-      </Title>
 
       <Paper shadow="sm" p="md" radius="md" withBorder mb="xl">
         <Text fw={600} size="lg" mb="md">
@@ -243,6 +238,6 @@ export default function PlanDetailPage() {
           </Text>
         )}
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }

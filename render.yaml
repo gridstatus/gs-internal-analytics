@@ -8,13 +8,37 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: APPLICATION_POSTGRES_USER
+      - key: READ_ONLY_APP_USER
         sync: false
-      - key: APPLICATION_POSTGRES_PASSWORD
+      - key: READ_ONLY_APP_PASSWORD
         sync: false
-      - key: APPLICATION_POSTGRES_HOST
+      - key: READ_ONLY_APP_HOST
         sync: false
-      - key: APPLICATION_POSTGRES_DATABASE
+      - key: READ_ONLY_APP_PORT
+        sync: false
+      - key: READ_ONLY_APP_DATABASE
+        sync: false
+      - key: WRITE_DB_ENV
+        sync: false
+      - key: LOCAL_WRITE_APP_USER
+        sync: false
+      - key: LOCAL_WRITE_APP_PASSWORD
+        sync: false
+      - key: LOCAL_WRITE_APP_HOST
+        sync: false
+      - key: LOCAL_WRITE_APP_PORT
+        sync: false
+      - key: LOCAL_WRITE_APP_DATABASE
+        sync: false
+      - key: PROD_WRITE_APP_USER
+        sync: false
+      - key: PROD_WRITE_APP_PASSWORD
+        sync: false
+      - key: PROD_WRITE_APP_HOST
+        sync: false
+      - key: PROD_WRITE_APP_PORT
+        sync: false
+      - key: PROD_WRITE_APP_DATABASE
         sync: false
       - key: POSTHOG_PROJECT_ID
         sync: false
@@ -34,10 +58,3 @@ services:
         value: /
       - key: NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
         value: /
-
-databases:
-  - name: gs-analytics-db
-    plan: free
-    databaseName: api_server
-    user: postgres
-

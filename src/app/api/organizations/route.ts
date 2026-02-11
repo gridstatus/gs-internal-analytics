@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { jsonError, withRequestContext } from '@/lib/api-helpers';
-import { renderSqlTemplate, getSubscriptionsByOrganizationId, toSubscriptionListItem } from '@/lib/queries';
+import { loadSql, getSubscriptionsByOrganizationId, toSubscriptionListItem } from '@/lib/queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
     }
 
     // Search organizations
-    const searchSql = renderSqlTemplate('organizations-search.sql', { usernamePrefix: 'u.' });
+    const searchSql = loadSql('organizations-search.sql', { usernamePrefix: 'u.' });
     const orgs = await query<{
       id: string;
       name: string;

@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -17,6 +15,7 @@ import { MetricCard } from './MetricCard';
 import { AlertsResponse, AlertUserRow } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { UserHoverCard } from './UserHoverCard';
 import { DataTable, Column } from './DataTable';
 import { ErrorDisplay } from './ErrorDisplay';
@@ -67,9 +66,8 @@ export function AlertsView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Alerts' }]} />
-      <Title order={1} mb="xl">Alerts</Title>
 
       {loading ? (
         <Stack gap="md">
@@ -121,7 +119,7 @@ export function AlertsView() {
           </Paper>
         </>
       ) : null}
-    </Container>
+    </AppContainer>
   );
 }
 

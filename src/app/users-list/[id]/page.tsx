@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
 import {
-  Container,
-  Title,
   Paper,
   Table,
   Text,
@@ -21,10 +19,11 @@ import {
   Button,
   Box,
 } from '@mantine/core';
+import { AppContainer } from '@/components/AppContainer';
 import { CompositeChart } from '@mantine/charts';
 import { DateTime } from 'luxon';
 import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
-import type { SubscriptionListRowItem } from '@/lib/api-types';
+import type { SubscriptionListItem } from '@/lib/api-types';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
@@ -128,7 +127,7 @@ interface UserDetails {
     saved: InsightSaved[];
     views: InsightView[];
   };
-  subscriptions: SubscriptionListRowItem[];
+  subscriptions: SubscriptionListItem[];
 }
 
 interface ApiUsageData {
@@ -257,17 +256,17 @@ export default function UserDetailPage() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack align="center" py="xl">
           <Loader />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || !data) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading user"
@@ -275,51 +274,44 @@ export default function UserDetailPage() {
         >
           {error || 'User data not available'}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'Users', href: '/users-list' },
           { label: data.user.username },
         ]}
-      />
-      <Group justify="space-between" mb="xl">
-        <Stack gap={4}>
-          <Title order={1}>
-            {data.user.username}
-            {(data.user.firstName || data.user.lastName) && (
-              <> · {[data.user.firstName, data.user.lastName].filter(Boolean).join(' ')}</>
+        rightSection={
+          <>
+            {data.user.isAdmin && (
+              <Badge color="red" size="lg">Admin</Badge>
             )}
-          </Title>
-          <Text size="sm" c="dimmed">
-            Last active: {data.user.lastActiveAt
-              ? new Date(data.user.lastActiveAt).toLocaleDateString()
-              : 'Never'}
-            {daysSinceSignup !== null && ` • ${daysSinceSignup.toLocaleString()} days since sign up`}
-          </Text>
-        </Stack>
-        <Group gap="md">
-          {data.user.clerkId && (
-            <Button
-              component="a"
-              href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/users/${data.user.clerkId}?user_back_page=users`}
-              target="_blank"
-              rel="noopener noreferrer"
-              leftSection={<IconExternalLink size={16} />}
-              variant="light"
-            >
-              Open in Clerk
-            </Button>
-          )}
-          {data.user.isAdmin && (
-            <Badge color="red" size="lg">Admin</Badge>
-          )}
-        </Group>
-      </Group>
+            {data.user.clerkId && (
+              <Button
+                component="a"
+                href={`https://dashboard.clerk.com/apps/app_2IMRywc1hPChiNOSh8b9KZqUW7Q/instances/ins_2L4cECyyYvS7ZKGFX6N3KnHeB1h/users/${data.user.clerkId}?user_back_page=users`}
+                target="_blank"
+                rel="noopener noreferrer"
+                leftSection={<IconExternalLink size={16} />}
+                variant="light"
+                size="compact-sm"
+              >
+                Open in Clerk
+              </Button>
+            )}
+          </>
+        }
+      />
+      <Text size="sm" c="dimmed" mb="md">
+        Last active: {data.user.lastActiveAt
+          ? new Date(data.user.lastActiveAt).toLocaleDateString()
+          : 'Never'}
+        {daysSinceSignup !== null && ` • ${daysSinceSignup.toLocaleString()} days since sign up`}
+      </Text>
 
       {/* PostHog days active (last 7, 30, 365 days) */}
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="md">
@@ -375,6 +367,12 @@ export default function UserDetailPage() {
               User Details
             </Text>
             <Stack gap="xs">
+              {(data.user.firstName || data.user.lastName) && (
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">Name</Text>
+                  <Text size="sm" fw={500}>{[data.user.firstName, data.user.lastName].filter(Boolean).join(' ')}</Text>
+                </Group>
+              )}
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">ID</Text>
                 <Text size="sm" fw={500}>{data.user.id}</Text>
@@ -995,7 +993,7 @@ export default function UserDetailPage() {
           </SimpleGrid>
         </Paper>
       )}
-    </Container>
+    </AppContainer>
   );
 }
 

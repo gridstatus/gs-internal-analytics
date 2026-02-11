@@ -5,23 +5,23 @@ import { DEFAULT_TIMEZONE } from './timezones';
 /** Max concurrent DB queries; excess wait for a connection. */
 const DB_MAX_CONCURRENT = 2;
 
+const useSSL = process.env.READ_ONLY_APP_SSL !== 'false';
+
 const pool = new Pool({
-  user: process.env.APPLICATION_POSTGRES_USER,
-  password: process.env.APPLICATION_POSTGRES_PASSWORD,
-  host: process.env.APPLICATION_POSTGRES_HOST,
-  database: process.env.APPLICATION_POSTGRES_DATABASE,
-  port: 5432,
+  user: process.env.READ_ONLY_APP_USER,
+  password: process.env.READ_ONLY_APP_PASSWORD,
+  host: process.env.READ_ONLY_APP_HOST,
+  database: process.env.READ_ONLY_APP_DATABASE,
+  port: parseInt(process.env.READ_ONLY_APP_PORT || '5432', 10),
   max: DB_MAX_CONCURRENT,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
   // Set 30 second statement timeout for all queries
   statement_timeout: 30000,
 });
 
 /**
  * Request-scoped context for storing timezone and filter settings.
- * Set by withRequestContext(); read by renderSqlTemplate/renderHogqlTemplate and formatDateOnly.
+ * Set by withRequestContext(); read by loadSql (when given context) / renderHogqlTemplate and formatDateOnly.
  */
 export interface RequestContext {
   timezone?: string;

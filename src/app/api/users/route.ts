@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql, renderSqlTemplate } from '@/lib/queries';
+import { getMonthlyUserCounts, getUserCountsByPeriod, getMonthlyCorpMetrics, getUsersToday, getMonthlyNewUsersComparison, getLast30DaysUsers, getTotalUsersCount, loadSql } from '@/lib/queries';
 import { query } from '@/lib/db';
 import { formatMonthUtc, jsonError, withRequestContext } from '@/lib/api-helpers';
 import { DateTime } from 'luxon';
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       }
       
       // Render template with all placeholders (filters from request context)
-      const sql = renderSqlTemplate('top-domains.sql', { 
+      const sql = loadSql('top-domains.sql', { 
         days, 
         timestamp_field: timestampField,
         domain_filter: domainFilter
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
     // Load and render hourly registrations SQL template for different day offsets
     const getHourlyRegistrationsSql = (daysOffset: number) => {
-      return renderSqlTemplate('hourly-registrations.sql', { 
+      return loadSql('hourly-registrations.sql', { 
         days_offset: daysOffset
       });
     };

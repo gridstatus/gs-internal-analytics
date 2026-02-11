@@ -47,6 +47,7 @@ All SQL queries that touch user/domain data MUST include **`{{USER_FILTER}}`**; 
 ### Precautions: Protecting the Database and External Services
 Per-backend concurrency limits protect the shared DB and PostHog API. Do not remove or bypass them.
 
+- **SQL mutations** (`src/sql/mutations/[name].sql`): Separate files for INSERT/UPDATE/DELETE operations. **Reviewing changes to this folder requires extra care**; when in doubt, confirm with the user before applying.
 - **PostgreSQL** (`src/lib/db.ts`): Pool limited by `DB_MAX_CONCURRENT`; excess `query()` calls wait.
 - **PostHog** (`src/lib/posthog.ts`): Semaphore limited by `POSTHOG_MAX_CONCURRENT`. All PostHog requests must go through `posthogFetchWithRetry`. Do not add direct `fetch` calls to PostHog.
 
@@ -93,7 +94,7 @@ PostHog is used to track user activity and provides data for anonymous users (no
 
 
 ### Page Pattern
-Each analytics page follows this pattern. API paths: overview `src/app/api/[name]/route.ts`, instance `src/app/api/[name]/[id]/route.ts`. Use typed query functions from `src/lib/queries.ts` and `renderSqlTemplate()` when filtering by domain.
+Each analytics page follows this pattern. API paths: overview `src/app/api/[name]/route.ts`, instance `src/app/api/[name]/[id]/route.ts`. Use typed query functions from `src/lib/queries.ts` and `loadSql(..., context)` when filtering by domain.
 
 1. SQL file in `src/sql/[name].sql` (one query per file)
 2. Typed query function in `src/lib/queries.ts`
@@ -111,8 +112,9 @@ Each analytics page follows this pattern. API paths: overview `src/app/api/[name
 
 ### SQL Queries
 **Important - All SQL and HogQL in Files**: Never write SQL or HogQL queries inline in TypeScript/JavaScript code. All queries must be in separate files:
-- SQL queries: `src/sql/[name].sql`
+- SQL: read-only in `src/sql/[name].sql`; data-modifying (INSERT/UPDATE/DELETE) in `src/sql/mutations/[name].sql` — load with `loadSql('mutations/[name].sql')`.
 - HogQL queries: `src/hogql/[name].hogql`
+- **Loading and templating**: Use `loadSql('path/to/file.sql')` for static SQL (no placeholders). Use `loadSql('file.sql', context)` for queries with `{{PLACEHOLDER}}`s; the second argument triggers template rendering (placeholders from context and `{{USER_FILTER}}` from request context).
 
 **SQL File Naming Convention**: All SQL files must follow a consistent naming pattern using **kebab-case** (lowercase with hyphens) and descriptive prefixes to group related queries. This makes files easy to find, understand, and maintain.
 
@@ -138,16 +140,12 @@ Each analytics page follows this pattern. API paths: overview `src/app/api/[name
 | `users-activities.sql` | `user-activities.sql` |
 | `monthly-posts.sql` | `monthly-insights-posts.sql` |
 
-Use `renderSqlTemplate(filename, context)` to load and render SQL templates. This improves maintainability, enables syntax highlighting, and makes queries reusable.
-
-
-
 **Template Placeholder Naming Convention**:
 
-- **Reserved/Standard Placeholders** (handled automatically by `renderSqlTemplate()` - DO NOT use these names for custom placeholders):
+- **Reserved/Standard Placeholders** (handled automatically when using `loadSql(..., context)` - DO NOT use these names for custom placeholders):
   - `{{USER_FILTER}}` - Optional filter built from two separate AND clauses: (1) when `filterInternal` is true: excludes `@gridstatus.io` and test account; (2) when `filterFree` is true: excludes free email domains (see `FREE_EMAIL_DOMAINS` in `src/lib/queries.ts`). Replaced with the concatenation of these clauses, or removed when both are false.
 
-  **Important**: This placeholder is automatically processed by `renderSqlTemplate()`. Filter values are read from **request context** (set by `withRequestContext()` in API routes from URL params). You can override by passing `filterInternal`/`filterFree` in the template context object.
+  **Important**: This placeholder is automatically processed when you pass context to `loadSql()`. Filter values are read from **request context** (set by `withRequestContext()` in API routes from URL params). You can override by passing `filterInternal`/`filterFree` in the template context object.
 
   **Usage**: Always use `{{USER_FILTER}}` in SQL files. Content is built from request-context `filterInternal` and `filterFree` (and `usernamePrefix` for the column reference). Keeping internal and free as separate clauses keeps the generated SQL aligned with the two sidebar toggles.
 
@@ -199,6 +197,11 @@ Use `renderSqlTemplate(filename, context)` to load and render SQL templates. Thi
 - **Info hover** - Use `InfoHoverIcon` (tooltip to the right of card/section titles) when extra context helps (e.g. how a metric is computed).
 
 
+### Shared Constants & Types
+When a set of values is used in multiple places (e.g. subscription statuses, plan types), define a single `as const` array and a derived type in `src/lib/api-types.ts` and import it everywhere. **Never duplicate value lists** in local files.
+
+- **`SUBSCRIPTION_STATUSES`** / **`SubscriptionStatus`** — canonical Stripe subscription status list. Used in validation, edit forms, and filter UIs.
+
 ### Data Fetching
 Use the `useApiData` hook for fetching data in view components. It handles loading, error states, and request cancellation.
 
@@ -215,7 +218,7 @@ Whenever an instance is mentioned (user ID, organization ID, insight ID, etc.), 
 **Always use `UserHoverCard`** when displaying user names/links (never plain `Anchor`). It provides a clickable link to the user detail page and a lazy-loaded hover card. See `src/components/UserHoverCard.tsx` and `src/components/AlertsView.tsx`.
 
 ### Internal and Free Filtering Support
-**Important**: Apply sidebar filters (Filter Internal, Filter Free) to every view and query. View: `useApiUrl(path, params)`. API: `withRequestContext(searchParams, async () => { ... })`. Queries: `renderSqlTemplate(filename, { ... })` with no filter args; they read from request context. SQL/HogQL: use `{{USER_FILTER}}`. Filter Internal excludes `@gridstatus.io` and test account; Filter Free excludes `FREE_EMAIL_DOMAINS` (see `src/lib/queries.ts`). See Database (Corporate Domain Filtering) and Template Placeholder Naming Convention for detail.
+**Important**: Apply sidebar filters (Filter Internal, Filter Free) to every view and query. View: `useApiUrl(path, params)`. API: `withRequestContext(searchParams, async () => { ... })`. Queries: `loadSql(filename, { ... })` with no filter args; they read from request context. SQL/HogQL: use `{{USER_FILTER}}`. Filter Internal excludes `@gridstatus.io` and test account; Filter Free excludes `FREE_EMAIL_DOMAINS` (see `src/lib/queries.ts`). See Database (Corporate Domain Filtering) and Template Placeholder Naming Convention for detail.
 
 ## Deployment
 Deployment is handled by Render. See `render.yaml` for the deployment configuration.

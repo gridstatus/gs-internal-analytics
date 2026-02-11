@@ -9,7 +9,7 @@ export interface Column<T> {
   header: string | React.ReactNode;
   render: (row: T) => React.ReactNode;
   sortable?: boolean;
-  align?: 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
   sortValue?: (row: T) => string | number | boolean | null;
 }
 

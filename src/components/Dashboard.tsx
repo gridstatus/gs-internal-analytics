@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import {
-  Container,
   Title,
   SimpleGrid,
   Skeleton,
@@ -24,6 +23,7 @@ import Link from 'next/link';
 import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
@@ -135,7 +135,7 @@ export function Dashboard() {
 
   if (loading || activeUsersLoading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={200} />
@@ -150,13 +150,13 @@ export function Dashboard() {
             ))}
           </SimpleGrid>
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error || activeUsersError) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -164,7 +164,7 @@ export function Dashboard() {
         >
           {error || activeUsersError}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -178,9 +178,8 @@ export function Dashboard() {
   const pct90d = Math.round((activeUsersData.active90d / activeUsersData.totalUsers) * 100);
 
   return (
-    <Container fluid py="xl">
-      <PageBreadcrumbs items={[{ label: 'Home' }]} />
-      <Title order={1} mb="xl">User Analytics Dashboard</Title>
+    <AppContainer>
+      <PageBreadcrumbs items={[{ label: 'User Analytics Dashboard' }]} />
 
       {/* Activity Feed - TweetDeck Style */}
       <Stack gap="md">
@@ -363,6 +362,6 @@ export function Dashboard() {
           Based on last_active_at timestamp. Total registered users: {activeUsersData.totalUsers.toLocaleString()}
         </Text>
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }

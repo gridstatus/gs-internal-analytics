@@ -2,7 +2,6 @@
 
 import {
   Container,
-  Title,
   Paper,
   Text,
   Select,
@@ -114,9 +113,6 @@ export function DatasetDetailView({ datasetId }: DatasetDetailViewProps) {
           { label: datasetId },
         ]}
       />
-      <Title order={2} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} mb="md">
-        {datasetId}
-      </Title>
 
       {error && (
         <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mb="md">

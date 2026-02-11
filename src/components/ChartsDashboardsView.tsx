@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Container,
-  Title,
   SimpleGrid,
   Skeleton,
   Alert,
@@ -20,6 +18,7 @@ import { UserHoverCard } from './UserHoverCard';
 import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -82,9 +81,8 @@ export function ChartsDashboardsView() {
   ];
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs items={[{ label: 'Charts & Dashboards' }]} />
-      <Title order={1} mb="xl">Charts & Dashboards</Title>
 
       {loading ? (
         <Stack gap="md">
@@ -146,6 +144,6 @@ export function ChartsDashboardsView() {
           </Paper>
         </>
       ) : null}
-    </Container>
+    </AppContainer>
   );
 }

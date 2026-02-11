@@ -2,10 +2,7 @@
 
 import { useState, useRef } from 'react';
 import {
-  Container,
-  Title,
   SimpleGrid,
-  Group,
   Skeleton,
   Alert,
   Stack,
@@ -23,6 +20,7 @@ import { PosthogActiveUsersResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -45,7 +43,7 @@ export function PosthogMausView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -55,13 +53,13 @@ export function PosthogMausView() {
           </SimpleGrid>
           <Skeleton height={350} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -69,17 +67,17 @@ export function PosthogMausView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (!data || data.periodData.length === 0) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert title="No data" color="yellow">
           No PostHog Active Users data available. Check your PostHog credentials.
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -131,28 +129,27 @@ export function PosthogMausView() {
   const changeLabel = period === 'day' ? 'DoD' : period === 'week' ? 'WoW' : 'MoM';
 
   return (
-    <Container fluid py="xl">
-      <PageBreadcrumbs items={[{ label: 'PostHog Active Users' }]} />
-      <Group justify="space-between" mb="xl" wrap="wrap">
-        <div>
-          <Title order={1}>PostHog Active Users</Title>
-          <Text size="xs" c="dimmed" mt={4}>
-            Filtered to users with email addresses (typically logged-in users)
-          </Text>
-        </div>
-        <Group>
-          <SegmentedControl
-            value={period}
-            onChange={(value) => setPeriod(value as 'day' | 'week' | 'month')}
-            data={[
-              { label: 'Daily', value: 'day' },
-              { label: 'Weekly', value: 'week' },
-              { label: 'Monthly', value: 'month' },
-            ]}
-          />
-          <ExportButton charts={chartRefs} />
-        </Group>
-      </Group>
+    <AppContainer>
+      <PageBreadcrumbs
+        items={[{ label: 'PostHog Active Users' }]}
+        rightSection={
+          <>
+            <SegmentedControl
+              value={period}
+              onChange={(value) => setPeriod(value as 'day' | 'week' | 'month')}
+              data={[
+                { label: 'Daily', value: 'day' },
+                { label: 'Weekly', value: 'week' },
+                { label: 'Monthly', value: 'month' },
+              ]}
+            />
+            <ExportButton charts={chartRefs} />
+          </>
+        }
+      />
+      <Text size="xs" c="dimmed" mb="md">
+        Filtered to users with email addresses (typically logged-in users)
+      </Text>
 
       {/* Summary Metrics */}
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mb="xl">
@@ -232,6 +229,6 @@ export function PosthogMausView() {
           All metrics shown are for users with email addresses (typically logged-in users only). Anonymous users without emails are excluded.
         </Text>
       </Paper>
-    </Container>
+    </AppContainer>
   );
 }

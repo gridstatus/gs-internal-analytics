@@ -131,27 +131,25 @@ export function RateLimitAbusersView() {
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
-        <PageBreadcrumbs items={[{ label: 'Rate Limit Activity' }]} />
-        <Group justify="space-between" align="flex-end">
-          <div>
-            <Title order={2} mb="xs">Rate Limit Activity</Title>
-            <Text c="dimmed" size="sm">
-              Users hitting API rate limits - prime candidates for enterprise plans
-            </Text>
-          </div>
-          <Select
-            label="Time Period"
-            value={days}
-            onChange={(value) => setDays(value || '1')}
-            data={[
-              { value: '1', label: 'Last 1 day' },
-              { value: '7', label: 'Last 7 days' },
-              { value: '30', label: 'Last 30 days' },
-              { value: '90', label: 'Last 90 days' },
-            ]}
-            style={{ width: 150 }}
-          />
-        </Group>
+        <PageBreadcrumbs
+          items={[{ label: 'Rate Limit Activity' }]}
+          rightSection={
+            <Select
+              value={days}
+              onChange={(value) => setDays(value || '1')}
+              data={[
+                { value: '1', label: 'Last 1 day' },
+                { value: '7', label: 'Last 7 days' },
+                { value: '30', label: 'Last 30 days' },
+                { value: '90', label: 'Last 90 days' },
+              ]}
+              style={{ width: 150 }}
+            />
+          }
+        />
+        <Text c="dimmed" size="sm">
+          Users hitting API rate limits - prime candidates for enterprise plans
+        </Text>
 
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
           <MetricCard

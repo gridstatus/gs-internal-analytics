@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Container,
-  Title,
   Skeleton,
   Alert,
   Stack,
@@ -19,6 +17,7 @@ import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
+import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 
 export function TopRegistrationsView() {
@@ -36,18 +35,18 @@ export function TopRegistrationsView() {
 
   if (loading) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Stack gap="md">
           <Skeleton height={50} width={300} />
           <Skeleton height={400} />
         </Stack>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (error) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading data"
@@ -55,17 +54,17 @@ export function TopRegistrationsView() {
         >
           {error}
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
   if (!data || data.data.length === 0) {
     return (
-      <Container fluid py="xl">
+      <AppContainer>
         <Alert title="No data" color="yellow">
           No registration data available.
         </Alert>
-      </Container>
+      </AppContainer>
     );
   }
 
@@ -130,16 +129,13 @@ export function TopRegistrationsView() {
   };
 
   return (
-    <Container fluid py="xl">
+    <AppContainer>
       <PageBreadcrumbs
         items={[
           { label: 'User Registrations', href: '/users' },
           { label: 'Top Registrations' },
         ]}
       />
-      <Title order={1} mb="xl">
-        Top Registrations
-      </Title>
 
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List>
@@ -196,7 +192,7 @@ export function TopRegistrationsView() {
           </Paper>
         </Tabs.Panel>
       </Tabs>
-    </Container>
+    </AppContainer>
   );
 }
 
