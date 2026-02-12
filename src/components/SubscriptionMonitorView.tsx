@@ -292,7 +292,7 @@ export function SubscriptionMonitorView() {
         items={[{ label: 'Subscriptions', href: '/subscriptions' }, { label: 'Subscription Monitor' }]}
       />
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }} gap="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl">
         <Paper shadow="sm" p="md" radius="md" withBorder style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Text fw={600} size="lg" mb={4}>
             Limit not enforced
