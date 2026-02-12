@@ -17,7 +17,7 @@ import {
   Box,
   Select,
 } from '@mantine/core';
-import { IconSearch, IconTrendingUp, IconBuilding } from '@tabler/icons-react';
+import { IconSearch, IconTrendingUp } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
@@ -74,7 +74,7 @@ export function UsersView() {
       <PageBreadcrumbs
         items={[{ label: 'User Registrations' }]}
         rightSection={
-          <>
+          <Group gap="xs">
             <Button
               component={Link}
               href="/users/top-registrations"
@@ -84,17 +84,8 @@ export function UsersView() {
             >
               Top Registrations
             </Button>
-            <Button
-              component={Link}
-              href="/users/corporate-teams"
-              leftSection={<IconBuilding size={16} />}
-              variant="light"
-              size="compact-sm"
-            >
-              Corporate & Teams
-            </Button>
             <ExportButton charts={chartRefs} />
-          </>
+          </Group>
         }
       />
 

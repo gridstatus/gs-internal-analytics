@@ -145,6 +145,11 @@ export async function getLimitNotEnforcedSubscriptions(): Promise<LimitNotEnforc
   return query<LimitNotEnforcedRow>(sql);
 }
 
+export async function getTrialsSelfService(): Promise<SubscriptionListRow[]> {
+  const sql = loadSql('subscription-trials-self-service.sql', {});
+  return query<SubscriptionListRow>(sql);
+}
+
 export async function getActiveEnterpriseTrials(): Promise<ActiveTrialRow[]> {
   const sql = loadSql('subscription-monitor-active-trials.sql', {});
   return query<ActiveTrialRow>(sql);

@@ -153,6 +153,14 @@ export function AppLayout({ children }: AppLayoutProps) {
     key: 'nav:go-to-market',
     defaultValue: true,
   });
+  const [subscriptionsOpen, setSubscriptionsOpen] = useLocalStorage({
+    key: 'nav:subscriptions',
+    defaultValue: true,
+  });
+  const [usersOpen, setUsersOpen] = useLocalStorage({
+    key: 'nav:users',
+    defaultValue: true,
+  });
 
   const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
 
@@ -228,26 +236,40 @@ export function AppLayout({ children }: AppLayoutProps) {
                     onClick={close}
                     styles={navLinkStyles}
                   />
-                  <NavLink
-                    component={Link}
-                    href="/users"
-                    label="User Registrations"
-                    leftSection={<IconUserPlus size={16} />}
-                    active={pathname === '/users'}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
-                  
                   <Divider my="sm" mx="-xs" />
                   <NavLink
-                    component={Link}
-                    href="/users-list"
                     label="Users"
                     leftSection={<IconUserSearch size={16} />}
-                    active={pathname?.startsWith('/users-list')}
-                    onClick={close}
+                    opened={usersOpen}
+                    onChange={() => setUsersOpen((prev) => !prev)}
+                    active={pathname?.startsWith('/users') || pathname?.startsWith('/users-list')}
                     styles={navLinkStyles}
-                  />
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/users-list"
+                      label="User List"
+                      onClick={close}
+                      active={pathname?.startsWith('/users-list')}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/users"
+                      label="User Registrations"
+                      onClick={close}
+                      active={pathname === '/users'}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/users/corporate-teams"
+                      label="Corporate & Teams"
+                      onClick={close}
+                      active={pathname === '/users/corporate-teams'}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
                   <NavLink
                     component={Link}
                     href="/organizations"
@@ -267,14 +289,38 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   <NavLink
-                    component={Link}
-                    href="/subscriptions"
                     label="Subscriptions"
                     leftSection={<IconReceipt size={16} />}
+                    opened={subscriptionsOpen}
+                    onChange={() => setSubscriptionsOpen((prev) => !prev)}
                     active={pathname?.startsWith('/subscriptions')}
-                    onClick={close}
                     styles={navLinkStyles}
-                  />
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/subscriptions"
+                      label="Subscription List"
+                      onClick={close}
+                      active={pathname === '/subscriptions'}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/subscriptions/monitor"
+                      label="Subscription Monitor"
+                      onClick={close}
+                      active={pathname === '/subscriptions/monitor'}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/subscriptions/trials"
+                      label="Trials"
+                      onClick={close}
+                      active={pathname === '/subscriptions/trials'}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
                   <Divider my="sm" mx="-xs" />
                   <NavLink
                     label="Products"

@@ -379,6 +379,11 @@ export interface SubscriptionMonitorResponse {
   pastBillingPeriod: SubscriptionListItem[];
 }
 
+export interface TrialsResponse {
+  selfService: SubscriptionListItem[];
+  enterprise: SubscriptionMonitorActiveTrialItem[];
+}
+
 /** Editable fields for PATCH /api/subscriptions/[id]. Only keys present in the payload are applied; null means clear to NULL. */
 export interface SubscriptionEditableFields {
   planId: number;
