@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp, IconList } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -280,15 +280,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                     styles={navLinkStyles}
                   />
                   <NavLink
-                    component={Link}
-                    href="/domains"
-                    label="Domains"
-                    leftSection={<IconWorld size={16} />}
-                    active={pathname?.startsWith('/domains')}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
-                  <NavLink
                     label="Subscriptions"
                     leftSection={<IconReceipt size={16} />}
                     opened={subscriptionsOpen}
@@ -321,6 +312,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                       styles={navLinkStyles}
                     />
                   </NavLink>
+                  <NavLink
+                    component={Link}
+                    href="/domains"
+                    label="Domains"
+                    leftSection={<IconWorld size={16} />}
+                    active={pathname?.startsWith('/domains')}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
                   <Divider my="sm" mx="-xs" />
                   <NavLink
                     label="Products"
@@ -402,6 +402,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                       styles={navLinkStyles}
                     />
                   </NavLink>
+                  <Divider my="sm" mx="-xs" />
+                  <NavLink
+                    component={Link}
+                    href="/future-ideas"
+                    label="Future Ideas"
+                    leftSection={<IconList size={16} />}
+                    active={pathname === '/future-ideas'}
+                    onClick={close}
+                    styles={navLinkStyles}
+                  />
                 </Stack>
               </Stack>
               </Box>

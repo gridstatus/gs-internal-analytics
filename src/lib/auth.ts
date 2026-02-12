@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 
 /** Emails allowed to edit subscriptions. Do not expose this list to the client. */
-const AUTHORIZED_EDITOR_EMAILS = ['max@gridstatus.io'] as const;
+const AUTHORIZED_EDITOR_EMAILS = ['max@gridstatus.io', 'katie@gridstatus.io', 'clara@gridstatus.io'] as const;
 
 export function isAuthorizedEditor(email: string): boolean {
   return (AUTHORIZED_EDITOR_EMAILS as readonly string[]).includes(email);
