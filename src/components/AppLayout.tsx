@@ -209,14 +209,13 @@ export function AppLayout({ children }: AppLayoutProps) {
               <UserButton />
             </Group>
           </AppShell.Header>
-          <AppShell.Navbar p="xs" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <Group mb="xs" justify="space-between" visibleFrom="sm" style={{ flexShrink: 0 }}>
+          <AppShell.Navbar style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Group mb="xs" px="xs" pt="xs" justify="space-between" visibleFrom="sm" style={{ flexShrink: 0 }}>
               <Title order={4}>Grid Status</Title>
               <UserButton />
             </Group>
-            <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6} styles={{ viewport: { overflowX: 'visible' } }}>
-              <Box mx="-xs" px="xs">
-              <Stack gap={4} pb="xs">
+            <ScrollArea style={{ flex: 1, minHeight: 0 }} type="scroll" scrollbarSize={6}>
+              <Stack gap={4} px="xs" pb="xs">
                 <Stack gap={0}>
                   <NavLink
                     component={Link}
@@ -414,10 +413,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                   />
                 </Stack>
               </Stack>
-              </Box>
             </ScrollArea>
             <Divider />
-            <Stack gap={4} pt="xs" pb="xs" style={{ flexShrink: 0 }}>
+            <Stack gap={4} px="xs" pt="xs" pb="xs" style={{ flexShrink: 0 }}>
               <Text size="sm" fw={500}>Settings</Text>
               <Switch
                 label="Filter Internal"
