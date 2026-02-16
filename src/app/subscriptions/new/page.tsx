@@ -31,7 +31,6 @@ import { DateTime } from 'luxon';
 import {
   SubscriptionCreatableFields,
   SubscriptionStatus,
-  SUBSCRIPTION_STATUSES,
   PlansResponse,
 } from '@/lib/api-types';
 import type { SubscriptionCreateResponse } from '@/lib/api-types';
@@ -337,13 +336,15 @@ export default function NewSubscriptionPage() {
               allowDeselect={false}
               style={{ minWidth: 280 }}
             />
-            <Select
-              label="Status"
-              data={SUBSCRIPTION_STATUSES.map((s) => ({ value: s, label: s }))}
-              value={form.status}
-              onChange={(v) => v != null && setForm((f) => ({ ...f, status: v as SubscriptionStatus }))}
-              style={{ minWidth: 280 }}
-            />
+            <div>
+              <Text size="sm" fw={500} mb={4}>Status</Text>
+              <SegmentedControl
+                size="xs"
+                data={[{ label: 'Active', value: 'active' }, { label: 'Trialing', value: 'trialing' }]}
+                value={form.status}
+                onChange={(v) => setForm((f) => ({ ...f, status: v as SubscriptionStatus }))}
+              />
+            </div>
             <TextInput
               label="Start date"
               type="datetime-local"
