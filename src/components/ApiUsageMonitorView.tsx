@@ -11,6 +11,8 @@ import {
   Skeleton,
   TextInput,
   ScrollArea,
+  Modal,
+  List,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import Link from 'next/link';
@@ -44,6 +46,7 @@ export function ApiUsageMonitorView() {
 
   const [searchIp, setSearchIp] = useState('');
   const [searchUser, setSearchUser] = useState('');
+  const [datasetsModalList, setDatasetsModalList] = useState<string[] | null>(null);
 
   const byIp = data?.byIp ?? [];
   const byUser = data?.byUser ?? [];
@@ -184,9 +187,23 @@ export function ApiUsageMonitorView() {
     {
       id: 'uniqueDatasets',
       header: 'Datasets',
-      align: 'left',
-      render: (row) => row.uniqueDatasets.join(', ') || '—',
-      sortValue: (row) => row.uniqueDatasets.join(', ').toLowerCase(),
+      align: 'right',
+      render: (row) => {
+        const count = row.uniqueDatasets.length;
+        if (count === 0) return '—';
+        return (
+          <Anchor
+            component="button"
+            type="button"
+            size="sm"
+            variant="subtle"
+            onClick={() => setDatasetsModalList(row.uniqueDatasets)}
+          >
+            {count.toLocaleString()}
+          </Anchor>
+        );
+      },
+      sortValue: (row) => row.uniqueDatasets.length,
     },
   ];
 
@@ -270,6 +287,22 @@ export function ApiUsageMonitorView() {
           </ScrollArea.Autosize>
         </Paper>
       </SimpleGrid>
+
+      <Modal
+        title="Datasets"
+        opened={datasetsModalList !== null}
+        onClose={() => setDatasetsModalList(null)}
+      >
+        <List>
+          {(datasetsModalList ?? []).map((id) => (
+            <List.Item key={id}>
+              <Anchor component={Link} href={`/datasets/${encodeURIComponent(id)}`}>
+                {id}
+              </Anchor>
+            </List.Item>
+          ))}
+        </List>
+      </Modal>
     </AppContainer>
   );
 }
