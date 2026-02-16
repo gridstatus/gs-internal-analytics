@@ -14,6 +14,7 @@ import {
   Alert,
   Anchor,
   Button,
+  Checkbox,
   SegmentedControl,
   Select,
   Modal,
@@ -338,12 +339,32 @@ export default function NewSubscriptionPage() {
             />
             <div>
               <Text size="sm" fw={500} mb={4}>Status</Text>
-              <SegmentedControl
-                size="xs"
-                data={[{ label: 'Active', value: 'active' }, { label: 'Trialing', value: 'trialing' }]}
-                value={form.status}
-                onChange={(v) => setForm((f) => ({ ...f, status: v as SubscriptionStatus }))}
-              />
+              <Group gap="md" wrap="nowrap">
+                <Checkbox.Card
+                  radius="md"
+                  p="md"
+                  checked={form.status === 'active'}
+                  onClick={() => setForm((f) => ({ ...f, status: 'active' as SubscriptionStatus }))}
+                  withBorder
+                >
+                  <Group wrap="nowrap" align="center" gap="md">
+                    <Checkbox.Indicator />
+                    <Text size="sm" fw={500}>Active</Text>
+                  </Group>
+                </Checkbox.Card>
+                <Checkbox.Card
+                  radius="md"
+                  p="md"
+                  checked={form.status === 'trialing'}
+                  onClick={() => setForm((f) => ({ ...f, status: 'trialing' as SubscriptionStatus }))}
+                  withBorder
+                >
+                  <Group wrap="nowrap" align="center" gap="md">
+                    <Checkbox.Indicator />
+                    <Text size="sm" fw={500}>Trialing</Text>
+                  </Group>
+                </Checkbox.Card>
+              </Group>
             </div>
             <TextInput
               label="Start date"
