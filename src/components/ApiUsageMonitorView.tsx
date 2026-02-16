@@ -6,7 +6,6 @@ import {
   Text,
   Anchor,
   Stack,
-  SimpleGrid,
   Group,
   Skeleton,
   TextInput,
@@ -27,6 +26,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
 import { UserHoverCard } from '@/components/UserHoverCard';
+import { InfoHoverIcon } from '@/components/InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 import { ErrorDisplay } from './ErrorDisplay';
@@ -37,7 +37,7 @@ const IP_USAGE_DESCRIPTION =
 const USER_USAGE_DESCRIPTION =
   'API usage grouped by user/organization in the last 24 hours. Includes plan, client versions, and datasets accessed.';
 
-const TABLE_MAX_HEIGHT = 500;
+const TABLE_MAX_HEIGHT = 400;
 
 export function ApiUsageMonitorView() {
   const timezone = useFilterStore((s) => s.timezone);
@@ -232,21 +232,21 @@ export function ApiUsageMonitorView() {
     <AppContainer>
       <PageBreadcrumbs items={[{ label: 'API' }, { label: 'API Usage Monitor' }]} />
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+      <Stack gap="md">
         <Paper shadow="sm" p="md" radius="md" withBorder style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Text fw={600} size="lg" mb={4}>
-            Usage by IP
-          </Text>
-          <Text size="sm" c="dimmed" mb="md">
-            {IP_USAGE_DESCRIPTION}
-          </Text>
-          <Group mb="md">
+          <Group justify="space-between" align="center" mb="md">
+            <Group gap="xs" align="center">
+              <Text fw={600} size="lg">
+                Usage by IP
+              </Text>
+              <InfoHoverIcon tooltip={IP_USAGE_DESCRIPTION} />
+            </Group>
             <TextInput
               placeholder="Search by IP or user..."
               leftSection={<IconSearch size={16} />}
               value={searchIp}
               onChange={(e) => setSearchIp(e.currentTarget.value)}
-              style={{ width: '100%', maxWidth: 300 }}
+              style={{ width: 300 }}
             />
           </Group>
           <ScrollArea.Autosize mah={TABLE_MAX_HEIGHT} type="scroll" style={{ flex: 1, minHeight: 0 }}>
@@ -261,19 +261,19 @@ export function ApiUsageMonitorView() {
         </Paper>
 
         <Paper shadow="sm" p="md" radius="md" withBorder style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Text fw={600} size="lg" mb={4}>
-            Usage by User
-          </Text>
-          <Text size="sm" c="dimmed" mb="md">
-            {USER_USAGE_DESCRIPTION}
-          </Text>
-          <Group mb="md">
+          <Group justify="space-between" align="center" mb="md">
+            <Group gap="xs" align="center">
+              <Text fw={600} size="lg">
+                Usage by User
+              </Text>
+              <InfoHoverIcon tooltip={USER_USAGE_DESCRIPTION} />
+            </Group>
             <TextInput
               placeholder="Search by user, org, or dataset..."
               leftSection={<IconSearch size={16} />}
               value={searchUser}
               onChange={(e) => setSearchUser(e.currentTarget.value)}
-              style={{ width: '100%', maxWidth: 300 }}
+              style={{ width: 300 }}
             />
           </Group>
           <ScrollArea.Autosize mah={TABLE_MAX_HEIGHT} type="scroll" style={{ flex: 1, minHeight: 0 }}>
@@ -286,7 +286,7 @@ export function ApiUsageMonitorView() {
             />
           </ScrollArea.Autosize>
         </Paper>
-      </SimpleGrid>
+      </Stack>
 
       <Modal
         title="Datasets"
