@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp, IconList } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp, IconList, IconApi, IconActivity } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -161,6 +161,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     key: 'nav:users',
     defaultValue: true,
   });
+  const [apiOpen, setApiOpen] = useLocalStorage({
+    key: 'nav:api',
+    defaultValue: true,
+  });
 
   const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
 
@@ -288,6 +292,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                   >
                     <NavLink
                       component={Link}
+                      href="/subscriptions/new"
+                      label="New Subscription"
+                      onClick={close}
+                      active={pathname === '/subscriptions/new'}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
                       href="/subscriptions"
                       label="Subscription List"
                       onClick={close}
@@ -308,6 +320,23 @@ export function AppLayout({ children }: AppLayoutProps) {
                       label="Trials"
                       onClick={close}
                       active={pathname === '/subscriptions/trials'}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
+                  <NavLink
+                    label="API"
+                    leftSection={<IconApi size={16} />}
+                    opened={apiOpen}
+                    onChange={() => setApiOpen((prev) => !prev)}
+                    active={pathname?.startsWith('/api-usage')}
+                    styles={navLinkStyles}
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/api-usage/monitor"
+                      label="API Usage Monitor"
+                      onClick={close}
+                      active={pathname === '/api-usage/monitor'}
                       styles={navLinkStyles}
                     />
                   </NavLink>

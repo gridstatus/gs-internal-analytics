@@ -1,6 +1,8 @@
-import type { SubscriptionEditableFields } from '@/lib/api-types';
+import type { SubscriptionEditableFields, SubscriptionCreatableFields } from '@/lib/api-types';
 import { EDITABLE_FIELD_KEYS, EDITABLE_FIELD_TO_COLUMN, SUBSCRIPTION_STATUSES } from '@/lib/api-types';
+import { CREATABLE_FIELD_KEYS, CREATABLE_FIELD_TO_COLUMN } from '@/lib/api-types';
 import { getDistinctEntitlements, getPlanById, loadSql } from '@/lib/queries';
+import { query } from '@/lib/db';
 
 export type ValidationResult =
   | { valid: true; sanitized: SubscriptionEditableFields }
@@ -232,6 +234,173 @@ export async function prepareSubscriptionUpdate(
     params,
     changes,
     currentEditable,
+    sanitized: validation.sanitized,
+  };
+}
+
+// --- Create (POST) ---
+
+export type CreateValidationResult =
+  | { valid: true; sanitized: SubscriptionCreatableFields }
+  | { valid: false; errors: string[] };
+
+/** Reject if body has any key not in CREATABLE_FIELD_KEYS. */
+export function rejectUnknownFieldsCreate(body: Record<string, unknown>): string | null {
+  for (const key of Object.keys(body)) {
+    if (!CREATABLE_FIELD_KEYS.includes(key as keyof SubscriptionCreatableFields)) {
+      return `Unknown field: ${key}`;
+    }
+  }
+  return null;
+}
+
+export async function validateSubscriptionCreate(
+  body: Record<string, unknown>
+): Promise<CreateValidationResult> {
+  const errors: string[] = [];
+
+  for (const key of CREATABLE_FIELD_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) {
+      errors.push(`Missing required field: ${key}`);
+    }
+  }
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  const m = body as unknown as SubscriptionCreatableFields;
+
+  // At least one of userId or organizationId must be set
+  if (m.userId == null && (m.organizationId == null || m.organizationId === '')) {
+    errors.push('At least one of userId or organizationId must be set');
+  }
+
+  // userId: null or positive integer; if set, user must exist
+  if (m.userId != null) {
+    if (typeof m.userId !== 'number' || !Number.isInteger(m.userId) || m.userId < 1) {
+      errors.push('userId must be null or a positive integer');
+    } else {
+      const rows = await query<{ id: number }>(
+        'SELECT id FROM api_server.users WHERE id = $1',
+        [m.userId]
+      );
+      if (rows.length === 0) {
+        errors.push(`User with id ${m.userId} not found`);
+      }
+    }
+  }
+
+  // organizationId: null or non-empty string; if set, org must exist
+  if (m.organizationId != null && m.organizationId !== '') {
+    if (typeof m.organizationId !== 'string') {
+      errors.push('organizationId must be null or a string');
+    } else {
+      const rows = await query<{ id: string }>(
+        'SELECT id FROM api_server.organizations WHERE id = $1',
+        [m.organizationId]
+      );
+      if (rows.length === 0) {
+        errors.push(`Organization with id ${m.organizationId} not found`);
+      }
+    }
+  }
+
+  // planId: required positive integer, plan must exist
+  if (typeof m.planId !== 'number' || !Number.isInteger(m.planId) || m.planId < 1) {
+    errors.push('planId must be a positive integer');
+  } else {
+    const plans = await getPlanById(m.planId);
+    if (plans.length === 0) {
+      errors.push(`Plan with id ${m.planId} not found`);
+    }
+  }
+
+  // status: must be one of Stripe statuses
+  if (typeof m.status !== 'string') {
+    errors.push('status must be a string');
+  } else if (!SUBSCRIPTION_STATUSES.includes(m.status as (typeof SUBSCRIPTION_STATUSES)[number])) {
+    errors.push(`status must be one of: ${SUBSCRIPTION_STATUSES.join(', ')}`);
+  }
+
+  // startDate: valid ISO date string
+  if (!isValidDateString(m.startDate)) {
+    errors.push('startDate must be a valid ISO date string');
+  }
+
+  // enforceApiUsageLimit: strictly boolean
+  if (typeof m.enforceApiUsageLimit !== 'boolean') {
+    errors.push('enforceApiUsageLimit must be a boolean');
+  }
+
+  // cancelAtPeriodEnd: strictly boolean or null
+  if (m.cancelAtPeriodEnd != null && typeof m.cancelAtPeriodEnd !== 'boolean') {
+    errors.push('cancelAtPeriodEnd must be null or a boolean');
+  }
+
+  // currentBillingPeriodStart: valid ISO date string
+  if (!isValidDateString(m.currentBillingPeriodStart)) {
+    errors.push('currentBillingPeriodStart must be a valid ISO date string');
+  }
+
+  // currentBillingPeriodEnd: null or valid ISO date; if both set, end must be after start
+  if (m.currentBillingPeriodEnd != null && !isValidDateString(m.currentBillingPeriodEnd)) {
+    errors.push('currentBillingPeriodEnd must be null or a valid ISO date string');
+  }
+  if (
+    m.currentBillingPeriodStart != null &&
+    m.currentBillingPeriodEnd != null &&
+    isValidDateString(m.currentBillingPeriodStart) &&
+    isValidDateString(m.currentBillingPeriodEnd)
+  ) {
+    if (new Date(m.currentBillingPeriodEnd) <= new Date(m.currentBillingPeriodStart)) {
+      errors.push('currentBillingPeriodEnd must be after currentBillingPeriodStart');
+    }
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  return { valid: true, sanitized: m };
+}
+
+export type PrepareInsertResult =
+  | { ok: true; sql: string; params: unknown[]; sanitized: SubscriptionCreatableFields }
+  | { ok: false; error: string; status: number; errors?: string[] };
+
+function buildSubscriptionInsertSql(sanitized: SubscriptionCreatableFields): {
+  sql: string;
+  params: unknown[];
+} {
+  const params = CREATABLE_FIELD_KEYS.map((k) => sanitized[k]);
+  const sql = loadSql('mutations/subscription-insert.sql');
+  return { sql, params };
+}
+
+/**
+ * Parse body, validate, and build INSERT SQL. Single entry point for POST so the route stays thin.
+ */
+export async function prepareSubscriptionInsert(
+  body: Record<string, unknown>
+): Promise<PrepareInsertResult> {
+  const unknownErr = rejectUnknownFieldsCreate(body);
+  if (unknownErr) return { ok: false, error: unknownErr, status: 400 };
+
+  const validation = await validateSubscriptionCreate(body);
+  if (!validation.valid) {
+    return {
+      ok: false,
+      error: 'Validation failed',
+      status: 400,
+      errors: validation.errors,
+    };
+  }
+
+  const { sql, params } = buildSubscriptionInsertSql(validation.sanitized);
+  return {
+    ok: true,
+    sql,
+    params,
     sanitized: validation.sanitized,
   };
 }

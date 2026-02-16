@@ -10,6 +10,7 @@ const IDEAS = [
   'Integrate into front',
   'Delete subscription',
   'Support toggling trial eligibility for user',
+  'Support managing page announcements',
 ];
 
 export function FutureIdeasView() {

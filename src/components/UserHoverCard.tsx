@@ -17,6 +17,7 @@ interface UserSummary {
 interface UserHoverCardProps {
   userId: number;
   userName: string;
+  size?: 'xs' | 'sm';
   openDelay?: number;
   closeDelay?: number;
 }
@@ -24,6 +25,7 @@ interface UserHoverCardProps {
 export function UserHoverCard({
   userId,
   userName,
+  size = 'sm',
   openDelay = 400,
   closeDelay = 150,
 }: UserHoverCardProps) {
@@ -101,7 +103,7 @@ export function UserHoverCard({
         <Anchor
           component={Link}
           href={`/users-list/${userId}`}
-          size="sm"
+          size={size}
           style={{
             display: 'inline-block',
             overflow: 'hidden',

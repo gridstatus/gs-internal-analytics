@@ -431,7 +431,42 @@ export const EDITABLE_FIELD_KEYS = Object.keys(
   EDITABLE_FIELD_TO_COLUMN
 ) as (keyof SubscriptionEditableFields)[];
 
+/** Fields for POST /api/subscriptions (create). Core fields only; no overrides. */
+export interface SubscriptionCreatableFields {
+  userId: number | null;
+  organizationId: string | null;
+  planId: number;
+  status: SubscriptionStatus;
+  startDate: string;
+  enforceApiUsageLimit: boolean;
+  cancelAtPeriodEnd: boolean | null;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string | null;
+}
+
+/** DB column names for creatable subscription fields. */
+export const CREATABLE_FIELD_TO_COLUMN: Record<keyof SubscriptionCreatableFields, string> = {
+  userId: 'user_id',
+  organizationId: 'organization_id',
+  planId: 'plan_id',
+  status: 'status',
+  startDate: 'start_date',
+  enforceApiUsageLimit: 'enforce_api_usage_limit',
+  cancelAtPeriodEnd: 'cancel_at_period_end',
+  currentBillingPeriodStart: 'current_billing_period_start',
+  currentBillingPeriodEnd: 'current_billing_period_end',
+};
+
+/** Ordered list of creatable keys. */
+export const CREATABLE_FIELD_KEYS = Object.keys(
+  CREATABLE_FIELD_TO_COLUMN
+) as (keyof SubscriptionCreatableFields)[];
+
 export interface SubscriptionUpdateResponse {
+  subscription: SubscriptionDetail;
+}
+
+export interface SubscriptionCreateResponse {
   subscription: SubscriptionDetail;
 }
 
@@ -521,5 +556,33 @@ export interface CorporateTeamsMonthlyData {
 
 export interface CorporateTeamsResponse {
   monthlyData: CorporateTeamsMonthlyData[];
+}
+
+export interface ApiUsageByIpItem {
+  ip: string | null;
+  distinctUsers: number;
+  totalRowsReturned: number;
+  requestCount: number;
+  userNames: string[];
+}
+
+export interface ApiUsageByUserItem {
+  id: string;
+  user: string | null;
+  org: string | null;
+  usageId: string;
+  planId: number | null;
+  totalRequests: number;
+  totalRowsReturned: number;
+  lastRequestTime: string;
+  uniqueClientVersions: string[];
+  uniqueDatasets: string[];
+  userId: number | null;
+  orgId: string | null;
+}
+
+export interface ApiUsageMonitorResponse {
+  byIp: ApiUsageByIpItem[];
+  byUser: ApiUsageByUserItem[];
 }
 

@@ -379,7 +379,12 @@ export default function UserDetailPage() {
                 <Text size="sm" fw={500}>{data.user.id}</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Subscriptions</Text>
+                <Group gap="xs">
+                  <Text size="sm" c="dimmed">Subscriptions</Text>
+                  <Anchor component={Link} href={`/subscriptions/new?userId=${data.user.id}`} size="sm">
+                    New Subscription
+                  </Anchor>
+                </Group>
                 {(data.subscriptions ?? []).length > 0 ? (
                   <Stack gap={2} align="flex-end">
                     {data.subscriptions.map((sub) => (

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
 import {
   Paper,
@@ -24,7 +24,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { CodeHighlight } from '@mantine/code-highlight';
-import { IconAlertCircle, IconCircleCheck, IconLock, IconLockOpen, IconPencil } from '@tabler/icons-react';
+import { IconAlertCircle, IconCircleCheck, IconLock, IconLockOpen, IconPencil, IconTrash } from '@tabler/icons-react';
 import Link from 'next/link';
 import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -112,6 +112,7 @@ const EDITABLE_LABELS: Record<keyof SubscriptionEditableFields, string> = {
 
 export default function SubscriptionDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { timezone } = useFilter();
 
@@ -147,10 +148,16 @@ export default function SubscriptionDetailPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  const editing = !isLocked && form != null;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletePreviewSql, setDeletePreviewSql] = useState<string | null>(null);
+  const [deletePreviewLoading, setDeletePreviewLoading] = useState(false);
+  const [deletePreviewError, setDeletePreviewError] = useState<string | null>(null);
 
   const sub = data?.subscription;
+  const editing = !isLocked && form != null;
+  const canDelete = editing && sub != null && (sub.stripeSubscriptionId == null || sub.stripeSubscriptionId === '');
   const initialEditable = sub ? subToEditable(sub) : null;
 
   const syncFormFromSub = useCallback(() => {
@@ -283,6 +290,56 @@ export default function SubscriptionDetailPage() {
     setSaveError(null);
   }, [saveSuccess]);
 
+  useEffect(() => {
+    if (!deleteModalOpen || !id) return;
+    setDeletePreviewSql(null);
+    setDeletePreviewError(null);
+    setDeletePreviewLoading(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/subscriptions/${id}?preview=true`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setDeletePreviewError(data?.error ?? res.statusText);
+          return;
+        }
+        setDeletePreviewSql(data.sql ?? null);
+      } catch {
+        if (!cancelled) setDeletePreviewError('Failed to load query preview');
+      } finally {
+        if (!cancelled) setDeletePreviewLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [deleteModalOpen, id]);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    if (deleteLoading) return;
+    setDeleteModalOpen(false);
+    setDeletePreviewSql(null);
+    setDeletePreviewError(null);
+    setDeleteError(null);
+  }, [deleteLoading]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!canEdit || !id) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/subscriptions/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data?.error ?? res.statusText);
+        return;
+      }
+      router.push('/subscriptions');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [canEdit, id, router]);
+
   // --- Render ---
 
   if (loading) {
@@ -349,6 +406,24 @@ export default function SubscriptionDetailPage() {
               Editing mode — changes are not saved until you confirm.
             </Text>
             <Group gap="xs">
+              <Tooltip
+                label="Cannot delete a subscription linked to Stripe"
+                disabled={canDelete}
+                events={{ hover: true, focus: true, touch: true }}
+              >
+                <span>
+                  <Button
+                    size="xs"
+                    variant="white"
+                    color="red"
+                    onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
+                    disabled={!canDelete}
+                    leftSection={<IconTrash size={14} />}
+                  >
+                    Delete subscription
+                  </Button>
+                </span>
+              </Tooltip>
               <Button
                 size="xs"
                 variant="white"
@@ -672,6 +747,56 @@ export default function SubscriptionDetailPage() {
           </Button>
         </Group>
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        title="Delete subscription"
+        closeOnClickOutside={!deleteLoading}
+        closeOnEscape={!deleteLoading}
+        size="xl"
+      >
+        <Stack>
+          <Text size="sm">
+            Delete subscription #{subRow.id}
+            {subRow.username ? ` (${subRow.username})` : ''}
+            {subRow.organizationName ? ` — ${subRow.organizationName}` : ''}? This cannot be undone.
+          </Text>
+          <Text size="sm" fw={500}>
+            Query preview
+          </Text>
+          {deletePreviewLoading ? (
+            <Group justify="center" py="sm">
+              <Loader size="sm" />
+            </Group>
+          ) : deletePreviewError ? (
+            <Alert color="red" variant="light">
+              {deletePreviewError}
+            </Alert>
+          ) : deletePreviewSql ? (
+            <CodeHighlight code={deletePreviewSql} language="sql" />
+          ) : null}
+          {deleteError && (
+            <Alert color="red" variant="light">
+              {deleteError}
+            </Alert>
+          )}
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={handleCloseDeleteModal} disabled={deleteLoading}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              onClick={handleConfirmDelete}
+              loading={deleteLoading}
+              disabled={deletePreviewLoading || !!deletePreviewError}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {/* Confirm modal */}
       <Modal

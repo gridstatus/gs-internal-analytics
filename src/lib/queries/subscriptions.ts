@@ -124,6 +124,47 @@ export async function getSubscriptionById(id: number): Promise<SubscriptionDetai
   return query<SubscriptionDetailRow>(sql, [id]);
 }
 
+/** Map a SubscriptionDetailRow to the API SubscriptionDetail shape. Used by GET [id] and POST. */
+export function toSubscriptionDetail(row: SubscriptionDetailRow) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    planId: row.plan_id,
+    planName: row.plan_name,
+    startDate: row.start_date instanceof Date ? row.start_date.toISOString() : String(row.start_date),
+    status: row.status,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    organizationId: row.organization_id,
+    organizationName: row.organization_name,
+    stripeSubscriptionId: row.stripe_subscription_id,
+    currentBillingPeriodStart:
+      row.current_billing_period_start instanceof Date
+        ? row.current_billing_period_start.toISOString()
+        : String(row.current_billing_period_start),
+    currentBillingPeriodEnd:
+      row.current_billing_period_end instanceof Date
+        ? row.current_billing_period_end.toISOString()
+        : row.current_billing_period_end != null
+          ? String(row.current_billing_period_end)
+          : null,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at != null ? String(row.created_at) : null,
+    enforceApiUsageLimit: row.enforce_api_usage_limit,
+    apiRowsReturnedLimitOverride: row.api_rows_returned_limit_override,
+    apiRequestsLimitOverride: row.api_requests_limit_override,
+    apiRowsPerResponseLimitOverride: row.api_rows_per_response_limit_override,
+    alertsLimitOverride: row.alerts_limit_override,
+    dashboardsLimitOverride: row.dashboards_limit_override,
+    downloadsLimitOverride: row.downloads_limit_override,
+    entitlementOverrides: row.entitlement_overrides,
+    perSecondApiRateLimitOverride: row.per_second_api_rate_limit_override,
+    perMinuteApiRateLimitOverride: row.per_minute_api_rate_limit_override,
+    perHourApiRateLimitOverride: row.per_hour_api_rate_limit_override,
+    chartsLimitOverride: row.charts_limit_override,
+  };
+}
+
 export interface LimitNotEnforcedRow {
   id: number;
   user_id: number | null;

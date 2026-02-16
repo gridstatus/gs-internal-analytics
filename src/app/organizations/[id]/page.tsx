@@ -194,17 +194,22 @@ export default function OrganizationDetailPage() {
               <Table.Tr>
                 <Table.Td fw={600}>Subscriptions</Table.Td>
                 <Table.Td>
-                  {(data.subscriptions ?? []).length > 0 ? (
-                    <Stack gap={2}>
-                      {data.subscriptions.map((sub) => (
-                        <Anchor key={sub.id} component={Link} href={`/subscriptions/${sub.id}`} size="sm">
-                          #{sub.id} – {sub.planName ?? 'Unknown plan'} ({sub.status})
-                        </Anchor>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Text size="sm" c="dimmed">No subscriptions</Text>
-                  )}
+                  <Stack gap="xs">
+                    <Anchor component={Link} href={`/subscriptions/new?organizationId=${data.organization.id}`} size="sm">
+                      New Subscription
+                    </Anchor>
+                    {(data.subscriptions ?? []).length > 0 ? (
+                      <Stack gap={2}>
+                        {data.subscriptions.map((sub) => (
+                          <Anchor key={sub.id} component={Link} href={`/subscriptions/${sub.id}`} size="sm">
+                            #{sub.id} – {sub.planName ?? 'Unknown plan'} ({sub.status})
+                          </Anchor>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Text size="sm" c="dimmed">No subscriptions</Text>
+                    )}
+                  </Stack>
                 </Table.Td>
               </Table.Tr>
               <Table.Tr>

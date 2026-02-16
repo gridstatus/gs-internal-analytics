@@ -10,6 +10,7 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
 
   useEffect(() => {
     if (!url) {
+      setData(null);
       setLoading(false);
       return;
     }
