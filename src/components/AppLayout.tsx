@@ -167,6 +167,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   });
 
   const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
+  const navLinkGroupStyles = { root: { paddingTop: 2, paddingBottom: 2 }, children: { paddingTop: 4 } };
 
   // Keyboard shortcut: Cmd+K (Mac) or Ctrl+K (Windows/Linux)
   useEffect(() => {
@@ -246,7 +247,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     opened={usersOpen}
                     onChange={() => setUsersOpen((prev) => !prev)}
                     active={pathname?.startsWith('/users') || pathname?.startsWith('/users-list')}
-                    styles={navLinkStyles}
+                    styles={navLinkGroupStyles}
                   >
                     <NavLink
                       component={Link}
@@ -288,16 +289,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                     opened={subscriptionsOpen}
                     onChange={() => setSubscriptionsOpen((prev) => !prev)}
                     active={pathname?.startsWith('/subscriptions')}
-                    styles={navLinkStyles}
+                    styles={navLinkGroupStyles}
                   >
-                    <NavLink
-                      component={Link}
-                      href="/subscriptions/new"
-                      label="New Subscription"
-                      onClick={close}
-                      active={pathname === '/subscriptions/new'}
-                      styles={navLinkStyles}
-                    />
                     <NavLink
                       component={Link}
                       href="/subscriptions"
@@ -329,7 +322,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     opened={apiOpen}
                     onChange={() => setApiOpen((prev) => !prev)}
                     active={pathname?.startsWith('/api-usage')}
-                    styles={navLinkStyles}
+                    styles={navLinkGroupStyles}
                   >
                     <NavLink
                       component={Link}
@@ -355,7 +348,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconApps size={16} />}
                     opened={productsOpen}
                     onChange={() => setProductsOpen((prev) => !prev)}
-                    styles={navLinkStyles}
+                    styles={navLinkGroupStyles}
                   >
                     <NavLink
                       component={Link}
@@ -409,7 +402,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     leftSection={<IconTrendingUp size={16} />}
                     opened={goToMarketOpen}
                     onChange={() => setGoToMarketOpen((prev) => !prev)}
-                    styles={navLinkStyles}
+                    styles={navLinkGroupStyles}
                   >
                     <NavLink
                       component={Link}

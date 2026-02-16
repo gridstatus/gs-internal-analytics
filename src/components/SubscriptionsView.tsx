@@ -12,7 +12,7 @@ import {
   Skeleton,
   Button,
 } from '@mantine/core';
-import { IconPackage, IconListCheck, IconClock } from '@tabler/icons-react';
+import { IconPackage, IconPlus } from '@tabler/icons-react';
 import { AppContainer } from '@/components/AppContainer';
 import { CustomMultiSelect } from '@/components/CustomMultiSelect';
 import Link from 'next/link';
@@ -205,14 +205,11 @@ export function SubscriptionsView() {
         items={[{ label: 'Subscriptions' }]}
         rightSection={
           <Group gap="md">
-            <Button component={Link} href="/subscriptions/trials" variant="light" leftSection={<IconClock size={16} />}>
-              Trials
-            </Button>
-            <Button component={Link} href="/subscriptions/monitor" variant="light" leftSection={<IconListCheck size={16} />}>
-              Subscription Monitor
-            </Button>
             <Button component={Link} href="/plans" variant="light" leftSection={<IconPackage size={16} />}>
               View Plans
+            </Button>
+            <Button component={Link} href="/subscriptions/new" leftSection={<IconPlus size={16} />}>
+              New Subscription
             </Button>
           </Group>
         }
