@@ -101,35 +101,6 @@ export async function GET(request: Request) {
         message: string | null;
       }>(loadSql('user-alert-logs.sql'), [id]);
 
-      // Get API usage (last 30 days)
-      const apiUsage = await query<{
-        request_count: string;
-        rows_returned: string;
-      }>(`
-        SELECT COUNT(*) as request_count, COALESCE(SUM(rows_returned), 0) as rows_returned
-        FROM api_server.api_key_usage
-        WHERE user_id = $1 AND timestamp >= NOW() - INTERVAL '30 days'
-      `, [id]);
-
-      // Get API keys for this user
-      // Note: This query benefits from an index on api_key_usage(user_id, api_key, timestamp)
-      const apiKeys = await query<{
-        api_key: string;
-        first_used: Date;
-        last_used: Date;
-        request_count: string;
-      }>(`
-        SELECT 
-          api_key,
-          MIN(timestamp) as first_used,
-          MAX(timestamp) as last_used,
-          COUNT(*) as request_count
-        FROM api_server.api_key_usage
-        WHERE user_id = $1 AND api_key IS NOT NULL
-        GROUP BY api_key
-        ORDER BY MAX(timestamp) DESC
-      `, [id]);
-
       // Get posts user has reacted to
       const reactionsSql = loadSql('user-insights-reactions.sql');
       const reactions = await query<{
@@ -202,8 +173,6 @@ export async function GET(request: Request) {
           chartCount: Number(stats[0]?.chart_count || 0),
           dashboardCount: Number(stats[0]?.dashboard_count || 0),
           alertCount: Number(stats[0]?.alert_count || 0),
-          apiRequests30d: Number(apiUsage[0]?.request_count || 0),
-          apiRows30d: Number(apiUsage[0]?.rows_returned || 0),
           insightsEngagements: Number(stats[0]?.insights_engagements_count || 0),
         },
         charts: charts.map(c => ({
@@ -227,12 +196,6 @@ export async function GET(request: Request) {
           value: al.value,
           timestamp: al.timestamp,
           message: al.message,
-        })),
-        apiKeys: apiKeys.map(k => ({
-          apiKey: k.api_key,
-          firstUsed: k.first_used,
-          lastUsed: k.last_used,
-          requestCount: Number(k.request_count),
         })),
         insights: {
           reactions: reactions.map(r => ({

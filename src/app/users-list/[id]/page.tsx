@@ -26,8 +26,6 @@ import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import type { SubscriptionListItem } from '@/lib/api-types';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
-import { TimeSeriesChart } from '@/components/TimeSeriesChart';
-import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
 import { useFilter } from '@/contexts/FilterContext';
 import { useQueryState } from 'nuqs';
 import Link from 'next/link';
@@ -47,13 +45,6 @@ interface Organization {
   id: string;
   name: string;
   role: string;
-}
-
-interface ApiKey {
-  apiKey: string;
-  firstUsed: string;
-  lastUsed: string;
-  requestCount: number;
 }
 
 interface InsightPost {
@@ -114,27 +105,18 @@ interface UserDetails {
     chartCount: number;
     dashboardCount: number;
     alertCount: number;
-    apiRequests30d: number;
-    apiRows30d: number;
     insightsEngagements: number;
   };
   charts: Chart[];
   dashboards: Dashboard[];
   alerts: Alert[];
   alertLogs: AlertLog[];
-  apiKeys: ApiKey[];
   insights?: {
     reactions: InsightReaction[];
     saved: InsightSaved[];
     views: InsightView[];
   };
   subscriptions: SubscriptionListItem[];
-}
-
-interface ApiUsageData {
-  period: string;
-  requestCount: number;
-  rowsReturned: number;
 }
 
 interface PostHogEvent {
@@ -187,24 +169,14 @@ interface PostHogDailyActivityData {
   data: Array<{ day: string; sessions: number; pageViews: number }>;
 }
 
-interface ApiUsageResponse {
-  data: ApiUsageData[];
-}
-
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  // const [apiUsageDays, setApiUsageDays] = useState<number>(1);
   const [posthogDays, setPosthogDays] = useState<number | 'all'>(30);
 
   // Fetch main user data
   const userUrl = id ? `/api/users-list?id=${id}` : null;
   const { data, loading, error } = useApiData<UserDetails>(userUrl, [id]);
-
-  // Fetch API usage data (commented out)
-  // const apiUsageUrl = id ? `/api/users-list/${id}/api-usage?days=${apiUsageDays}` : null;
-  // const { data: apiUsageResponse, loading: apiUsageLoading, error: apiUsageError } = useApiData<ApiUsageResponse>(apiUsageUrl, [id, apiUsageDays]);
-  // const apiUsageData = apiUsageResponse?.data || [];
 
   // Fetch PostHog events data
   const posthogUrl = id ? `/api/users-list/${id}/posthog-events?days=${posthogDays === 'all' ? 'all' : posthogDays}` : null;
@@ -331,7 +303,7 @@ export default function UserDetailPage() {
       </SimpleGrid>
 
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="md">
         <MetricCard
           title="Insights engagements"
           value={data.stats.insightsEngagements}
@@ -348,15 +320,17 @@ export default function UserDetailPage() {
           title="Alerts"
           value={data.stats.alertCount}
         />
-        <MetricCard
-          title="API Requests (30d)"
-          value={data.stats.apiRequests30d}
-        />
-        <MetricCard
-          title="API Rows (30d)"
-          value={data.stats.apiRows30d.toLocaleString()}
-        />
       </SimpleGrid>
+      <Group mb="md">
+        <Button
+          component={Link}
+          href={`/api-usage/lookup?idType=user&id=${data.user.id}`}
+          variant="light"
+          size="compact-sm"
+        >
+          View API Usage
+        </Button>
+      </Group>
 
       {/* Two-column layout: Sidebar (left) + Main content (right) */}
       <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md" mb="xl">
@@ -619,35 +593,6 @@ export default function UserDetailPage() {
             )}
           </Paper>
 
-          {/* API Keys */}
-          <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="md">
-              API Keys ({data.apiKeys.length})
-            </Text>
-            {data.apiKeys.length === 0 ? (
-              <Text c="dimmed" size="sm">No API keys created</Text>
-            ) : (
-              <ScrollArea style={{ maxHeight: '200px' }}>
-                <Stack gap="xs">
-                  {data.apiKeys.map((key, index) => (
-                    <Stack key={index} gap={4}>
-                      <Text ff="monospace" size="xs" style={{ wordBreak: 'break-all' }}>
-                        {key.apiKey}
-                      </Text>
-                      <Group justify="space-between">
-                        <Text size="xs" c="dimmed">
-                          {new Date(key.lastUsed).toLocaleDateString()}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {key.requestCount.toLocaleString()} req
-                        </Text>
-                      </Group>
-                    </Stack>
-                  ))}
-                </Stack>
-              </ScrollArea>
-            )}
-          </Paper>
         </Stack>
 
         {/* Right Main Content - 2 columns */}
@@ -830,60 +775,6 @@ export default function UserDetailPage() {
             )}
           </Paper>
 
-          {/* API Usage - commented out
-          <Stack gap="md">
-            <Group justify="space-between">
-              <Text fw={600} size="lg">
-                API Usage
-              </Text>
-              <SegmentedControl
-                value={apiUsageDays.toString()}
-                onChange={(value) => setApiUsageDays(parseInt(value, 10))}
-                data={[
-                  { label: '1 Day', value: '1' },
-                  { label: '7 Days', value: '7' },
-                  { label: '30 Days', value: '30' },
-                  { label: '90 Days', value: '90' },
-                ]}
-              />
-            </Group>
-            
-            {apiUsageError ? (
-              <Alert color="red" title="Error">
-                {apiUsageError}
-              </Alert>
-            ) : apiUsageLoading ? (
-              <Loader />
-            ) : apiUsageData.length === 0 ? (
-              <Text c="dimmed">No API usage data for the selected period</Text>
-            ) : (
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <TimeSeriesChart
-                  title="API Requests"
-                  subtitle={`Requests over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
-                  data={apiUsageData.map(d => ({
-                    month: d.period,
-                    requests: d.requestCount,
-                  }))}
-                  dataKey="requests"
-                  color="blue.6"
-                  chartType="bar"
-                />
-                <TimeSeriesChart
-                  title="Rows Returned"
-                  subtitle={`Total rows returned over last ${apiUsageDays} day${apiUsageDays > 1 ? 's' : ''}`}
-                  data={apiUsageData.map(d => ({
-                    month: d.period,
-                    rows: d.rowsReturned,
-                  }))}
-                  dataKey="rows"
-                  color="green.6"
-                  chartType="bar"
-                />
-              </SimpleGrid>
-            )}
-          </Stack>
-          */}
         </SimpleGrid>
       </SimpleGrid>
 

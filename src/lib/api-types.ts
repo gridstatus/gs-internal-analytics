@@ -96,6 +96,17 @@ export interface ApiUsageResponse {
   monthlyData: MonthlyApiUsageData[];
 }
 
+export interface ApiUsageLookupMetaResponse {
+  earliestDate: string | null;
+}
+
+export interface ApiUsageLookupSegmentResponse {
+  requestCount: number;
+  totalRows: number;
+  distinctUsers: number;
+  userIds: number[];
+}
+
 export interface MonthlyUserData {
   month: string;
   totalUsers: number;

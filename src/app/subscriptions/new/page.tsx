@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApiData } from '@/hooks/useApiData';
-import { useApiUrl } from '@/hooks/useApiUrl';
 import {
   Paper,
   Text,
@@ -23,7 +22,6 @@ import {
 import { CodeHighlight } from '@mantine/code-highlight';
 import { IconCircleCheck } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useDebouncedValue } from '@mantine/hooks';
 import { useQueryState, parseAsInteger, parseAsString } from 'nuqs';
 import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -36,17 +34,7 @@ import {
 } from '@/lib/api-types';
 import type { SubscriptionCreateResponse } from '@/lib/api-types';
 import { UserHoverCard } from '@/components/UserHoverCard';
-import type { UsersListResponse, OrganizationsResponse } from '@/lib/api-types';
-
-interface UserDetailResponse {
-  user: { id: number; username: string; firstName: string; lastName: string; createdAt: string; lastActiveAt: string | null };
-  subscriptions: { id: number }[];
-}
-
-interface OrgDetailResponse {
-  organization: { id: string; name: string; createdAt: string };
-  subscriptions: { id: number }[];
-}
+import { UserOrgLookup } from '@/components/UserOrgLookup';
 
 const defaultStart = () => DateTime.now().toISO();
 const defaultBillingStart = () => DateTime.now().toISO();
@@ -57,21 +45,6 @@ export default function NewSubscriptionPage() {
   const { timezone } = useFilter();
   const [userId, setUserId] = useQueryState('userId', parseAsInteger);
   const [organizationId, setOrganizationId] = useQueryState('organizationId', parseAsString);
-
-  const [userSearch, setUserSearch] = useState('');
-  const [orgSearch, setOrgSearch] = useState('');
-  const [debouncedUserSearch] = useDebouncedValue(userSearch, 300);
-  const [debouncedOrgSearch] = useDebouncedValue(orgSearch, 300);
-
-  const usersListUrl = useApiUrl('/api/users-list', { search: debouncedUserSearch || undefined });
-  const orgsListUrl = useApiUrl('/api/organizations', { search: debouncedOrgSearch || undefined });
-  const { data: usersData } = useApiData<UsersListResponse>(usersListUrl, [usersListUrl, debouncedUserSearch]);
-  const { data: orgsData } = useApiData<OrganizationsResponse>(orgsListUrl, [orgsListUrl, debouncedOrgSearch]);
-
-  const userDetailUrl = useApiUrl('/api/users-list', userId != null ? { id: String(userId) } : {});
-  const orgDetailUrl = useApiUrl('/api/organizations', organizationId != null && organizationId !== '' ? { id: organizationId } : {});
-  const { data: userDetail } = useApiData<UserDetailResponse>(userId != null ? userDetailUrl : null, [userId, userDetailUrl]);
-  const { data: orgDetail } = useApiData<OrgDetailResponse>(organizationId != null && organizationId !== '' ? orgDetailUrl : null, [organizationId, orgDetailUrl]);
 
   const { data: canEditData, loading: canEditLoading } = useApiData<{ canEdit: boolean }>('/api/auth/can-edit', []);
   const canEdit = canEditData?.canEdit ?? false;
@@ -102,28 +75,6 @@ export default function NewSubscriptionPage() {
       organizationId: organizationId && organizationId !== '' ? organizationId : null,
     }));
   }, [userId, organizationId]);
-
-  const userOptions = useMemo(() => {
-    const list = usersData?.users ?? [];
-    const opts = list.map((u) => ({ value: String(u.id), label: `${u.username} (${u.firstName} ${u.lastName})` }));
-    if (userId != null && !opts.some((o) => o.value === String(userId))) {
-      const label = userDetail?.user
-        ? `${userDetail.user.username} (${userDetail.user.firstName} ${userDetail.user.lastName})`
-        : `User #${userId}`;
-      return [{ value: String(userId), label }, ...opts];
-    }
-    return opts;
-  }, [usersData, userId, userDetail]);
-
-  const orgOptions = useMemo(() => {
-    const list = orgsData?.organizations ?? [];
-    const opts = list.map((o) => ({ value: o.id, label: o.name }));
-    if (organizationId && organizationId !== '' && !opts.some((o) => o.value === organizationId)) {
-      const label = orgDetail?.organization?.name ?? organizationId;
-      return [{ value: organizationId, label }, ...opts];
-    }
-    return opts;
-  }, [orgsData, organizationId, orgDetail]);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewSql, setPreviewSql] = useState<string | null>(null);
@@ -264,64 +215,41 @@ export default function NewSubscriptionPage() {
           <Text fw={600} size="sm" mb="xs">
             User & organization
           </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm" verticalSpacing="xs" style={{ minWidth: 320 }}>
-            <Select
-              label="User"
-              searchable
-              clearable
-              placeholder="Search by username or name..."
-              data={userOptions}
-              value={userId != null ? String(userId) : null}
-              onSearchChange={setUserSearch}
-              searchValue={userSearch}
-              onChange={(v) => setUserId(v != null && v !== '' ? parseInt(v, 10) : null)}
-              nothingFoundMessage="Type to search users"
-              size="xs"
-              style={{ minWidth: 280 }}
-            />
-            <Select
-              label="Organization"
-              searchable
-              clearable
-              placeholder="Search organizations..."
-              data={orgOptions}
-              value={organizationId ?? null}
-              onSearchChange={setOrgSearch}
-              searchValue={orgSearch}
-              onChange={(v) => setOrganizationId(v ?? null)}
-              nothingFoundMessage="Type to search organizations"
-              size="xs"
-              style={{ minWidth: 280 }}
-            />
-          </SimpleGrid>
-          {(userDetail?.user || orgDetail?.organization) && (
-            <Group gap="lg" wrap="wrap" mt="xs" pt="xs" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
-              {userDetail?.user && (
-                <Group gap={6} wrap="nowrap">
-                  <Text size="xs" c="dimmed">User:</Text>
-                  <UserHoverCard
-                    userId={userDetail.user.id}
-                    userName={userDetail.user.username}
-                    size="xs"
-                  />
-                  <Text size="xs" c="dimmed">
-                    · {userDetail.subscriptions?.length ?? 0} existing sub{userDetail.subscriptions?.length === 1 ? '' : 's'}
-                  </Text>
-                </Group>
-              )}
-              {orgDetail?.organization && (
-                <Group gap={6} wrap="nowrap">
-                  <Text size="xs" c="dimmed">Org:</Text>
-                  <Anchor component={Link} href={`/organizations/${orgDetail.organization.id}`} size="xs">
-                    {orgDetail.organization.name}
-                  </Anchor>
-                  <Text size="xs" c="dimmed">
-                    · {orgDetail.subscriptions?.length ?? 0} existing sub{orgDetail.subscriptions?.length === 1 ? '' : 's'}
-                  </Text>
-                </Group>
-              )}
-            </Group>
-          )}
+          <UserOrgLookup
+            mode="subscription"
+            userId={userId ?? null}
+            organizationId={organizationId && organizationId !== '' ? organizationId : null}
+            onUserIdChange={setUserId}
+            onOrganizationIdChange={setOrganizationId}
+            selectedSummaryContent={({ userDetail, orgDetail }) => (
+              <>
+                {userDetail?.user && (
+                  <Group gap={6} wrap="nowrap">
+                    <Text size="xs" c="dimmed">User:</Text>
+                    <UserHoverCard
+                      userId={userDetail.user.id}
+                      userName={userDetail.user.username}
+                      size="xs"
+                    />
+                    <Text size="xs" c="dimmed">
+                      · {userDetail.subscriptions?.length ?? 0} existing sub{userDetail.subscriptions?.length === 1 ? '' : 's'}
+                    </Text>
+                  </Group>
+                )}
+                {orgDetail?.organization && (
+                  <Group gap={6} wrap="nowrap">
+                    <Text size="xs" c="dimmed">Org:</Text>
+                    <Anchor component={Link} href={`/organizations/${orgDetail.organization.id}`} size="xs">
+                      {orgDetail.organization.name}
+                    </Anchor>
+                    <Text size="xs" c="dimmed">
+                      · {orgDetail.subscriptions?.length ?? 0} existing sub{orgDetail.subscriptions?.length === 1 ? '' : 's'}
+                    </Text>
+                  </Group>
+                )}
+              </>
+            )}
+          />
         </Paper>
 
         <Paper shadow="sm" p="md" radius="md" withBorder style={{ width: 'fit-content', minWidth: 320 }}>

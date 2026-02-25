@@ -332,6 +332,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                       active={pathname === '/api-usage/monitor'}
                       styles={navLinkStyles}
                     />
+                    <NavLink
+                      component={Link}
+                      href="/api-usage/lookup"
+                      label="Usage Lookup"
+                      onClick={close}
+                      active={pathname === '/api-usage/lookup'}
+                      styles={navLinkStyles}
+                    />
                   </NavLink>
                   <NavLink
                     component={Link}

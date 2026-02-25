@@ -137,7 +137,7 @@ export default function OrganizationDetailPage() {
       />
 
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 6 }} spacing="md" mb="md">
         <MetricCard
           title="Users"
           value={data.stats.userCount}
@@ -178,6 +178,16 @@ export default function OrganizationDetailPage() {
           </Paper>
         )}
       </SimpleGrid>
+      <Group mb="md">
+        <Button
+          component={Link}
+          href={`/api-usage/lookup?idType=organization&id=${data.organization.id}`}
+          variant="light"
+          size="compact-sm"
+        >
+          View API Usage
+        </Button>
+      </Group>
 
       <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md" mb="xl">
         {/* Organization Details */}
