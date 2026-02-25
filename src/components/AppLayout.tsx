@@ -364,7 +364,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                       href="/charts-dashboards"
                       label="Charts & Dashboards"
                       leftSection={<IconChartBar size={16} />}
-                      active={pathname === '/charts-dashboards'}
+                      active={pathname === '/charts-dashboards' || pathname?.startsWith('/component-usage')}
                       onClick={close}
                       styles={navLinkStyles}
                     />

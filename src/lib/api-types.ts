@@ -66,6 +66,21 @@ export interface ChartsDashboardsResponse {
   users: ChartsDashboardsUserRow[];
 }
 
+export interface ComponentUsageUser {
+  id: number;
+  username: string;
+}
+
+export interface ComponentUsageRow {
+  componentType: string;
+  chartsTotalCount: number;
+  chartsUniqueUsers: number;
+  chartsUsers: ComponentUsageUser[];
+  dashboardsTotalCount: number;
+  dashboardsUniqueUsers: number;
+  dashboardsUsers: ComponentUsageUser[];
+}
+
 export interface MonthlyApiUsageData {
   month: string;
   totalApiRequests: number;

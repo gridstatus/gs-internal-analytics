@@ -10,10 +10,11 @@ import {
   Text,
   TextInput,
   Group,
+  Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconAlertCircle, IconSearch, IconChartBar } from '@tabler/icons-react';
+import Link from 'next/link';
 import { MetricCard } from './MetricCard';
-import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
 import { ChartsDashboardsResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
@@ -82,7 +83,19 @@ export function ChartsDashboardsView() {
 
   return (
     <AppContainer>
-      <PageBreadcrumbs items={[{ label: 'Charts & Dashboards' }]} />
+      <PageBreadcrumbs
+        items={[{ label: 'Charts & Dashboards' }]}
+        rightSection={
+          <Button
+            component={Link}
+            href="/component-usage"
+            variant="light"
+            leftSection={<IconChartBar size={16} />}
+          >
+            Component Usage
+          </Button>
+        }
+      />
 
       {loading ? (
         <Stack gap="md">
@@ -99,7 +112,7 @@ export function ChartsDashboardsView() {
         </Alert>
       ) : data ? (
         <>
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="xl">
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="md">
             <MetricCard
               title="Total Charts"
               value={data.summary.totalCharts}

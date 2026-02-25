@@ -21,6 +21,8 @@ export interface DataTableProps<T> {
   striped?: boolean;
   highlightOnHover?: boolean;
   emptyMessage?: React.ReactNode;
+  /** When provided, row clicks call this (e.g. to open a modal). */
+  onRowClick?: (row: T) => void;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -31,6 +33,7 @@ export function DataTable<T extends Record<string, any>>({
   striped = true,
   highlightOnHover = true,
   emptyMessage,
+  onRowClick,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(
     defaultSort?.column || null
@@ -38,6 +41,7 @@ export function DataTable<T extends Record<string, any>>({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
     defaultSort?.direction || 'asc'
   );
+  const isRowClickable = Boolean(onRowClick);
 
   const sortedData = useMemo(() => {
     if (!sortColumn) return data;
@@ -144,15 +148,22 @@ export function DataTable<T extends Record<string, any>>({
             </Table.Td>
           </Table.Tr>
         ) : (
-          sortedData.map((row) => (
-            <Table.Tr key={row[keyField]}>
-              {columns.map((column) => (
-                <Table.Td key={column.id} ta={column.align || 'left'}>
-                  {column.render(row)}
-                </Table.Td>
-              ))}
-            </Table.Tr>
-          ))
+          sortedData.map((row) => {
+            const rowKey = String(row[keyField]);
+            return (
+              <Table.Tr
+                key={rowKey}
+                style={isRowClickable ? { cursor: 'pointer' } : undefined}
+                onClick={() => onRowClick?.(row)}
+              >
+                {columns.map((column) => (
+                  <Table.Td key={column.id} ta={column.align || 'left'}>
+                    {column.render(row)}
+                  </Table.Td>
+                ))}
+              </Table.Tr>
+            );
+          })
         )}
       </Table.Tbody>
       </Table>
