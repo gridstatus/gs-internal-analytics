@@ -4,26 +4,6 @@ import { create } from 'zustand';
 import { persist, type StorageValue } from 'zustand/middleware';
 import { DEFAULT_TIMEZONE, ValidTimezone, sanitizeTimezone } from '@/lib/timezones';
 
-function getInitialFilterInternal(): boolean {
-  if (typeof window === 'undefined') return true;
-  const saved = localStorage.getItem('filterInternal');
-  if (saved !== null) return saved === 'true';
-  const legacy = localStorage.getItem('filterGridstatus');
-  if (legacy !== null) return legacy === 'true';
-  return true;
-}
-
-function getInitialFilterFree(): boolean {
-  if (typeof window === 'undefined') return true;
-  const saved = localStorage.getItem('filterFree');
-  return saved !== null ? saved === 'true' : true;
-}
-
-function getInitialTimezone(): ValidTimezone {
-  if (typeof window === 'undefined') return DEFAULT_TIMEZONE;
-  return sanitizeTimezone(localStorage.getItem('timezone'));
-}
-
 interface FilterState {
   filterInternal: boolean;
   setFilterInternal: (value: boolean) => void;
@@ -35,34 +15,46 @@ interface FilterState {
 
 type PersistedState = Pick<FilterState, 'filterInternal' | 'filterFree' | 'timezone'>;
 
-const storageKey = 'filter-store';
+const FILTER_SESSION_KEY = 'filter-store-session';
+const TIMEZONE_LOCAL_KEY = 'timezone-store';
 
 const customStorage = {
   getItem: (name: string): StorageValue<PersistedState> | null => {
-    if (name !== storageKey) return null;
     if (typeof window === 'undefined') return null;
-    const raw = localStorage.getItem(name);
-    if (raw) {
-      try {
-        return JSON.parse(raw) as StorageValue<PersistedState>;
-      } catch {
-        return null;
-      }
+    try {
+      const filterRaw = sessionStorage.getItem(FILTER_SESSION_KEY);
+      const tzRaw = localStorage.getItem(TIMEZONE_LOCAL_KEY);
+      const filters = filterRaw ? JSON.parse(filterRaw) : null;
+      const tz = tzRaw ? JSON.parse(tzRaw) : null;
+      if (!filters && !tz) return null;
+      return {
+        state: {
+          filterInternal: filters?.state?.filterInternal ?? true,
+          filterFree: filters?.state?.filterFree ?? false,
+          timezone: sanitizeTimezone(tz?.state?.timezone ?? null),
+        },
+        version: 0,
+      };
+    } catch {
+      return null;
     }
-    // Migrate from old keys
-    const internal = getInitialFilterInternal();
-    const free = getInitialFilterFree();
-    const tz = getInitialTimezone();
-    return {
-      state: { filterInternal: internal, filterFree: free, timezone: tz },
-      version: 1,
-    };
   },
-  setItem: (name: string, value: StorageValue<PersistedState>): void => {
-    localStorage.setItem(name, JSON.stringify(value));
+  setItem: (_name: string, value: StorageValue<PersistedState>): void => {
+    if (typeof window === 'undefined') return;
+    const { filterInternal, filterFree, timezone } = value.state;
+    sessionStorage.setItem(
+      FILTER_SESSION_KEY,
+      JSON.stringify({ state: { filterInternal, filterFree }, version: 0 })
+    );
+    localStorage.setItem(
+      TIMEZONE_LOCAL_KEY,
+      JSON.stringify({ state: { timezone }, version: 0 })
+    );
   },
-  removeItem: (name: string): void => {
-    localStorage.removeItem(name);
+  removeItem: (_name: string): void => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(FILTER_SESSION_KEY);
+    localStorage.removeItem(TIMEZONE_LOCAL_KEY);
   },
 };
 
@@ -71,13 +63,13 @@ export const useFilterStore = create<FilterState>()(
     (set) => ({
       filterInternal: true,
       setFilterInternal: (value) => set({ filterInternal: value }),
-      filterFree: true,
+      filterFree: false,
       setFilterFree: (value) => set({ filterFree: value }),
       timezone: DEFAULT_TIMEZONE,
       setTimezone: (value) => set({ timezone: value }),
     }),
     {
-      name: storageKey,
+      name: 'filter-store',
       storage: customStorage,
       partialize: (state): PersistedState => ({
         filterInternal: state.filterInternal,
