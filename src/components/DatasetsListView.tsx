@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import {
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
@@ -11,11 +10,12 @@ import {
   TextInput,
   Anchor,
 } from '@mantine/core';
-import { IconSearch, IconAlertCircle } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -142,9 +142,7 @@ export function DatasetsListView() {
           <Skeleton height={400} />
         </Stack>
       ) : error ? (
-        <Alert icon={<IconAlertCircle size={16} />} title="Error loading datasets" color="red">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading datasets" error={error} />
       ) : data ? (
         <Paper shadow="sm" p="md" radius="md" withBorder>
           <Group justify="space-between" mb="md">

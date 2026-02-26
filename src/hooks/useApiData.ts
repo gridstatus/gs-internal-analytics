@@ -30,8 +30,16 @@ export function useApiData<T>(url: string | null, deps: DependencyList = [url]) 
           let errorMessage = `Request failed: ${response.status} ${response.statusText || ''}\nURL: ${url}`;
           try {
             const errorData = await response.json();
-            if (errorData?.error) {
-              errorMessage = `${errorMessage}\n\nError details:\n${errorData.error}`;
+            const details =
+              typeof errorData?.error === 'string'
+                ? errorData.error
+                : typeof errorData?.detail === 'string'
+                  ? errorData.detail
+                  : errorData && typeof errorData === 'object'
+                    ? JSON.stringify(errorData, null, 2)
+                    : null;
+            if (details) {
+              errorMessage = `${errorMessage}\n\nError details:\n${details}`;
             }
           } catch {
             // If response is not JSON, status text already included above

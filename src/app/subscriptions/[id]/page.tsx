@@ -27,6 +27,7 @@ import { CodeHighlight } from '@mantine/code-highlight';
 import { IconAlertCircle, IconCircleCheck, IconLock, IconLockOpen, IconPencil, IconTrash } from '@tabler/icons-react';
 import Link from 'next/link';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { useFilter } from '@/contexts/FilterContext';
 import { DateTime } from 'luxon';
@@ -355,9 +356,10 @@ export default function SubscriptionDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert icon={<IconAlertCircle size={16} />} title="Error loading subscription" color="red">
-          {error || 'Subscription data not available'}
-        </Alert>
+        <ErrorDisplay
+          title="Error loading subscription"
+          error={error || 'Subscription data not available'}
+        />
       </AppContainer>
     );
   }

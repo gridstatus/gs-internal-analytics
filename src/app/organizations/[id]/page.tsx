@@ -9,7 +9,6 @@ import {
   Group,
   SimpleGrid,
   Loader,
-  Alert,
   Stack,
   Anchor,
   Badge,
@@ -17,7 +16,8 @@ import {
   ScrollArea,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
-import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { UserHoverCard } from '@/components/UserHoverCard';
@@ -103,13 +103,10 @@ export default function OrganizationDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
+        <ErrorDisplay
           title="Error loading organization"
-          color="red"
-        >
-          {error || 'Organization data not available'}
-        </Alert>
+          error={error || 'Organization data not available'}
+        />
       </AppContainer>
     );
   }

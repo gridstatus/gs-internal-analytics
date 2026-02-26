@@ -6,10 +6,8 @@ import {
   Text,
   Select,
   Skeleton,
-  Alert,
   Group,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { useQueryState, parseAsInteger } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
@@ -19,6 +17,7 @@ import { UserHoverCard } from './UserHoverCard';
 import { InfoHoverIcon } from './InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 
 const DAYS_OPTIONS = [
   { value: '1', label: '1 day' },
@@ -115,9 +114,7 @@ export function DatasetDetailView({ datasetId }: DatasetDetailViewProps) {
       />
 
       {error && (
-        <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mb="md">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error" error={error} />
       )}
 
       {loading && (

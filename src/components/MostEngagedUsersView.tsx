@@ -11,7 +11,7 @@ import {
   Badge,
   SegmentedControl,
 } from '@mantine/core';
-import { IconAlertCircle, IconThumbUp, IconEye, IconBookmark } from '@tabler/icons-react';
+import { IconThumbUp, IconEye, IconBookmark } from '@tabler/icons-react';
 import { UserHoverCard } from './UserHoverCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
@@ -19,6 +19,7 @@ import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from './DataTable';
 
 interface MostEngagedUser {
@@ -140,13 +141,7 @@ export function MostEngagedUsersView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }

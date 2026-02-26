@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   SimpleGrid,
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
@@ -12,7 +11,7 @@ import {
   Group,
   Button,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch, IconChartBar } from '@tabler/icons-react';
+import { IconSearch, IconChartBar } from '@tabler/icons-react';
 import Link from 'next/link';
 import { MetricCard } from './MetricCard';
 import { UserHoverCard } from './UserHoverCard';
@@ -22,6 +21,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export function ChartsDashboardsView() {
   const [search, setSearch] = useState('');
@@ -107,9 +107,7 @@ export function ChartsDashboardsView() {
           <Skeleton height={400} />
         </Stack>
       ) : error ? (
-        <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       ) : data ? (
         <>
           <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md" mb="md">

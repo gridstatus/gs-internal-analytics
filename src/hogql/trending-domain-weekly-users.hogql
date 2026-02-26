@@ -1,0 +1,12 @@
+-- Active users (distinct person_id) per email domain in two windows: last 30 days and 30-60 days ago. Signed-in users only; {{USER_FILTER}} is applied (free domains excluded when filterFree is true).
+SELECT
+  replaceRegexpOne(person.properties.email, '^[^@]+@', '') AS domain,
+  if(timestamp >= now() - INTERVAL 30 DAY, 'last30', 'prev30') AS period,
+  COUNT(DISTINCT person_id) AS active_users
+FROM events
+WHERE {{LOGGED_IN_USER_FILTER}}
+  AND timestamp >= now() - INTERVAL 60 DAY
+  AND {{USER_FILTER}}
+GROUP BY domain, period
+ORDER BY domain ASC, period ASC
+LIMIT 10000

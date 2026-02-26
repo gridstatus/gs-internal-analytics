@@ -11,14 +11,14 @@ import {
   Group,
   SimpleGrid,
   Loader,
-  Alert,
   Stack,
   Badge,
   TextInput,
   SegmentedControl,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { IconSearch } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
@@ -63,8 +63,14 @@ export default function DomainDetailPage() {
   const url = domain ? `/api/domains/${encodeURIComponent(domain)}` : null;
   const { data, loading, error } = useApiData<DomainData>(url, [domain]);
 
-  const posthogActiveUrl = domain ? `/api/posthog/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month` : null;
-  const { data: posthogActiveData, loading: posthogActiveLoading } = useApiData<{ data: Array<{ month: string; activeUsers: number }> }>(posthogActiveUrl, [domain]);
+  const [posthogActiveMonths, setPosthogActiveMonths] = useQueryState(
+    'posthogMonths',
+    parseAsStringEnum(['3', '12', 'all']).withDefault('3')
+  );
+  const posthogActiveUrl = domain
+    ? `/api/posthog/domains/${encodeURIComponent(domain)}/posthog-active-users-by-month?months=${posthogActiveMonths}`
+    : null;
+  const { data: posthogActiveData, loading: posthogActiveLoading } = useApiData<{ data: Array<{ month: string; activeUsers: number }> }>(posthogActiveUrl, [domain, posthogActiveMonths]);
 
   const [mostActiveDays, setMostActiveDays] = useQueryState(
     'days',
@@ -113,13 +119,10 @@ export default function DomainDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
+        <ErrorDisplay
           title="Error loading domain"
-          color="red"
-        >
-          {error || 'Domain data not available'}
-        </Alert>
+          error={error || 'Domain data not available'}
+        />
       </AppContainer>
     );
   }
@@ -186,7 +189,19 @@ export default function DomainDetailPage() {
         )}
         {posthogActiveLoading ? (
           <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="xs">Active users by month (PostHog)</Text>
+            <Group justify="space-between" mb="xs" wrap="wrap" gap="sm">
+              <Text fw={600} size="lg">Active users by month (PostHog)</Text>
+              <SegmentedControl
+                size="xs"
+                value={posthogActiveMonths}
+                onChange={(v) => setPosthogActiveMonths((v as '3' | '12' | 'all') ?? '3')}
+                data={[
+                  { label: '3 months', value: '3' },
+                  { label: '12 months', value: '12' },
+                  { label: 'All', value: 'all' },
+                ]}
+              />
+            </Group>
             <Stack align="center" py="xl">
               <Loader />
             </Stack>
@@ -195,6 +210,24 @@ export default function DomainDetailPage() {
           <TimeSeriesChart
             title="Active users by month (PostHog)"
             subtitle="Distinct users with at least one event per month"
+            titleContent={
+              <Group justify="space-between" wrap="wrap" gap="sm" mb="md">
+                <Stack gap={2}>
+                  <Text fw={600} size="lg">Active users by month (PostHog)</Text>
+                  <Text size="sm" c="dimmed">Distinct users with at least one event per month</Text>
+                </Stack>
+                <SegmentedControl
+                  size="xs"
+                  value={posthogActiveMonths}
+                  onChange={(v) => setPosthogActiveMonths((v as '3' | '12' | 'all') ?? '3')}
+                  data={[
+                    { label: '3 months', value: '3' },
+                    { label: '12 months', value: '12' },
+                    { label: 'All', value: 'all' },
+                  ]}
+                />
+              </Group>
+            }
             data={posthogActiveData.data.map((r) => ({
               month: r.month,
               activeUsers: r.activeUsers,
@@ -205,7 +238,19 @@ export default function DomainDetailPage() {
           />
         ) : (
           <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Text fw={600} size="lg" mb="xs">Active users by month (PostHog)</Text>
+            <Group justify="space-between" mb="xs" wrap="wrap" gap="sm">
+              <Text fw={600} size="lg">Active users by month (PostHog)</Text>
+              <SegmentedControl
+                size="xs"
+                value={posthogActiveMonths}
+                onChange={(v) => setPosthogActiveMonths((v as '3' | '12' | 'all') ?? '3')}
+                data={[
+                  { label: '3 months', value: '3' },
+                  { label: '12 months', value: '12' },
+                  { label: 'All', value: 'all' },
+                ]}
+              />
+            </Group>
             <Text c="dimmed" size="sm">No PostHog data</Text>
           </Paper>
         )}

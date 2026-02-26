@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import { Paper, Text, Box } from '@mantine/core';
 import { CompositeChart, BarChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
@@ -51,6 +51,8 @@ function toHumanReadableLabel(key: string): string {
 interface TimeSeriesChartProps {
   title: string;
   subtitle?: string;
+  /** When set, rendered inside the card instead of title + subtitle (e.g. title + SegmentedControl). */
+  titleContent?: ReactNode;
   data: ChartDataPoint[];
   dataKey: string;
   color?: string;
@@ -63,7 +65,7 @@ interface TimeSeriesChartProps {
 
 export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
   function TimeSeriesChart(
-    { title, subtitle, data, dataKey, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [], showTrendline = false },
+    { title, subtitle, titleContent, data, dataKey, color = 'blue.6', height = 300, chartType = 'line', stacked = false, stackedSeries = [], showTrendline = false },
     ref
   ) {
     const { timezone } = useFilter();
@@ -155,6 +157,19 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       label: formatXAxisLabel(String(point.month)),
     }));
 
+    const header = titleContent ?? (
+      <>
+        <Text fw={600} size="lg" mb="xs">
+          {title}
+        </Text>
+        {subtitle && (
+          <Text size="sm" c="dimmed" mb="md">
+            {subtitle}
+          </Text>
+        )}
+      </>
+    );
+
     const xAxisProps = {
       tickFormatter: (value: string) => value,
     };
@@ -184,14 +199,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
             ];
         return (
           <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
-            <Text fw={600} size="lg" mb="xs">
-              {title}
-            </Text>
-            {subtitle && (
-              <Text size="sm" c="dimmed" mb="md">
-                {subtitle}
-              </Text>
-            )}
+            {header}
             <Box>
               <CompositeChart
                 h={height}
@@ -219,14 +227,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
       
       return (
         <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
-          <Text fw={600} size="lg" mb="xs">
-            {title}
-          </Text>
-          {subtitle && (
-            <Text size="sm" c="dimmed" mb="md">
-              {subtitle}
-            </Text>
-          )}
+          {header}
           <Box>
             <BarChart
               h={height}
@@ -255,14 +256,7 @@ export const TimeSeriesChart = forwardRef<HTMLDivElement, TimeSeriesChartProps>(
 
     return (
       <Paper shadow="sm" p="md" radius="md" withBorder ref={ref}>
-        <Text fw={600} size="lg" mb="xs">
-          {title}
-        </Text>
-        {subtitle && (
-          <Text size="sm" c="dimmed" mb="md">
-            {subtitle}
-          </Text>
-        )}
+        {header}
         <Box>
           <CompositeChart
             h={height}

@@ -10,7 +10,6 @@ import {
   Group,
   SimpleGrid,
   Loader,
-  Alert,
   Stack,
   Anchor,
   Badge,
@@ -20,9 +19,10 @@ import {
   Box,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { CompositeChart } from '@mantine/charts';
 import { DateTime } from 'luxon';
-import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
+import { IconExternalLink } from '@tabler/icons-react';
 import type { SubscriptionListItem } from '@/lib/api-types';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
@@ -240,13 +240,10 @@ export default function UserDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
+        <ErrorDisplay
           title="Error loading user"
-          color="red"
-        >
-          {error || 'User data not available'}
-        </Alert>
+          error={error || 'User data not available'}
+        />
       </AppContainer>
     );
   }
@@ -683,9 +680,7 @@ export default function UserDetailPage() {
             </Group>
             
             {posthogError ? (
-              <Alert color="red" title="Error">
-                {posthogError}
-              </Alert>
+              <ErrorDisplay title="Error" error={posthogError} />
             ) : posthogLoading ? (
               <Stack align="center" py="xl">
                 <Loader />

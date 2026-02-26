@@ -15,7 +15,7 @@ import {
   ScrollArea,
   Select,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { CompositeChart } from '@mantine/charts';
 import { useFilter } from '@/contexts/FilterContext';
@@ -27,6 +27,7 @@ import { UserHoverCard } from './UserHoverCard';
 import { InfoHoverIcon } from './InfoHoverIcon';
 import { DataTable, Column } from './DataTable';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 import type {
   TodaysPulseResponse,
@@ -85,9 +86,7 @@ export function TodaysPulseView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }

@@ -33,3 +33,13 @@ export async function getDomainSummary(): Promise<DomainSummary[]> {
   const sql = loadSql('domain-summary.sql', {});
   return query<DomainSummary>(sql);
 }
+
+export interface TotalUsersByDomainRow {
+  domain: string;
+  total_users: string;
+}
+
+export async function getTotalUsersByDomain(): Promise<TotalUsersByDomainRow[]> {
+  const sql = loadSql('domain-total-users.sql', {});
+  return query<TotalUsersByDomainRow>(sql);
+}

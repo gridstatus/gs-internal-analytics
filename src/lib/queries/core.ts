@@ -10,7 +10,7 @@ export const FREE_EMAIL_DOMAINS = [
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
   'hotmail.com', 'hotmail.co.uk', 'live.com', 'icloud.com', 'mac.com', 'me.com', 'aol.com',
   'mail.com', 'protonmail.com', 'proton.me', 'zoho.com', 'yandex.com',
-  'gmx.com', 'gmx.net', 'mail.ru', 'qq.com', '163.com', 'comcast.net', 'att.net', 'verizon.net',
+  'gmx.com', 'gmx.net', 'mail.ru', 'qq.com', '163.com', '126.com', 'comcast.net', 'att.net', 'verizon.net', 'earthlink.net',
 ];
 
 export interface TemplateContext {
@@ -151,7 +151,7 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
     ? FREE_EMAIL_DOMAINS.map(d => `NOT person.properties.email LIKE '%@${d}'`)
     : [];
   const allUserFilterClauses = [internalClause, ...freeClauseList].filter(Boolean);
-  const userFilter = allUserFilterClauses.join('\n  AND ');
+  const userFilter = allUserFilterClauses.join(' AND ');
   if (userFilter) {
     rendered = rendered.replace(/\{\{USER_FILTER\}\}/g, userFilter);
   } else {

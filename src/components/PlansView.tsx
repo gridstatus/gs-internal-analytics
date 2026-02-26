@@ -6,13 +6,12 @@ import {
   Anchor,
   Loader,
   Stack,
-  Alert,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { PlanListItem, PlansResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -47,14 +46,7 @@ export function PlansView() {
       <PageBreadcrumbs items={[{ label: 'Plans' }]} />
 
       {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading plans"
-          color="red"
-          mb="md"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading plans" error={error} />
       )}
 
       <Paper shadow="sm" p="md" radius="md" withBorder>

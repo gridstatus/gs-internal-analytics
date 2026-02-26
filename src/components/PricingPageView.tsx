@@ -13,12 +13,13 @@ import {
   ScrollArea,
   Badge,
 } from '@mantine/core';
-import { IconSearch, IconAlertCircle } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { UserHoverCard } from './UserHoverCard';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 interface PricingPageVisitCount {
@@ -59,13 +60,7 @@ export function PricingPageView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }

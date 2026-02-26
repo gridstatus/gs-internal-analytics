@@ -5,7 +5,6 @@ import {
   Title,
   SimpleGrid,
   Skeleton,
-  Alert,
   Stack,
   Paper,
   TextInput,
@@ -16,7 +15,7 @@ import {
   Anchor,
   Progress,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { UserHoverCard } from './UserHoverCard';
 import Link from 'next/link';
@@ -24,6 +23,7 @@ import { ActivitiesResponse, Activity, ActivityType, ActiveUsersResponse } from 
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const activityTypeLabels: Record<Activity['activityType'], string> = {
@@ -157,13 +157,7 @@ export function Dashboard() {
   if (error || activeUsersError) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error || activeUsersError}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error || activeUsersError || ''} />
       </AppContainer>
     );
   }

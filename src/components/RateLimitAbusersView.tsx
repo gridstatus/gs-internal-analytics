@@ -6,7 +6,6 @@ import {
   Title,
   SimpleGrid,
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
@@ -15,7 +14,7 @@ import {
   Select,
   Anchor,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { useFilter } from '@/contexts/FilterContext';
 import { useApiData } from '@/hooks/useApiData';
@@ -24,6 +23,7 @@ import { TimeSeriesChart } from './TimeSeriesChart';
 import { DataTable, Column } from './DataTable';
 import { UserHoverCard } from './UserHoverCard';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 
 interface RateLimitUser {
   email: string;
@@ -71,13 +71,7 @@ export function RateLimitAbusersView() {
   if (error) {
     return (
       <Container size="xl" py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error" error={error} />
       </Container>
     );
   }

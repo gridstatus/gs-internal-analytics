@@ -13,7 +13,7 @@ import {
   SimpleGrid,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import Link from 'next/link';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { DateTime } from 'luxon';
@@ -72,9 +72,7 @@ export default function PosthogEventDetailPage() {
   if (error) {
     return (
       <AppContainer>
-        <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error" error={error} />
       </AppContainer>
     );
   }

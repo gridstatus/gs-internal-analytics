@@ -10,11 +10,11 @@ import {
   Group,
   Tabs,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { DateTime } from 'luxon';
 import { useFilter } from '@/contexts/FilterContext';
 import { TopRegistration, TopRegistrationsResponse } from '@/lib/api-types';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
@@ -47,13 +47,7 @@ export function TopRegistrationsView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }

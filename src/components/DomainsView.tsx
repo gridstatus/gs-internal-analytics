@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import {
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
@@ -12,7 +11,6 @@ import {
   Anchor,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import { IconAlertCircle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useFilter } from '@/contexts/FilterContext';
 import { ActiveUsersResponse } from '@/lib/api-types';
@@ -21,6 +19,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export function DomainsView() {
   const [search, setSearch] = useState('');
@@ -89,9 +88,7 @@ export function DomainsView() {
           <Skeleton height={400} />
         </Stack>
       ) : error ? (
-        <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       ) : data ? (
         <Paper shadow="sm" p="md" radius="md" withBorder>
           <Group justify="space-between" mb="md">

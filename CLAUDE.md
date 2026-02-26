@@ -196,7 +196,7 @@ Typed query functions live in `src/lib/queries/` — one file per domain (`users
 - Use `Paper` with `shadow="sm"` and `withBorder` for sections
 - Never nest `Paper`/card components inside other cards
 - Loading state: use `Skeleton` components matching layout
-- Error state: use `Alert` with `IconAlertCircle`
+- **Error state**: Use `ErrorDisplay` (from `@/components/ErrorDisplay`) so users get a copyable error message and copy button; use `Alert` only for non-copyable notices (e.g. "No data").
 - **Ensure components are usable on mobile** - test responsive layouts and touch interactions
 - **Focus on information density via smart layout** - achieve density through efficient layout design rather than small fonts or minimal padding
 - **Provide date range options** when viewing data: 24h, 7d, 30d, 90d (use `SegmentedControl`)

@@ -15,12 +15,12 @@ import {
   Table,
   Text,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { useQueryState, parseAsString, parseAsStringLiteral } from 'nuqs';
 import { CompositeChart } from '@mantine/charts';
 import { DateTime } from 'luxon';
 import { AppContainer } from '@/components/AppContainer';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from '@/components/DataTable';
 import { UserHoverCard } from '@/components/UserHoverCard';
 import { useUserOrgLookup } from '@/hooks/useUserOrgLookup';
@@ -413,9 +413,7 @@ export function ApiUsageLookupView() {
         )}
 
         {error && (
-          <Alert icon={<IconAlertCircle size={16} />} color="red" title="Error">
-            {error}
-          </Alert>
+          <ErrorDisplay title="Error" error={error} />
         )}
 
         {!loading && results.length > 0 && (

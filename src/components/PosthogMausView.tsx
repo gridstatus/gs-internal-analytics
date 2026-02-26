@@ -11,7 +11,6 @@ import {
   Tooltip,
   SegmentedControl,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
@@ -21,6 +20,7 @@ import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { useFilter } from '@/contexts/FilterContext';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
@@ -60,13 +60,7 @@ export function PosthogMausView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }

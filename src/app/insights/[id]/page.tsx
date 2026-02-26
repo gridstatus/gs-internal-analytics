@@ -12,15 +12,15 @@ import {
   Grid,
   SimpleGrid,
   Loader,
-  Alert,
   Stack,
   Anchor,
   Badge,
   SegmentedControl,
   Tabs,
 } from '@mantine/core';
-import { IconAlertCircle, IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
+import { IconEye, IconThumbUp, IconBookmark } from '@tabler/icons-react';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
@@ -135,13 +135,10 @@ export default function InsightDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
+        <ErrorDisplay
           title="Error loading insight"
-          color="red"
-        >
-          {error || 'Insight data not available'}
-        </Alert>
+          error={error || 'Insight data not available'}
+        />
       </AppContainer>
     );
   }

@@ -1,9 +1,10 @@
--- Active users (distinct person_id) per month for a single domain. Emails must end with @domain. {{DOMAIN_LIKE}} is replaced with %@domain.
+-- Active users (distinct person_id) per month for a single domain. Emails must end with @domain. {{DOMAIN_LIKE}} is replaced with %@domain. {{DATE_FILTER}} is optional (e.g. timestamp >= now() - INTERVAL 3 MONTH); when empty, all months are returned.
 SELECT
   toStartOfMonth(timestamp) AS month,
   COUNT(DISTINCT person_id) AS active_users
 FROM events
 WHERE {{LOGGED_IN_USER_FILTER}}
   AND person.properties.email LIKE '{{DOMAIN_LIKE}}'
+  AND {{DATE_FILTER}}
 GROUP BY month
 ORDER BY month ASC

@@ -13,7 +13,7 @@ import {
   Modal,
   ScrollArea,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import { UserHoverCard } from './UserHoverCard';
 import type { ComponentUsageRow } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
@@ -21,6 +21,7 @@ import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
 import { DataTable, Column } from './DataTable';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export function ComponentUsageView() {
   const [search, setSearch] = useState('');
@@ -86,13 +87,7 @@ export function ComponentUsageView() {
           <Skeleton height={400} />
         </Stack>
       ) : error ? (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       ) : data ? (
         <Paper shadow="sm" p="md" radius="md" withBorder>
           <Group justify="space-between" mb="md">

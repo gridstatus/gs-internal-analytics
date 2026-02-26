@@ -8,14 +8,13 @@ import {
   Text,
   Table,
   Loader,
-  Alert,
   Stack,
   Anchor,
   Badge,
   Tabs,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import Link from 'next/link';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -66,13 +65,10 @@ export default function PlanDetailPage() {
   if (error || !data) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
+        <ErrorDisplay
           title="Error loading plan"
-          color="red"
-        >
-          {error || 'Plan data not available'}
-        </Alert>
+          error={error || 'Plan data not available'}
+        />
       </AppContainer>
     );
   }

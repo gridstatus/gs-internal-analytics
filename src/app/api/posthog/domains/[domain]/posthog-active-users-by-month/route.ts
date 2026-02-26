@@ -18,6 +18,7 @@ export async function GET(
     try {
       const { domain } = await params;
       const decodedDomain = decodeURIComponent(domain);
+      const monthsParam = searchParams.get('months'); // '3' | '12' | 'all'
 
       const projectId = process.env.POSTHOG_PROJECT_ID;
       const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
@@ -26,8 +27,17 @@ export async function GET(
         return NextResponse.json({ data: [] });
       }
 
+      let dateFilter: string | undefined;
+      if (monthsParam === '3') {
+        dateFilter = 'timestamp >= now() - INTERVAL 3 MONTH';
+      } else if (monthsParam === '12') {
+        dateFilter = 'timestamp >= now() - INTERVAL 12 MONTH';
+      }
+      // 'all' or missing: no date filter
+
       const hogql = loadRenderedHogql('domain-monthly-active-users.hogql', {
         domain: decodedDomain,
+        ...(dateFilter && { dateFilter }),
       });
 
       const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;

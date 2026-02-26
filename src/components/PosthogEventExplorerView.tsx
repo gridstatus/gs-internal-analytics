@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import {
   Skeleton,
-  Alert,
   Stack,
   Paper,
   Text,
@@ -14,13 +13,14 @@ import {
   List,
   Accordion,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useQueryState, parseAsString, parseAsInteger } from 'nuqs';
 import { PosthogEventExplorerResponse, PosthogEventExplorerEvent } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { PageBreadcrumbs } from './PageBreadcrumbs';
 
 const OTHER_GROUP = 'Other';
@@ -105,9 +105,7 @@ export function PosthogEventExplorerView() {
         {loading ? (
           <Skeleton height={400} />
         ) : error ? (
-          <Alert icon={<IconAlertCircle size={16} />} title="Error loading data" color="red">
-            {error}
-          </Alert>
+          <ErrorDisplay title="Error loading data" error={error} />
         ) : (
         <Paper shadow="sm" withBorder p="md">
           <Stack gap="xs">

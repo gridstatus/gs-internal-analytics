@@ -165,6 +165,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     key: 'nav:api',
     defaultValue: true,
   });
+  const [domainsOpen, setDomainsOpen] = useLocalStorage({
+    key: 'nav:domains',
+    defaultValue: true,
+  });
 
   const navLinkStyles = { root: { paddingTop: 2, paddingBottom: 2 } };
   const navLinkGroupStyles = { root: { paddingTop: 2, paddingBottom: 2 }, children: { paddingTop: 4 } };
@@ -342,14 +346,30 @@ export function AppLayout({ children }: AppLayoutProps) {
                     />
                   </NavLink>
                   <NavLink
-                    component={Link}
-                    href="/domains"
                     label="Domains"
                     leftSection={<IconWorld size={16} />}
+                    opened={domainsOpen}
+                    onChange={() => setDomainsOpen((prev) => !prev)}
                     active={pathname?.startsWith('/domains')}
-                    onClick={close}
-                    styles={navLinkStyles}
-                  />
+                    styles={navLinkGroupStyles}
+                  >
+                    <NavLink
+                      component={Link}
+                      href="/domains"
+                      label="Domain List"
+                      onClick={close}
+                      active={pathname === '/domains'}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/domains/trending"
+                      label="Trending Domains"
+                      onClick={close}
+                      active={pathname === '/domains/trending'}
+                      styles={navLinkStyles}
+                    />
+                  </NavLink>
                   <Divider my="sm" mx="-xs" />
                   <NavLink
                     label="Products"

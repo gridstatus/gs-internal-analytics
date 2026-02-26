@@ -11,7 +11,6 @@ import {
   Paper,
   Text,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { MetricCard } from './MetricCard';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ExportButton } from './ExportButton';
@@ -19,6 +18,7 @@ import { ApiUsageResponse } from '@/lib/api-types';
 import { useApiData } from '@/hooks/useApiData';
 import { useApiUrl } from '@/hooks/useApiUrl';
 import { AppContainer } from '@/components/AppContainer';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { DataTable, Column } from './DataTable';
 
 export function ApiUsageView() {
@@ -55,13 +55,7 @@ export function ApiUsageView() {
   if (error) {
     return (
       <AppContainer>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading data"
-          color="red"
-        >
-          {error}
-        </Alert>
+        <ErrorDisplay title="Error loading data" error={error} />
       </AppContainer>
     );
   }
