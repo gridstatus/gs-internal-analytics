@@ -11,8 +11,9 @@ import {
   Group,
   Skeleton,
   Button,
+  TextInput,
 } from '@mantine/core';
-import { IconPackage, IconPlus } from '@tabler/icons-react';
+import { IconPackage, IconPlus, IconSearch } from '@tabler/icons-react';
 import { AppContainer } from '@/components/AppContainer';
 import { CustomMultiSelect } from '@/components/CustomMultiSelect';
 import Link from 'next/link';
@@ -41,6 +42,7 @@ export function SubscriptionsView() {
     'cancelAtPeriodEnd',
     parseAsStringLiteral(['yes', 'no'] as const).withDefault(null as unknown as 'yes')
   );
+  const [search, setSearch] = useQueryState('q', parseAsString.withDefault(''));
 
   // Default status filter: all except canceled (only on first load with no URL param)
   const didSetDefault = useRef(false);
@@ -82,6 +84,14 @@ export function SubscriptionsView() {
   // Apply filters
   const filtered = useMemo(() => {
     let result = subscriptions;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      result = result.filter((s) =>
+        String(s.id) === q ||
+        (s.username?.toLowerCase().includes(q)) ||
+        (s.organizationName?.toLowerCase().includes(q))
+      );
+    }
     if (statusFilter.length > 0) {
       result = result.filter((s) => statusFilter.includes(s.status || '—'));
     }
@@ -104,7 +114,7 @@ export function SubscriptionsView() {
       result = result.filter((s) => s.cancelAtPeriodEnd !== true);
     }
     return result;
-  }, [subscriptions, statusFilter, planFilter, enforceFilter, stripeFilter, cancelAtPeriodEndFilter]);
+  }, [subscriptions, search, statusFilter, planFilter, enforceFilter, stripeFilter, cancelAtPeriodEndFilter]);
 
   const columns: Column<SubscriptionListItem>[] = [
     {
@@ -224,67 +234,78 @@ export function SubscriptionsView() {
       ) : (
         <>
           <Paper shadow="sm" p="md" radius="md" withBorder>
-            <Group mb="md" align="flex-end">
-              <CustomMultiSelect
-                label="Status"
-                placeholder="All statuses"
-                data={statusOptions}
-                value={statusFilter}
-                onChange={setStatusFilter}
-                clearable
-                w={300}
-              />
-              <CustomMultiSelect
-                label="Plan"
-                placeholder="All plans"
-                data={planOptions}
-                value={planFilter}
-                onChange={setPlanFilter}
-                clearable
-                w={300}
-              />
-              <Select
-                label="Enforce limit"
-                placeholder="All"
-                data={[
-                  { value: 'yes', label: 'Yes' },
-                  { value: 'no', label: 'No' },
-                ]}
-                value={enforceFilter}
-                onChange={(v) => setEnforceFilter(v as 'yes' | 'no' | null)}
-                clearable
-                w={160}
-              />
-              <Select
-                label="Stripe"
-                placeholder="All"
-                data={[
-                  { value: 'yes', label: 'Yes' },
-                  { value: 'no', label: 'No' },
-                ]}
-                value={stripeFilter}
-                onChange={(v) => setStripeFilter(v as 'yes' | 'no' | null)}
-                clearable
-                w={140}
-              />
-              <Select
-                label="Cancel at period end"
-                placeholder="All"
-                data={[
-                  { value: 'yes', label: 'Yes' },
-                  { value: 'no', label: 'No' },
-                ]}
-                value={cancelAtPeriodEndFilter}
-                onChange={(v) => setCancelAtPeriodEndFilter(v as 'yes' | 'no' | null)}
-                clearable
-                w={180}
-              />
-              {(statusFilter.length > 0 || planFilter.length > 0 || enforceFilter != null || stripeFilter != null || cancelAtPeriodEndFilter != null) && (
-                <Text size="sm" c="dimmed">
-                  {filtered.length.toLocaleString()} of {subscriptions.length.toLocaleString()} subscriptions
-                </Text>
-              )}
-            </Group>
+            <Stack gap="sm" mb="md">
+              <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
+                <TextInput
+                  placeholder="Search by username, org, or sub ID…"
+                  leftSection={<IconSearch size={16} />}
+                  value={search}
+                  onChange={(e) => setSearch(e.currentTarget.value)}
+                  style={{ flex: '1 1 280px', maxWidth: 400 }}
+                />
+                {(search.trim() || statusFilter.length > 0 || planFilter.length > 0 || enforceFilter != null || stripeFilter != null || cancelAtPeriodEndFilter != null) && (
+                  <Text size="sm" c="dimmed">
+                    {filtered.length.toLocaleString()} of {subscriptions.length.toLocaleString()} subscriptions
+                  </Text>
+                )}
+              </Group>
+              <Group align="flex-end" wrap="wrap" gap="sm">
+                <CustomMultiSelect
+                  label="Status"
+                  placeholder="All statuses"
+                  data={statusOptions}
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  clearable
+                  w={220}
+                />
+                <CustomMultiSelect
+                  label="Plan"
+                  placeholder="All plans"
+                  data={planOptions}
+                  value={planFilter}
+                  onChange={setPlanFilter}
+                  clearable
+                  w={220}
+                />
+                <Select
+                  label="Enforce limit"
+                  placeholder="All"
+                  data={[
+                    { value: 'yes', label: 'Yes' },
+                    { value: 'no', label: 'No' },
+                  ]}
+                  value={enforceFilter}
+                  onChange={(v) => setEnforceFilter(v as 'yes' | 'no' | null)}
+                  clearable
+                  w={140}
+                />
+                <Select
+                  label="Stripe"
+                  placeholder="All"
+                  data={[
+                    { value: 'yes', label: 'Yes' },
+                    { value: 'no', label: 'No' },
+                  ]}
+                  value={stripeFilter}
+                  onChange={(v) => setStripeFilter(v as 'yes' | 'no' | null)}
+                  clearable
+                  w={120}
+                />
+                <Select
+                  label="Cancel at period end"
+                  placeholder="All"
+                  data={[
+                    { value: 'yes', label: 'Yes' },
+                    { value: 'no', label: 'No' },
+                  ]}
+                  value={cancelAtPeriodEndFilter}
+                  onChange={(v) => setCancelAtPeriodEndFilter(v as 'yes' | 'no' | null)}
+                  clearable
+                  w={170}
+                />
+              </Group>
+            </Stack>
 
             <DataTable
               data={filtered}
