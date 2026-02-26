@@ -93,6 +93,9 @@ function median(values: number[]): number {
 }
 
 let patternIdCounter = 0;
+const HATCH_STRIPE_WIDTH = 7;
+const HATCH_STRIPE_GAP = 1;
+const HATCH_OUTLINE_WIDTH = 2.5;
 function makePartialAwareShape(lastIndex: number) {
   return (props: unknown) => {
     const p = props as Record<string, number>;
@@ -101,17 +104,18 @@ function makePartialAwareShape(lastIndex: number) {
       return <rect x={p.x} y={p.y} width={p.width} height={p.height} fill={color} />;
     }
     const id = `partial-hatch-${patternIdCounter++}`;
+    const sz = HATCH_STRIPE_WIDTH + HATCH_STRIPE_GAP;
     return (
       <g>
         <defs>
-          <pattern id={id} width={8} height={8} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1={0} y1={0} x2={0} y2={8} stroke={color} strokeWidth={4} />
+          <pattern id={id} width={sz} height={sz} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={sz} stroke={color} strokeWidth={HATCH_STRIPE_WIDTH} />
           </pattern>
         </defs>
         <rect x={p.x} y={p.y} width={p.width} height={p.height} fill={`url(#${id})`} />
-        <line x1={p.x} y1={p.y} x2={p.x + p.width} y2={p.y} stroke={color} strokeWidth={1.5} />
-        <line x1={p.x} y1={p.y} x2={p.x} y2={p.y + p.height} stroke={color} strokeWidth={1.5} />
-        <line x1={p.x + p.width} y1={p.y} x2={p.x + p.width} y2={p.y + p.height} stroke={color} strokeWidth={1.5} />
+        <line x1={p.x} y1={p.y} x2={p.x + p.width} y2={p.y} stroke={color} strokeWidth={HATCH_OUTLINE_WIDTH} />
+        <line x1={p.x} y1={p.y} x2={p.x} y2={p.y + p.height} stroke={color} strokeWidth={HATCH_OUTLINE_WIDTH} />
+        <line x1={p.x + p.width} y1={p.y} x2={p.x + p.width} y2={p.y + p.height} stroke={color} strokeWidth={HATCH_OUTLINE_WIDTH} />
       </g>
     );
   };
