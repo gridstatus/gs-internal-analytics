@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { useApiData } from '@/hooks/useApiData';
 import {
   Paper,
@@ -14,10 +15,11 @@ import {
   Badge,
   Button,
   ScrollArea,
+  Tooltip,
 } from '@mantine/core';
 import { AppContainer } from '@/components/AppContainer';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
-import { IconExternalLink } from '@tabler/icons-react';
+import { IconCopy, IconDownload, IconExternalLink } from '@tabler/icons-react';
 import { MetricCard } from '@/components/MetricCard';
 import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { UserHoverCard } from '@/components/UserHoverCard';
@@ -86,9 +88,59 @@ function timeAgo(dateString: string): string {
 export default function OrganizationDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
 
   const url = id ? `/api/organizations?id=${id}` : null;
   const { data, loading, error } = useApiData<OrganizationDetails>(url, [id]);
+
+  useEffect(() => {
+    setSelectedRowKeys(new Set());
+  }, [id]);
+
+  const selectedUsers = data
+    ? data.users.filter((u) => selectedRowKeys.has(String(u.id)))
+    : [];
+
+  const copyEmailsToClipboard = useCallback(() => {
+    if (selectedUsers.length === 0) return;
+    const formatAddress = (u: User) => {
+      const name = `${u.firstName} ${u.lastName}`.trim() || u.username;
+      const escaped = name.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return `"${escaped}" <${u.username}>`;
+    };
+    const toField = selectedUsers.map(formatAddress).join(', ');
+    navigator.clipboard.writeText(toField).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => setCopied(false)
+    );
+  }, [selectedUsers]);
+
+  const downloadUsersCsv = useCallback(() => {
+    if (selectedUsers.length === 0 || !data) return;
+    const escape = (v: string) => {
+      const s = String(v ?? '');
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = selectedUsers.map((u) => [
+      escape(u.username),
+      escape(`${u.firstName} ${u.lastName}`),
+      escape(new Date(u.createdAt).toLocaleDateString()),
+      escape(u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleDateString() : 'Never'),
+    ]);
+    const header = 'username,name,created,last active';
+    const csv = '\uFEFF' + [header, ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `org-users-${data.organization.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(blobUrl);
+  }, [data, selectedUsers]);
 
   if (loading) {
     return (
@@ -256,26 +308,70 @@ export default function OrganizationDetailPage() {
 
         {/* Users */}
         <Paper shadow="sm" p="md" radius="md" withBorder style={{ gridColumn: 'span 2', maxHeight: 500, display: 'flex', flexDirection: 'column' }}>
-          <Text fw={600} size="lg" mb="md">
-            Users ({data.users.length})
-          </Text>
+          <Group justify="space-between" mb="md">
+            <Text fw={600} size="lg">
+              Users ({data.users.length})
+              {selectedRowKeys.size > 0 && (
+                <Text component="span" fw={400} c="dimmed" size="sm" ml="xs">
+                  — {selectedRowKeys.size} selected
+                </Text>
+              )}
+            </Text>
+            <Group gap="xs">
+              <Tooltip
+                label="Select one or more users first"
+                disabled={selectedRowKeys.size > 0}
+                events={{ hover: true, focus: true, touch: true }}
+              >
+                <span>
+                  <Button
+                    variant="light"
+                    size="compact-sm"
+                    color={copied ? 'teal' : undefined}
+                    leftSection={<IconCopy size={14} />}
+                    onClick={copyEmailsToClipboard}
+                    disabled={selectedRowKeys.size === 0}
+                  >
+                    {copied ? 'Copied!' : 'Copy selected emails'}
+                  </Button>
+                </span>
+              </Tooltip>
+              <Tooltip
+                label="Select one or more users first"
+                disabled={selectedRowKeys.size > 0}
+                events={{ hover: true, focus: true, touch: true }}
+              >
+                <span>
+                  <Button
+                    variant="light"
+                    size="compact-sm"
+                    leftSection={<IconDownload size={14} />}
+                    onClick={downloadUsersCsv}
+                    disabled={selectedRowKeys.size === 0}
+                  >
+                    Download CSV
+                  </Button>
+                </span>
+              </Tooltip>
+            </Group>
+          </Group>
           <ScrollArea style={{ flex: 1 }} scrollbarSize={8} type="always">
           <DataTable
             data={data.users}
             columns={[
-              {
-                id: 'username',
-                header: 'Username',
-                align: 'left',
-                render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
-                sortValue: (row) => row.username.toLowerCase(),
-              },
               {
                 id: 'name',
                 header: 'Name',
                 align: 'left',
                 render: (row) => `${row.firstName} ${row.lastName}`,
                 sortValue: (row) => `${row.firstName} ${row.lastName}`.toLowerCase(),
+              },
+              {
+                id: 'username',
+                header: 'Username',
+                align: 'left',
+                render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
+                sortValue: (row) => row.username.toLowerCase(),
               },
               {
                 id: 'role',
@@ -303,6 +399,8 @@ export default function OrganizationDetailPage() {
             keyField="id"
             defaultSort={{ column: 'lastActiveAt', direction: 'desc' }}
             emptyMessage="No users in this organization"
+            selectedRowKeys={selectedRowKeys}
+            onSelectionChange={setSelectedRowKeys}
           />
           </ScrollArea>
         </Paper>
@@ -321,18 +419,18 @@ export default function OrganizationDetailPage() {
             data={data.potentialAdditions}
             columns={[
               {
-                id: 'username',
-                header: 'Username',
-                align: 'left',
-                render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
-                sortValue: (row) => row.username.toLowerCase(),
-              },
-              {
                 id: 'name',
                 header: 'Name',
                 align: 'left',
                 render: (row) => `${row.firstName} ${row.lastName}`,
                 sortValue: (row) => `${row.firstName} ${row.lastName}`.toLowerCase(),
+              },
+              {
+                id: 'username',
+                header: 'Username',
+                align: 'left',
+                render: (row) => <UserHoverCard userId={row.id} userName={row.username} />,
+                sortValue: (row) => row.username.toLowerCase(),
               },
               {
                 id: 'domain',

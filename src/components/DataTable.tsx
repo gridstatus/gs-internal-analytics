@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Table, Group, Text, ScrollArea } from '@mantine/core';
+import { useState, useMemo, useCallback } from 'react';
+import { Table, Group, Text, ScrollArea, Checkbox } from '@mantine/core';
 import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 
 export interface Column<T> {
@@ -23,6 +23,13 @@ export interface DataTableProps<T> {
   emptyMessage?: React.ReactNode;
   /** When provided, row clicks call this (e.g. to open a modal). */
   onRowClick?: (row: T) => void;
+  /** When both provided, a checkbox column is shown for multi-select with select-all. Keys are stringified keyField values. */
+  selectedRowKeys?: Set<string>;
+  onSelectionChange?: (keys: Set<string>) => void;
+}
+
+function getRowKey<T extends Record<string, any>>(row: T, keyField: string): string {
+  return String(row[keyField]);
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -34,6 +41,8 @@ export function DataTable<T extends Record<string, any>>({
   highlightOnHover = true,
   emptyMessage,
   onRowClick,
+  selectedRowKeys,
+  onSelectionChange,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(
     defaultSort?.column || null
@@ -41,7 +50,8 @@ export function DataTable<T extends Record<string, any>>({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
     defaultSort?.direction || 'asc'
   );
-  const isRowClickable = Boolean(onRowClick);
+  const isRowClickable = Boolean(onRowClick) || (selectedRowKeys != null && onSelectionChange != null);
+  const selectionEnabled = selectedRowKeys != null && onSelectionChange != null;
 
   const sortedData = useMemo(() => {
     if (!sortColumn) return data;
@@ -93,6 +103,35 @@ export function DataTable<T extends Record<string, any>>({
     }
   };
 
+  const selectedSet = selectedRowKeys ?? new Set<string>();
+  const allSelected =
+    selectionEnabled &&
+    sortedData.length > 0 &&
+    sortedData.every((row) => selectedSet.has(getRowKey(row, keyField)));
+  const someSelected =
+    selectionEnabled && sortedData.some((row) => selectedSet.has(getRowKey(row, keyField)));
+
+  const handleToggleRow = useCallback(
+    (row: T) => {
+      if (!onSelectionChange) return;
+      const key = getRowKey(row, keyField);
+      const next = new Set(selectedSet);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      onSelectionChange(next);
+    },
+    [keyField, onSelectionChange, selectedSet]
+  );
+
+  const handleToggleSelectAll = useCallback(() => {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(sortedData.map((row) => getRowKey(row, keyField))));
+    }
+  }, [allSelected, keyField, onSelectionChange, sortedData]);
+
   const SortIcon = ({ columnId }: { columnId: string }) => {
     if (sortColumn !== columnId) return null;
     return sortDirection === 'asc' ? (
@@ -107,6 +146,18 @@ export function DataTable<T extends Record<string, any>>({
       <Table striped={striped} highlightOnHover={highlightOnHover}>
         <Table.Thead>
         <Table.Tr>
+          {selectionEnabled && (
+            <Table.Th style={{ width: 0 }}>
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected && !allSelected}
+                onChange={handleToggleSelectAll}
+                disabled={sortedData.length === 0}
+                aria-label={sortedData.length === 0 ? 'No rows to select' : allSelected ? 'Deselect all' : 'Select all'}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Table.Th>
+          )}
           {columns.map((column) => {
             const isSortable = column.sortable !== false;
             const align = column.align || 'left';
@@ -141,7 +192,7 @@ export function DataTable<T extends Record<string, any>>({
       <Table.Tbody>
         {sortedData.length === 0 ? (
           <Table.Tr>
-            <Table.Td colSpan={columns.length}>
+            <Table.Td colSpan={columns.length + (selectionEnabled ? 1 : 0)}>
               <Text c="dimmed" ta="center">
                 {emptyMessage || 'No data available'}
               </Text>
@@ -149,13 +200,25 @@ export function DataTable<T extends Record<string, any>>({
           </Table.Tr>
         ) : (
           sortedData.map((row) => {
-            const rowKey = String(row[keyField]);
+            const rowKey = getRowKey(row, keyField);
             return (
               <Table.Tr
                 key={rowKey}
                 style={isRowClickable ? { cursor: 'pointer' } : undefined}
-                onClick={() => onRowClick?.(row)}
+                onClick={() =>
+                  selectionEnabled ? handleToggleRow(row) : onRowClick?.(row)
+                }
               >
+                {selectionEnabled && (
+                  <Table.Td onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedSet.has(rowKey)}
+                      onChange={() => handleToggleRow(row)}
+                      aria-label={`Select row ${rowKey}`}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Table.Td>
+                )}
                 {columns.map((column) => (
                   <Table.Td key={column.id} ta={column.align || 'left'}>
                     {column.render(row)}
