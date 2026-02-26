@@ -92,6 +92,31 @@ function median(values: number[]): number {
   return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
+let patternIdCounter = 0;
+function makePartialAwareShape(lastIndex: number) {
+  return (props: unknown) => {
+    const p = props as Record<string, number>;
+    const color = String(p.fill);
+    if (p.index !== lastIndex) {
+      return <rect x={p.x} y={p.y} width={p.width} height={p.height} fill={color} />;
+    }
+    const id = `partial-hatch-${patternIdCounter++}`;
+    return (
+      <g>
+        <defs>
+          <pattern id={id} width={8} height={8} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={8} stroke={color} strokeWidth={4} />
+          </pattern>
+        </defs>
+        <rect x={p.x} y={p.y} width={p.width} height={p.height} fill={`url(#${id})`} />
+        <line x1={p.x} y1={p.y} x2={p.x + p.width} y2={p.y} stroke={color} strokeWidth={1.5} />
+        <line x1={p.x} y1={p.y} x2={p.x} y2={p.y + p.height} stroke={color} strokeWidth={1.5} />
+        <line x1={p.x + p.width} y1={p.y} x2={p.x + p.width} y2={p.y + p.height} stroke={color} strokeWidth={1.5} />
+      </g>
+    );
+  };
+}
+
 export function ApiUsageLookupView() {
   const [idType, setIdType] = useQueryState(
     'idType',
@@ -245,9 +270,9 @@ export function ApiUsageLookupView() {
 
   const stats = useMemo(() => {
     if (results.length === 0) return null;
-    const requests = results.map((r) => r.requestCount);
-    const rows = results.map((r) => r.totalRows);
-    const users = results.map((r) => r.distinctUsers);
+    const complete = results.length > 1 ? results.slice(1) : results;
+    const requests = complete.map((r) => r.requestCount);
+    const rows = complete.map((r) => r.totalRows);
     const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
     const buildStats = (arr: number[]) => ({
       total: sum(arr),
@@ -259,7 +284,6 @@ export function ApiUsageLookupView() {
     return {
       requests: buildStats(requests),
       rows: buildStats(rows),
-      users: buildStats(users),
     };
   }, [results]);
 
@@ -433,18 +457,6 @@ export function ApiUsageLookupView() {
                     <Table.Td ta="right"><Text size="sm">{Math.round(stats.rows.avg).toLocaleString()}</Text></Table.Td>
                     <Table.Td ta="right"><Text size="sm">{Math.round(stats.rows.median).toLocaleString()}</Text></Table.Td>
                   </Table.Tr>
-                  {isOrg && (
-                    <Table.Tr>
-                      <Table.Td>
-                        <Text size="sm" fw={600}>Distinct users</Text>
-                      </Table.Td>
-                      <Table.Td ta="right"><Text size="sm" fw={700}>{stats.users.total.toLocaleString()}</Text></Table.Td>
-                      <Table.Td ta="right"><Text size="sm">{stats.users.min.toLocaleString()}</Text></Table.Td>
-                      <Table.Td ta="right"><Text size="sm">{stats.users.max.toLocaleString()}</Text></Table.Td>
-                      <Table.Td ta="right"><Text size="sm">{Math.round(stats.users.avg).toLocaleString()}</Text></Table.Td>
-                      <Table.Td ta="right"><Text size="sm">{Math.round(stats.users.median).toLocaleString()}</Text></Table.Td>
-                    </Table.Tr>
-                  )}
                 </Table.Tbody>
               </Table>
             )}
@@ -463,8 +475,12 @@ export function ApiUsageLookupView() {
                       { name: 'requestCount', type: 'bar', color: 'blue.6', label: 'Request count' },
                       { name: 'mean', type: 'line', color: 'gray.6', strokeDasharray: '5 5', label: 'Mean' },
                     ]}
+                    withDots={false}
+                    barProps={() => ({
+                      shape: makePartialAwareShape(chartData.length - 1),
+                    })}
                     curveType="linear"
-                    xAxisProps={{ tickFormatter: (v: string) => v }}
+                    xAxisProps={{ tickFormatter: (v: string) => v === chartData[chartData.length - 1]?.period ? `${v}*` : v }}
                     yAxisProps={{
                       domain: [0, 'auto'],
                       tickFormatter: (value: number) => value.toLocaleString(),
@@ -485,8 +501,12 @@ export function ApiUsageLookupView() {
                       { name: 'totalRows', type: 'bar', color: 'teal.6', label: 'Total rows' },
                       { name: 'mean', type: 'line', color: 'gray.6', strokeDasharray: '5 5', label: 'Mean' },
                     ]}
+                    withDots={false}
+                    barProps={() => ({
+                      shape: makePartialAwareShape(rowsChartData.length - 1),
+                    })}
                     curveType="linear"
-                    xAxisProps={{ tickFormatter: (v: string) => v }}
+                    xAxisProps={{ tickFormatter: (v: string) => v === rowsChartData[rowsChartData.length - 1]?.period ? `${v}*` : v }}
                     yAxisProps={{
                       domain: [0, 'auto'],
                       tickFormatter: compactNumber,
