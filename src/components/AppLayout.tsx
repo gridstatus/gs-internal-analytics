@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AppShell, NavLink, Title, Group, Switch, Stack, Divider, Text, Container, Center, SegmentedControl, Burger, Select, ScrollArea, HoverCard, Box, Badge } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
-import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp, IconList, IconApi, IconActivity } from '@tabler/icons-react';
+import { IconDashboard, IconUserPlus, IconWorld, IconChartBar, IconBuilding, IconUserSearch, IconBulb, IconBell, IconCurrencyDollar, IconAlertTriangle, IconListSearch, IconReceipt, IconChartLine, IconDatabase, IconApps, IconTrendingUp, IconList, IconApi, IconActivity, IconRoute } from '@tabler/icons-react';
 import Link from 'next/link';
 import { SignedIn, SignedOut, SignIn, UserButton } from '@clerk/nextjs';
 import { useFilter } from '@/contexts/FilterContext';
@@ -402,6 +402,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                       label="Alerts"
                       leftSection={<IconBell size={16} />}
                       active={pathname === '/alerts'}
+                      onClick={close}
+                      styles={navLinkStyles}
+                    />
+                    <NavLink
+                      component={Link}
+                      href="/paths"
+                      label="Path"
+                      leftSection={<IconRoute size={16} />}
+                      active={pathname?.startsWith('/paths')}
                       onClick={close}
                       styles={navLinkStyles}
                     />

@@ -16,8 +16,7 @@ interface EventCount {
 }
 
 async function fetchPosthogEventsForEmail(
-  email: string,
-  days: number | 'all'
+  email: string
 ): Promise<{ events: PostHogEvent[]; eventCounts: EventCount[] }> {
   const projectId = process.env.POSTHOG_PROJECT_ID;
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
@@ -29,29 +28,10 @@ async function fetchPosthogEventsForEmail(
 
   const url = `https://us.i.posthog.com/api/projects/${projectId}/query/`;
 
-  // Build date filter condition
-  const dateFilter = days === 'all' 
-    ? '' 
-    : `timestamp >= now() - INTERVAL ${days} DAY`;
-
-  // Query for event counts by type
-  const countsHogql = loadRenderedHogql('user-events-counts.hogql', {
-    email,
-    dateFilter,
-    limit: 50,
-  });
-
-  const countsPayload = {
-    query: {
-      kind: 'HogQLQuery',
-      query: countsHogql,
-    },
-  };
-
-  // Query for recent events
+  // Last 100 events for this user (no date filter)
   const eventsHogql = loadRenderedHogql('user-events-recent.hogql', {
     email,
-    dateFilter,
+    dateFilter: '',
     limit: 100,
   });
 
@@ -65,21 +45,11 @@ async function fetchPosthogEventsForEmail(
   const headers = { Authorization: `Bearer ${apiKey}` };
 
   try {
-    const [countsResponse, eventsResponse] = await Promise.all([
-      posthogFetchWithRetry(url, countsPayload, headers),
-      posthogFetchWithRetry(url, eventsPayload, headers),
-    ]);
-    const countsData = await countsResponse.json();
+    const eventsResponse = await posthogFetchWithRetry(url, eventsPayload, headers);
     const eventsData = await eventsResponse.json();
 
-    const eventCounts: EventCount[] = (countsData.results || []).map(
-      ([event, count]: [string, number]) => ({
-        event,
-        count,
-      })
-    );
-
-    const events: PostHogEvent[] = (eventsData.results || []).map(
+    const rawEvents = eventsData.results || [];
+    const events: PostHogEvent[] = rawEvents.map(
       ([event, timestamp, currentUrl, pathname, referrer, deviceType, browser]: [
         string,
         string,
@@ -101,6 +71,15 @@ async function fetchPosthogEventsForEmail(
       })
     );
 
+    // Derive event counts from the 100 events
+    const countByEvent = new Map<string, number>();
+    for (const e of events) {
+      countByEvent.set(e.event, (countByEvent.get(e.event) ?? 0) + 1);
+    }
+    const eventCounts: EventCount[] = Array.from(countByEvent.entries())
+      .map(([event, count]) => ({ event, count }))
+      .sort((a, b) => b.count - a.count);
+
     return { events, eventCounts };
   } catch (error) {
     console.error('Error fetching PostHog data:', error);
@@ -117,25 +96,7 @@ export async function GET(
   return withRequestContext(searchParams, async () => {
     try {
       const { id } = await params;
-      const daysParam = searchParams.get('days') || '30';
 
-      // Parse days parameter - support 'all' or numeric values
-      let days: number | 'all';
-      if (daysParam === 'all') {
-        days = 'all';
-      } else {
-        const parsedDays = parseInt(daysParam, 10);
-        const validDays = [7, 30, 90];
-        if (!validDays.includes(parsedDays)) {
-          return NextResponse.json(
-            { error: 'Invalid days parameter. Must be 7, 30, 90, or "all"' },
-            { status: 400 }
-          );
-        }
-        days = parsedDays;
-      }
-
-      // Get user email from database
       const users = await query<{ username: string }>(
         `SELECT username FROM api_server.users WHERE id = $1`,
         [id]
@@ -147,15 +108,13 @@ export async function GET(
 
       const email = users[0].username;
 
-      // Fetch PostHog data
-      const { events, eventCounts } = await fetchPosthogEventsForEmail(email, days);
+      const { events, eventCounts } = await fetchPosthogEventsForEmail(email);
 
       return NextResponse.json({
         email,
-        days: days === 'all' ? 'all' : days,
         eventCounts,
         events,
-        totalEvents: eventCounts.reduce((sum, ec) => sum + ec.count, 0),
+        totalEvents: events.length,
       });
     } catch (error) {
       console.error('Error fetching PostHog events:', error);

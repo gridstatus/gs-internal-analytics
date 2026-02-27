@@ -26,10 +26,11 @@ import { UserHoverCard } from '@/components/UserHoverCard';
 import { useUserOrgLookup } from '@/hooks/useUserOrgLookup';
 import type { ApiUsageLookupMetaResponse, ApiUsageLookupSegmentResponse } from '@/lib/api-types';
 import { DEFAULT_CHART_LEGEND_PROPS } from '@/lib/chart-defaults';
+import { useFilterStore } from '@/stores/filterStore';
 
 const ID_TYPE_OPTIONS = ['user', 'organization'] as const;
-const PERIOD_OPTIONS = ['week', 'month'] as const;
-const RANGE_OPTIONS = ['1', '3', '6', '12', 'all'] as const;
+const PERIOD_OPTIONS = ['1min', '5min', 'hour', 'day', 'week', 'month'] as const;
+const RANGE_OPTIONS = ['last1h', 'last24h', 'lastWeek', '1', '3', '6', '12', 'all'] as const;
 
 interface SegmentBoundary {
   start: string;
@@ -45,37 +46,87 @@ interface ResultRow {
   userIds: number[];
 }
 
+type PeriodType = (typeof PERIOD_OPTIONS)[number];
+
 function buildSegmentBoundaries(
-  period: 'week' | 'month',
+  period: PeriodType,
   range: string,
-  earliestDate: string | null
+  earliestDate: string | null,
+  timezone: string
 ): SegmentBoundary[] {
   const now = DateTime.utc();
+  const periodUnit =
+    period === 'month'
+      ? 'month'
+      : period === 'week'
+        ? 'week'
+        : period === 'day'
+          ? 'day'
+          : period === 'hour'
+            ? 'hour'
+            : 'minute';
   let startDt: DateTime;
-  if (range === 'all' && earliestDate) {
-    startDt = DateTime.fromISO(earliestDate, { zone: 'utc' }).startOf(period === 'month' ? 'month' : 'week');
+  if (range === 'last1h') {
+    startDt = now.minus({ hours: 1 });
+    if (period === '1min') {
+      startDt = startDt.set({ second: 0, millisecond: 0 });
+    } else if (period === '5min') {
+      const m = startDt.minute;
+      startDt = startDt.set({ minute: Math.floor(m / 5) * 5, second: 0, millisecond: 0 });
+    } else if (period === 'hour') {
+      startDt = startDt.startOf('hour');
+    } else if (period === 'day' || period === 'week' || period === 'month') {
+      startDt = startDt.startOf(periodUnit);
+    }
+  } else if (range === 'last24h') {
+    startDt = now.minus({ hours: 24 }).startOf('hour');
+  } else if (range === 'lastWeek') {
+    startDt = now.minus({ days: 7 }).startOf('day');
+  } else if (range === 'all' && earliestDate) {
+    startDt = DateTime.fromISO(earliestDate, { zone: 'utc' }).startOf(periodUnit);
   } else {
     const months = range === 'all' ? 120 : parseInt(range, 10);
-    startDt = now.minus({ months }).startOf(period === 'month' ? 'month' : 'week');
+    startDt = now.minus({ months }).startOf(periodUnit);
   }
   const endDt = now;
   const segments: SegmentBoundary[] = [];
   let cursor = startDt;
 
+  const segmentIncrement =
+    period === 'month'
+      ? { months: 1 }
+      : period === 'week'
+        ? { weeks: 1 }
+        : period === 'day'
+          ? { days: 1 }
+          : period === 'hour'
+            ? { hours: 1 }
+            : period === '5min'
+              ? { minutes: 5 }
+              : { minutes: 1 };
+  const labelFormat =
+    period === 'month'
+      ? 'yyyy-MM'
+      : period === '1min' || period === '5min'
+        ? 'MM-dd HH:mm'
+        : period === 'hour'
+          ? 'MM-dd HH:00'
+          : 'yyyy-MM-dd';
+
   while (cursor < endDt) {
-    const segmentEnd = period === 'month'
-      ? cursor.plus({ months: 1 })
-      : cursor.plus({ weeks: 1 });
+    const segmentEnd = cursor.plus(segmentIncrement);
     const segmentEndCapped = segmentEnd > endDt ? endDt : segmentEnd;
     segments.push({
       start: cursor.toISO()!,
       end: segmentEndCapped.toISO()!,
-      label: period === 'month' ? cursor.toFormat('yyyy-MM') : cursor.toFormat('yyyy-MM-dd'),
+      label: cursor.setZone(timezone).toFormat(labelFormat),
     });
     cursor = segmentEnd;
   }
 
-  return segments.reverse();
+  // 288 = 5-min buckets in 24h (24 * 60 / 5)
+  const maxIntervals = 288;
+  return segments.slice(-maxIntervals).reverse();
 }
 
 function compactNumber(value: number): string {
@@ -141,6 +192,7 @@ export function ApiUsageLookupView() {
 
   const { userSearch, setUserSearch, orgSearch, setOrgSearch, userOptions, orgOptions } =
     useUserOrgLookup(userId, organizationId);
+  const timezone = useFilterStore((s) => s.timezone);
 
   const handleIdTypeChange = useCallback(
     (v: string) => {
@@ -186,7 +238,7 @@ export function ApiUsageLookupView() {
         }
       }
 
-      const segments = buildSegmentBoundaries(period, range, earliestDate);
+      const segments = buildSegmentBoundaries(period, range, earliestDate, timezone);
       if (segments.length === 0) {
         setLoading(false);
         setProgress(null);
@@ -231,7 +283,7 @@ export function ApiUsageLookupView() {
       setLoading(false);
       setProgress(null);
     }
-  }, [id, idType, period, range]);
+  }, [id, idType, period, range, timezone]);
 
   const cancelRun = useCallback(() => {
     if (abortRef.current) {
@@ -368,8 +420,12 @@ export function ApiUsageLookupView() {
           <SegmentedControl
             size="xs"
             value={period}
-            onChange={(v) => setPeriod(v as 'week' | 'month')}
+            onChange={(v) => setPeriod(v as PeriodType)}
             data={[
+              { label: '1 min', value: '1min' },
+              { label: '5 min', value: '5min' },
+              { label: 'Hour', value: 'hour' },
+              { label: 'Day', value: 'day' },
               { label: 'Week', value: 'week' },
               { label: 'Month', value: 'month' },
             ]}
@@ -377,8 +433,11 @@ export function ApiUsageLookupView() {
           <SegmentedControl
             size="xs"
             value={range}
-            onChange={(v) => setRange(v as typeof RANGE_OPTIONS[number])}
+            onChange={(v) => setRange(v as (typeof RANGE_OPTIONS)[number])}
             data={[
+              { label: '1h', value: 'last1h' },
+              { label: '24h', value: 'last24h' },
+              { label: 'Last week', value: 'lastWeek' },
               { label: '1m', value: '1' },
               { label: '3m', value: '3' },
               { label: '6m', value: '6' },
@@ -428,7 +487,7 @@ export function ApiUsageLookupView() {
                   <Table.Tr style={{ borderBottom: '2px solid var(--mantine-color-default-border)' }}>
                     <Table.Th style={{ width: 90 }}>
                       <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                        Per {period}
+                        Per {period === '1min' ? '1 min' : period === '5min' ? '5 min' : period}
                       </Text>
                     </Table.Th>
                     <Table.Th ta="right"><Text size="xs" c="dimmed" tt="uppercase" fw={600}>Total</Text></Table.Th>

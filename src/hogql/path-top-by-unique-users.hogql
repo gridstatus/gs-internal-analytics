@@ -1,0 +1,12 @@
+-- Pathnames by unique user count in last 24h (logged-in users). {{PATHNAME_FILTER}} not used; {{DATE_FILTER}}, {{USER_FILTER}}, {{LIMIT}}.
+SELECT
+  COALESCE(nullIf(trim(properties.$pathname), ''), '/') AS pathname,
+  COUNT(DISTINCT person_id) AS unique_users
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY pathname
+ORDER BY unique_users DESC
+LIMIT {{LIMIT}}

@@ -221,6 +221,9 @@ Store filter state in the URL to enable deep linking and sharing. This includes 
 ### Cross-App Linking
 Whenever an instance is mentioned (user ID, organization ID, insight ID, etc.), make it a clickable link to its detail page. Use `Anchor` with Next.js `Link`. Examples: User IDs → `/users-list/${userId}`, Domain → `/domains/${domain}`, Post IDs → `/insights/${postId}`.
 
+### External links (open in new tab)
+Links that leave the app must open in a new tab and **show the external-link icon** next to the text.
+
 ### User Name Display
 **Always use `UserHoverCard`** when displaying user names/links (never plain `Anchor`). It provides a clickable link to the user detail page and a lazy-loaded hover card. See `src/components/UserHoverCard.tsx` and `src/components/AlertsView.tsx`.
 

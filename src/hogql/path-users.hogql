@@ -1,0 +1,15 @@
+-- Users who viewed a specific pathname: email, page_views, sessions, days_active. {{PATHNAME_FILTER}}, {{DATE_FILTER}}, {{USER_FILTER}}, {{LIMIT}}.
+SELECT
+  person.properties.email AS email,
+  COUNT(*) AS page_views,
+  COUNT(DISTINCT $session_id) AS sessions,
+  COUNT(DISTINCT toDate(timestamp)) AS days_active
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{PATHNAME_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY person.properties.email
+ORDER BY page_views DESC
+LIMIT {{LIMIT}}

@@ -71,3 +71,26 @@ export async function getApiUsageLookupSegment(
     userIds: row?.user_ids ?? [],
   };
 }
+
+export interface UserLastApiRequestRow {
+  timestamp: Date;
+  rows_returned: number | null;
+  dataset: string | null;
+  client_version: string | null;
+}
+
+export async function getLastApiRequestsForUser(userId: string): Promise<UserLastApiRequestRow[]> {
+  const sql = loadSql('user-last-api-requests.sql', {});
+  const rows = await query<{
+    timestamp: Date;
+    rows_returned: string | number | null;
+    dataset: string | null;
+    client_version: string | null;
+  }>(sql, [userId]);
+  return rows.map((r) => ({
+    timestamp: r.timestamp,
+    rows_returned: r.rows_returned != null ? Number(r.rows_returned) : null,
+    dataset: r.dataset,
+    client_version: r.client_version,
+  }));
+}

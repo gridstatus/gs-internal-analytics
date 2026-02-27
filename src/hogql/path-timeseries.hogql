@@ -1,0 +1,13 @@
+-- Unique sessions and unique users per period for a path (logged-in users). {{PATHNAME_FILTER}}, {{DATE_FILTER}}, {{USER_FILTER}}, {{PERIOD_SELECT}}.
+SELECT
+  {{PERIOD_SELECT}} AS period,
+  COUNT(DISTINCT $session_id) AS unique_sessions,
+  COUNT(DISTINCT person_id) AS unique_users
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{PATHNAME_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY period
+ORDER BY period ASC

@@ -41,6 +41,8 @@ export interface HogqlTemplateContext {
   sameTimeOfDayFilter?: string;
   /** Pathname for path-scoped HogQL (e.g. debug-daily-views-by-path) */
   pathname?: string;
+  /** Entry pathname for referrer queries — filters where $initial_pathname matches */
+  entryPathname?: string;
 }
 
 /**
@@ -226,13 +228,24 @@ export function renderHogqlTemplate(hogql: string, context: HogqlTemplateContext
     rendered = rendered.replace(/\{\{SAME_TIME_OF_DAY_FILTER\}\}/g, '');
   }
 
-  // Handle PATHNAME_FILTER: filter by pathname (e.g. for debug-daily-views-by-path)
+  // Handle PATHNAME_FILTER: filter by pathname (same normalization as top-pages: $pathname → COALESCE)
   if (context.pathname !== undefined && context.pathname !== '') {
     const escaped = String(context.pathname).replace(/\\/g, '\\\\').replace(/'/g, "''");
-    rendered = rendered.replace(/\{\{PATHNAME_FILTER\}\}/g, `properties.pathname = '${escaped}'`);
+    const clause = `(COALESCE(nullIf(trim(properties.$pathname), ''), '/') = '${escaped}')`;
+    rendered = rendered.replace(/\{\{PATHNAME_FILTER\}\}/g, clause);
   } else {
     rendered = rendered.replace(/\s+AND\s+\{\{PATHNAME_FILTER\}\}/g, '');
     rendered = rendered.replace(/\{\{PATHNAME_FILTER\}\}/g, '');
+  }
+
+  // Handle ENTRY_PATHNAME_FILTER: filter where $initial_pathname matches (entry point of session)
+  if (context.entryPathname !== undefined && context.entryPathname !== '') {
+    const escaped = String(context.entryPathname).replace(/\\/g, '\\\\').replace(/'/g, "''");
+    const clause = `COALESCE(properties.$initial_pathname, '/') = '${escaped}'`;
+    rendered = rendered.replace(/\{\{ENTRY_PATHNAME_FILTER\}\}/g, clause);
+  } else {
+    rendered = rendered.replace(/\s+AND\s+\{\{ENTRY_PATHNAME_FILTER\}\}/g, '');
+    rendered = rendered.replace(/\{\{ENTRY_PATHNAME_FILTER\}\}/g, '');
   }
 
   return rendered;

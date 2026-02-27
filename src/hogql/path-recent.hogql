@@ -1,0 +1,11 @@
+-- Pathnames ordered by most recent $pageview (logged-in users). {{USER_FILTER}}, {{LIMIT}}.
+SELECT
+  COALESCE(nullIf(trim(properties.$pathname), ''), '/') AS pathname,
+  max(timestamp) AS last_seen
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{USER_FILTER}}
+GROUP BY pathname
+ORDER BY last_seen DESC
+LIMIT {{LIMIT}}

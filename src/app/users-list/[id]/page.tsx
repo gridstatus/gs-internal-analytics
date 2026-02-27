@@ -138,7 +138,6 @@ interface PostHogEventCount {
 
 interface PostHogData {
   email: string;
-  days: number;
   eventCounts: PostHogEventCount[];
   events: PostHogEvent[];
   totalEvents: number;
@@ -169,18 +168,25 @@ interface PostHogDailyActivityData {
   data: Array<{ day: string; sessions: number; pageViews: number }>;
 }
 
+interface UserApiRequestsData {
+  requests: Array<{
+    timestamp: string;
+    rowsReturned: number | null;
+    dataset: string | null;
+    clientVersion: string | null;
+  }>;
+}
+
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [posthogDays, setPosthogDays] = useState<number | 'all'>(30);
-
   // Fetch main user data
   const userUrl = id ? `/api/users-list?id=${id}` : null;
   const { data, loading, error } = useApiData<UserDetails>(userUrl, [id]);
 
-  // Fetch PostHog events data
-  const posthogUrl = id ? `/api/users-list/${id}/posthog-events?days=${posthogDays === 'all' ? 'all' : posthogDays}` : null;
-  const { data: posthogData, loading: posthogLoading, error: posthogError } = useApiData<PostHogData>(posthogUrl, [id, posthogDays]);
+  // Fetch PostHog events data (last 100 events, no time range)
+  const posthogUrl = id ? `/api/users-list/${id}/posthog-events` : null;
+  const { data: posthogData, loading: posthogLoading, error: posthogError } = useApiData<PostHogData>(posthogUrl, [id]);
 
   // Fetch PostHog session counts
   const sessionsUrl = id ? `/api/users-list/${id}/posthog-sessions` : null;
@@ -194,7 +200,11 @@ export default function UserDetailPage() {
   const topPagesUrl = id ? `/api/users-list/${id}/posthog-top-pages` : null;
   const { data: topPagesData, loading: topPagesLoading } = useApiData<PostHogTopPagesData>(topPagesUrl, [id]);
 
+  const apiRequestsUrl = id ? `/api/users-list/${id}/api-requests` : null;
+  const { data: apiRequestsData, loading: apiRequestsLoading } = useApiData<UserApiRequestsData>(apiRequestsUrl, [id]);
+
   const [activityPeriod, setActivityPeriod] = useQueryState('activity_period', { defaultValue: 'day' });
+  const [posthogEventFilter, setPosthogEventFilter] = useQueryState('posthog_event', { defaultValue: '' });
   const dailyActivityUrl = id
     ? `/api/users-list/${id}/posthog-daily-activity${activityPeriod !== 'day' ? `?period=${activityPeriod}` : ''}`
     : null;
@@ -422,6 +432,55 @@ export default function UserDetailPage() {
             )}
           </Paper>
 
+          {/* Last 10 API requests */}
+          <Paper shadow="sm" p="md" radius="md" withBorder>
+            <Text fw={600} size="lg" mb="md">
+              Last 10 API Requests
+            </Text>
+            {apiRequestsLoading ? (
+              <Stack align="center" py="md">
+                <Loader size="sm" />
+              </Stack>
+            ) : !apiRequestsData || apiRequestsData.requests.length === 0 ? (
+              <Text c="dimmed" size="sm">No API requests</Text>
+            ) : (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Time</Table.Th>
+                    <Table.Th>Rows</Table.Th>
+                    <Table.Th>Dataset</Table.Th>
+                    <Table.Th>Client</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {apiRequestsData.requests.map((req, idx) => (
+                    <Table.Tr key={`${req.timestamp}-${idx}`}>
+                      <Table.Td>
+                        <Text size="xs" title={req.timestamp}>
+                          {formatTimeAgo(req.timestamp)}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>
+                        <Text size="xs">{req.rowsReturned != null ? req.rowsReturned.toLocaleString() : '—'}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" ff="monospace">
+                          {req.dataset ?? '—'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" c="dimmed">
+                          {req.clientVersion ?? '—'}
+                        </Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
+          </Paper>
+
           {/* PostHog Sessions */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Text fw={600} size="lg" mb="md">
@@ -468,9 +527,14 @@ export default function UserDetailPage() {
               <Stack gap="xs">
                 {topPagesData.pages.map((p, i) => (
                   <Group key={i} justify="space-between" wrap="nowrap">
-                    <Text size="sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }} title={p.pathname}>
-                      {p.pathname}
-                    </Text>
+                    <Anchor
+                      component={Link}
+                      href={`/paths${(p.pathname === '/' ? '' : p.pathname.startsWith('/') ? p.pathname : `/${p.pathname}`)}`}
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+                      title={p.pathname}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.pathname}</span>
+                    </Anchor>
                     <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
                       {p.views.toLocaleString()}
                     </Text>
@@ -665,18 +729,8 @@ export default function UserDetailPage() {
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Group justify="space-between" mb="md">
               <Text fw={600} size="lg">
-                PostHog Events {posthogData && `(${posthogData.totalEvents.toLocaleString()} total)`}
+                PostHog Events {posthogData && `(last ${posthogData.events.length} events)`}
               </Text>
-              <SegmentedControl
-                value={posthogDays === 'all' ? 'all' : posthogDays.toString()}
-                onChange={(value) => setPosthogDays(value === 'all' ? 'all' : parseInt(value, 10))}
-                data={[
-                  { label: '7 Days', value: '7' },
-                  { label: '30 Days', value: '30' },
-                  { label: '90 Days', value: '90' },
-                  { label: 'All Time', value: 'all' },
-                ]}
-              />
             </Group>
             
             {posthogError ? (
@@ -685,9 +739,14 @@ export default function UserDetailPage() {
               <Stack align="center" py="xl">
                 <Loader />
               </Stack>
-            ) : !posthogData || posthogData.totalEvents === 0 ? (
+            ) : !posthogData || posthogData.events.length === 0 ? (
               <Text c="dimmed">No PostHog events found for this user</Text>
             ) : (
+              (() => {
+                const filteredEvents = posthogEventFilter
+                  ? posthogData.events.filter((e) => e.event === posthogEventFilter)
+                  : posthogData.events;
+                return (
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl">
                 {/* Event Counts */}
                 <Stack gap="xs">
@@ -702,7 +761,12 @@ export default function UserDetailPage() {
                       </Table.Thead>
                       <Table.Tbody>
                         {posthogData.eventCounts.map((ec) => (
-                          <Table.Tr key={ec.event}>
+                          <Table.Tr
+                            key={ec.event}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setPosthogEventFilter(posthogEventFilter === ec.event ? '' : ec.event)}
+                            bg={posthogEventFilter === ec.event ? 'var(--mantine-color-blue-light)' : undefined}
+                          >
                             <Table.Td>
                               <Text size="sm" ff="monospace">
                                 {ec.event}
@@ -720,53 +784,82 @@ export default function UserDetailPage() {
 
                 {/* Recent Events */}
                 <Stack gap="xs">
-                  <Text fw={600}>Recent Activity (last 100)</Text>
+                  <Group gap="xs">
+                    <Text fw={600}>Recent Activity (last 100)</Text>
+                    {posthogEventFilter && (
+                      <Badge
+                        size="sm"
+                        variant="light"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setPosthogEventFilter('')}
+                      >
+                        {posthogEventFilter} ×
+                      </Badge>
+                    )}
+                  </Group>
                   <ScrollArea h={400}>
                     <Stack gap={4}>
-                      {posthogData.events.map((event, idx) => (
-                        <Group
-                          key={idx}
-                          gap="xs"
-                          wrap="nowrap"
-                          py={6}
-                          style={{
-                            borderBottom: '1px solid var(--mantine-color-default-border)',
-                          }}
-                        >
-                          <Badge
-                            size="xs"
-                            variant="light"
-                            color={
-                              event.event === '$pageview' ? 'blue' :
-                              event.event === '$autocapture' ? 'gray' :
-                              event.event.startsWith('$') ? 'gray' : 'violet'
-                            }
-                            style={{ flexShrink: 0 }}
-                          >
-                            {event.event.replace('$', '')}
-                          </Badge>
-                          <Text
-                            size="sm"
-                            ff="monospace"
-                            style={{
-                              flex: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={event.properties.currentUrl || event.properties.pathname || event.event}
-                          >
-                            {event.properties.pathname || event.event}
-                          </Text>
-                          <Text size="xs" c="dimmed" style={{ flexShrink: 0, minWidth: 50, textAlign: 'right' }}>
-                            {formatTimeAgo(event.timestamp)}
-                          </Text>
-                        </Group>
-                      ))}
+                      {filteredEvents.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          {posthogEventFilter ? `No events of type ${posthogEventFilter}` : 'No events'}
+                        </Text>
+                      ) : (
+                        filteredEvents.map((event, idx) => (
+                            <Group
+                              key={`${event.timestamp}-${idx}`}
+                              gap="xs"
+                              wrap="nowrap"
+                              py={6}
+                              style={{
+                                borderBottom: '1px solid var(--mantine-color-default-border)',
+                              }}
+                            >
+                              <Badge
+                                size="xs"
+                                variant="light"
+                                color={
+                                  event.event === '$pageview' ? 'blue' :
+                                  event.event === '$autocapture' ? 'gray' :
+                                  event.event.startsWith('$') ? 'gray' : 'violet'
+                                }
+                                style={{ flexShrink: 0 }}
+                              >
+                                {event.event.replace('$', '')}
+                              </Badge>
+                              <Text
+                                size="sm"
+                                ff="monospace"
+                                style={{
+                                  flex: 1,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={event.properties.currentUrl || event.properties.pathname || event.event}
+                              >
+                                {event.properties.pathname || event.event}
+                              </Text>
+                              <Text
+                                size="xs"
+                                c="dimmed"
+                                style={{ flexShrink: 0, minWidth: 50, textAlign: 'right' }}
+                                title={new Date(event.timestamp).toLocaleString(undefined, {
+                                  timeZone: timezone,
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short',
+                                })}
+                              >
+                                {formatTimeAgo(event.timestamp)}
+                              </Text>
+                            </Group>
+                        ))
+                      )}
                     </Stack>
                   </ScrollArea>
                 </Stack>
               </SimpleGrid>
+                );
+              })()
             )}
           </Paper>
 

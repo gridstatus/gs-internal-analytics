@@ -1,0 +1,10 @@
+-- Aggregate stats for a pathname: total views and unique users. {{PATHNAME_FILTER}}, {{DATE_FILTER}}, {{USER_FILTER}}.
+SELECT
+  COUNT(*) AS views,
+  COUNT(DISTINCT person.id) AS unique_users
+FROM events
+WHERE event = '$pageview'
+  AND {{LOGGED_IN_USER_FILTER}}
+  AND {{PATHNAME_FILTER}}
+  AND {{DATE_FILTER}}
+  AND {{USER_FILTER}}
